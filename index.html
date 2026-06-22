@@ -100,16 +100,18 @@
 
     .toast {
       position: fixed;
-      top: 50%;
       left: 50%;
-      transform: translate(-50%, -46%) scale(.97);
+      right: auto;
+      bottom: calc(1.15rem + env(safe-area-inset-bottom));
+      top: auto;
+      transform: translate(-50%, 16px) scale(.97);
       transition: opacity .24s ease, transform .24s cubic-bezier(.16, 1, .3, 1);
       z-index: 9999;
       opacity: 0;
       pointer-events: none;
     }
 
-    .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto; }
 
     .spinner {
       border: 3px solid rgba(255, 255, 255, .30);
@@ -171,64 +173,6 @@
 
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
 
-    .date-picker {
-      display: grid;
-      grid-template-columns: .85fr 1.35fr 1fr;
-      gap: .55rem;
-    }
-
-    .date-select {
-      width: 100%;
-      border: 1px solid rgba(51, 65, 85, .95);
-      background:
-        linear-gradient(180deg, rgba(15, 23, 42, .96), rgba(2, 6, 23, .92));
-      color: #f8fafc;
-      border-radius: .9rem;
-      padding: .78rem .85rem;
-      font-size: .875rem;
-      font-weight: 700;
-      outline: none;
-      transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
-      appearance: none;
-      -webkit-appearance: none;
-      background-image:
-        linear-gradient(45deg, transparent 50%, #67e8f9 50%),
-        linear-gradient(135deg, #67e8f9 50%, transparent 50%),
-        linear-gradient(180deg, rgba(15, 23, 42, .96), rgba(2, 6, 23, .92));
-      background-position:
-        calc(100% - 18px) calc(50% - 3px),
-        calc(100% - 13px) calc(50% - 3px),
-        0 0;
-      background-size: 5px 5px, 5px 5px, 100% 100%;
-      background-repeat: no-repeat;
-      padding-right: 2.1rem;
-    }
-
-    .date-select:focus {
-      border-color: rgba(34, 211, 238, .9);
-      box-shadow: 0 0 0 4px rgba(6, 182, 212, .13);
-    }
-
-    .date-select option {
-      background: #0f172a;
-      color: #f8fafc;
-    }
-
-    .date-summary {
-      display: inline-flex;
-      align-items: center;
-      gap: .45rem;
-      margin-top: .55rem;
-      border: 1px solid rgba(6, 182, 212, .18);
-      background: rgba(6, 182, 212, .08);
-      color: #bae6fd;
-      border-radius: 999px;
-      padding: .35rem .65rem;
-      font-size: .7rem;
-      font-weight: 800;
-    }
-
-
     @media (max-width: 1023px) {
       body { align-items: flex-start; }
       .mobile-hero { display: block; }
@@ -238,7 +182,6 @@
       .toast { width: calc(100% - 2rem); max-width: calc(100% - 2rem); }
       input, button, select, textarea { font-size: 16px; }
       .form-grid { grid-template-columns: 1fr; }
-      .date-picker { grid-template-columns: 1fr; }
       .login-card { padding: 1.25rem; border-radius: 1.25rem; }
       .main-shell { padding: .9rem; min-height: 100svh; align-items: flex-start; }
       .mobile-hero h2 { font-size: 2rem; line-height: 1.08; }
@@ -284,7 +227,7 @@
           <div class="form-grid">
             <div>
               <label for="profileNoHp" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">No. HP</label>
-              <input id="profileNoHp" type="tel" inputmode="tel" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="08xxxxxxxxxx">
+              <input id="profileNoHp" type="tel" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="08xxxxxxxxxx">
             </div>
             <div>
               <label for="profileEmail" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
@@ -292,13 +235,8 @@
             </div>
           </div>
           <div>
-            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
-            <div class="date-picker" data-picker="profileTanggal">
-              <select id="profileTanggalDay" class="date-select" aria-label="Tanggal lahir"></select>
-              <select id="profileTanggalMonth" class="date-select" aria-label="Bulan lahir"></select>
-              <select id="profileTanggalYear" class="date-select" aria-label="Tahun lahir"></select>
-            </div>
-            <div id="profileTanggalSummary" class="date-summary hidden">Tanggal lahir belum dipilih</div>
+            <label for="profileTanggalLahir" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
+            <input id="profileTanggalLahir" type="date" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white focus:outline-none">
           </div>
           <button id="profileBtn" type="submit" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-extrabold text-white transition-all">
             <span id="profileBtnText">Simpan & Lanjut</span>
@@ -381,7 +319,7 @@
             <label for="username" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Username</label>
             <div class="input-wrap flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950/80 px-4 transition-all duration-200">
               <span class="flat-icon text-slate-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"/></svg></span>
-              <input type="text" id="username" required autocomplete="username" inputmode="text" class="w-full bg-transparent py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Masukkan username Anda">
+              <input type="text" id="username" required autocomplete="username" class="w-full bg-transparent py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Masukkan username Anda">
             </div>
           </div>
 
@@ -408,7 +346,7 @@
           <div class="form-grid">
             <div>
               <label for="regUsername" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Username</label>
-              <input id="regUsername" type="text" required autocomplete="username" inputmode="text" class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="tanpa spasi">
+              <input id="regUsername" type="text" required autocomplete="username" class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="tanpa spasi">
             </div>
             <div>
               <label for="regNama" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Nama Lengkap</label>
@@ -435,7 +373,7 @@
           <div class="form-grid">
             <div>
               <label for="regNoHp" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">No. HP</label>
-              <input id="regNoHp" type="tel" inputmode="tel" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="08xxxxxxxxxx">
+              <input id="regNoHp" type="tel" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="08xxxxxxxxxx">
             </div>
             <div>
               <label for="regEmail" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
@@ -444,13 +382,8 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
-            <div class="date-picker" data-picker="regTanggal">
-              <select id="regTanggalDay" class="date-select" aria-label="Tanggal lahir"></select>
-              <select id="regTanggalMonth" class="date-select" aria-label="Bulan lahir"></select>
-              <select id="regTanggalYear" class="date-select" aria-label="Tahun lahir"></select>
-            </div>
-            <div id="regTanggalSummary" class="date-summary hidden">Tanggal lahir belum dipilih</div>
+            <label for="regTanggalLahir" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
+            <input id="regTanggalLahir" type="date" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white focus:outline-none">
           </div>
 
           <button type="submit" id="registerBtn" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition-all duration-200">
@@ -476,7 +409,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       setupMobileIntro();
-      setupDatePickers();
       loadOutletsForRegister();
       validateExistingSession();
     });
@@ -605,110 +537,6 @@
       if (current) select.value = current;
     }
 
-
-    const APJ_MONTHS = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-
-    function setupDatePickers() {
-      populateDatePicker('regTanggal');
-      populateDatePicker('profileTanggal');
-    }
-
-    function populateDatePicker(prefix) {
-      const dayEl = document.getElementById(prefix + 'Day');
-      const monthEl = document.getElementById(prefix + 'Month');
-      const yearEl = document.getElementById(prefix + 'Year');
-      if (!dayEl || !monthEl || !yearEl) return;
-
-      dayEl.innerHTML = '<option value="">Tanggal</option>';
-      for (let d = 1; d <= 31; d++) {
-        const option = document.createElement('option');
-        option.value = String(d).padStart(2, '0');
-        option.textContent = String(d).padStart(2, '0');
-        dayEl.appendChild(option);
-      }
-
-      monthEl.innerHTML = '<option value="">Bulan</option>';
-      APJ_MONTHS.forEach((name, index) => {
-        const option = document.createElement('option');
-        option.value = String(index + 1).padStart(2, '0');
-        option.textContent = name;
-        monthEl.appendChild(option);
-      });
-
-      const currentYear = new Date().getFullYear();
-      yearEl.innerHTML = '<option value="">Tahun</option>';
-      for (let y = currentYear; y >= 1950; y--) {
-        const option = document.createElement('option');
-        option.value = String(y);
-        option.textContent = String(y);
-        yearEl.appendChild(option);
-      }
-
-      [dayEl, monthEl, yearEl].forEach(el => {
-        el.addEventListener('change', () => updateDateSummary(prefix));
-      });
-      updateDateSummary(prefix);
-    }
-
-    function getDatePickerValue(prefix) {
-      const day = document.getElementById(prefix + 'Day')?.value || '';
-      const month = document.getElementById(prefix + 'Month')?.value || '';
-      const year = document.getElementById(prefix + 'Year')?.value || '';
-      if (!day || !month || !year) return '';
-      const date = new Date(Number(year), Number(month) - 1, Number(day));
-      const valid = date.getFullYear() === Number(year) && date.getMonth() === Number(month) - 1 && date.getDate() === Number(day);
-      return valid ? `${year}-${month}-${day}` : '';
-    }
-
-    function setDatePickerValue(prefix, value) {
-      const parts = parseDateParts(value);
-      const dayEl = document.getElementById(prefix + 'Day');
-      const monthEl = document.getElementById(prefix + 'Month');
-      const yearEl = document.getElementById(prefix + 'Year');
-      if (!dayEl || !monthEl || !yearEl) return;
-      dayEl.value = parts?.day || '';
-      monthEl.value = parts?.month || '';
-      yearEl.value = parts?.year || '';
-      updateDateSummary(prefix);
-    }
-
-    function parseDateParts(value) {
-      const s = String(value || '').trim();
-      let m;
-      if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) {
-        return { year: m[1], month: String(m[2]).padStart(2, '0'), day: String(m[3]).padStart(2, '0') };
-      }
-      if ((m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/))) {
-        const year = m[3].length === 2 ? '20' + m[3] : m[3];
-        return { year, month: String(m[2]).padStart(2, '0'), day: String(m[1]).padStart(2, '0') };
-      }
-      return null;
-    }
-
-    function updateDateSummary(prefix) {
-      const summary = document.getElementById(prefix + 'Summary');
-      if (!summary) return;
-      const day = document.getElementById(prefix + 'Day')?.value || '';
-      const month = document.getElementById(prefix + 'Month')?.value || '';
-      const year = document.getElementById(prefix + 'Year')?.value || '';
-      if (!day || !month || !year) {
-        summary.classList.add('hidden');
-        summary.textContent = 'Tanggal lahir belum dipilih';
-        return;
-      }
-      const dateValue = getDatePickerValue(prefix);
-      if (!dateValue) {
-        summary.classList.remove('hidden');
-        summary.textContent = 'Tanggal lahir tidak valid';
-        return;
-      }
-      summary.classList.remove('hidden');
-      summary.textContent = `${day} ${APJ_MONTHS[Number(month) - 1]} ${year}`;
-    }
-
     async function handleLogin(event) {
       event.preventDefault();
       const usernameInput = document.getElementById('username').value.trim();
@@ -774,14 +602,10 @@
       const outletUtama = document.getElementById('regOutlet').value;
       const noHp = document.getElementById('regNoHp').value.trim();
       const email = document.getElementById('regEmail').value.trim();
-      const tanggalLahir = getDatePickerValue('regTanggal');
+      const tanggalLahir = document.getElementById('regTanggalLahir').value;
 
       if (/\s/.test(username)) {
         showPopup('Username tidak boleh memakai spasi.', 'error');
-        return;
-      }
-      if (!tanggalLahir) {
-        showPopup('Tanggal lahir belum lengkap atau tidak valid.', 'error');
         return;
       }
 
@@ -824,7 +648,7 @@
     function fillProfileModal(profile) {
       document.getElementById('profileNoHp').value = profile?.noHp || '';
       document.getElementById('profileEmail').value = profile?.email || '';
-      setDatePickerValue('profileTanggal', profile?.tanggalLahir || '');
+      document.getElementById('profileTanggalLahir').value = toDateInputValue(profile?.tanggalLahir || '');
     }
 
     function toDateInputValue(value) {
@@ -840,12 +664,7 @@
       event.preventDefault();
       const noHp = document.getElementById('profileNoHp').value.trim();
       const email = document.getElementById('profileEmail').value.trim();
-      const tanggalLahir = getDatePickerValue('profileTanggal');
-
-      if (!tanggalLahir) {
-        showPopup('Tanggal lahir belum lengkap atau tidak valid.', 'error');
-        return;
-      }
+      const tanggalLahir = document.getElementById('profileTanggalLahir').value;
 
       setLoading('profile', true, 'Menyimpan profil...');
       try {
