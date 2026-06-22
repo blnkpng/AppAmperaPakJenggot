@@ -173,6 +173,42 @@
 
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
 
+
+    .date-select-grid {
+      display: grid;
+      grid-template-columns: .85fr 1.25fr 1fr;
+      gap: .65rem;
+    }
+
+    .apj-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: rgba(2, 6, 23, .80);
+      background-image:
+        linear-gradient(45deg, transparent 50%, rgba(125, 211, 252, .95) 50%),
+        linear-gradient(135deg, rgba(125, 211, 252, .95) 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) calc(50% - 3px),
+        calc(100% - 12px) calc(50% - 3px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+      color: #f8fafc;
+      border: 1px solid rgba(51, 65, 85, .94);
+      transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+
+    .apj-select:focus {
+      outline: none;
+      border-color: rgba(14, 165, 233, .95);
+      box-shadow: 0 0 0 4px rgba(14, 165, 233, .12);
+      background-color: rgba(15, 23, 42, .92);
+    }
+
+    .apj-select option {
+      background: #0f172a;
+      color: #f8fafc;
+    }
+
     @media (max-width: 1023px) {
       body { align-items: flex-start; }
       .mobile-hero { display: block; }
@@ -182,6 +218,7 @@
       .toast { width: calc(100% - 2rem); max-width: calc(100% - 2rem); }
       input, button, select, textarea { font-size: 16px; }
       .form-grid { grid-template-columns: 1fr; }
+      .date-select-grid { grid-template-columns: 1fr; }
       .login-card { padding: 1.25rem; border-radius: 1.25rem; }
       .main-shell { padding: .9rem; min-height: 100svh; align-items: flex-start; }
       .mobile-hero h2 { font-size: 2rem; line-height: 1.08; }
@@ -238,8 +275,19 @@
             </div>
           </div>
           <div>
-            <label for="profileTanggalLahir" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
-            <input id="profileTanggalLahir" type="date" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white focus:outline-none">
+            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
+            <div class="date-select-grid">
+              <select id="profileBirthDay" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
+                <option value="">Tanggal</option>
+              </select>
+              <select id="profileBirthMonth" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
+                <option value="">Bulan</option>
+              </select>
+              <select id="profileBirthYear" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
+                <option value="">Tahun</option>
+              </select>
+            </div>
+            <input id="profileTanggalLahir" type="hidden">
           </div>
           <button id="profileBtn" type="submit" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-extrabold text-white transition-all">
             <span id="profileBtnText">Simpan & Lanjut</span>
@@ -385,8 +433,19 @@
           </div>
 
           <div>
-            <label for="regTanggalLahir" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
-            <input id="regTanggalLahir" type="date" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white focus:outline-none">
+            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
+            <div class="date-select-grid">
+              <select id="regBirthDay" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
+                <option value="">Tanggal</option>
+              </select>
+              <select id="regBirthMonth" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
+                <option value="">Bulan</option>
+              </select>
+              <select id="regBirthYear" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
+                <option value="">Tahun</option>
+              </select>
+            </div>
+            <input id="regTanggalLahir" type="hidden">
           </div>
 
           <button type="submit" id="registerBtn" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition-all duration-200">
@@ -415,6 +474,7 @@
       currentSessionToken = '';
       currentProfile = null;
       setupMobileIntro();
+      initBirthDateSelects();
       loadOutletsForRegister();
       validateExistingSession();
     });
@@ -496,6 +556,101 @@
         })
       });
       return response.json();
+    }
+
+    const APJ_MONTHS_ID = [
+      { value: '01', label: 'Januari' },
+      { value: '02', label: 'Februari' },
+      { value: '03', label: 'Maret' },
+      { value: '04', label: 'April' },
+      { value: '05', label: 'Mei' },
+      { value: '06', label: 'Juni' },
+      { value: '07', label: 'Juli' },
+      { value: '08', label: 'Agustus' },
+      { value: '09', label: 'September' },
+      { value: '10', label: 'Oktober' },
+      { value: '11', label: 'November' },
+      { value: '12', label: 'Desember' }
+    ];
+
+    function initBirthDateSelects() {
+      setupBirthSelects('reg');
+      setupBirthSelects('profile');
+    }
+
+    function setupBirthSelects(prefix) {
+      const day = document.getElementById(prefix + 'BirthDay');
+      const month = document.getElementById(prefix + 'BirthMonth');
+      const year = document.getElementById(prefix + 'BirthYear');
+      if (!day || !month || !year) return;
+
+      if (day.options.length <= 1) {
+        for (let i = 1; i <= 31; i++) {
+          const opt = document.createElement('option');
+          opt.value = String(i).padStart(2, '0');
+          opt.textContent = String(i).padStart(2, '0');
+          day.appendChild(opt);
+        }
+      }
+
+      if (month.options.length <= 1) {
+        APJ_MONTHS_ID.forEach(item => {
+          const opt = document.createElement('option');
+          opt.value = item.value;
+          opt.textContent = item.label;
+          month.appendChild(opt);
+        });
+      }
+
+      if (year.options.length <= 1) {
+        const thisYear = new Date().getFullYear();
+        for (let y = thisYear; y >= 1950; y--) {
+          const opt = document.createElement('option');
+          opt.value = String(y);
+          opt.textContent = String(y);
+          year.appendChild(opt);
+        }
+      }
+
+      [day, month, year].forEach(el => el.addEventListener('change', () => updateBirthHidden(prefix)));
+    }
+
+    function getSelectedBirthDate(prefix) {
+      const day = document.getElementById(prefix + 'BirthDay')?.value || '';
+      const month = document.getElementById(prefix + 'BirthMonth')?.value || '';
+      const year = document.getElementById(prefix + 'BirthYear')?.value || '';
+      if (!day || !month || !year) return '';
+      return `${day}/${month}/${year}`;
+    }
+
+    function updateBirthHidden(prefix) {
+      const hidden = document.getElementById(prefix + 'TanggalLahir');
+      if (hidden) hidden.value = getSelectedBirthDate(prefix);
+    }
+
+    function setBirthDate(prefix, value) {
+      const parsed = parseBirthDateParts(value);
+      const day = document.getElementById(prefix + 'BirthDay');
+      const month = document.getElementById(prefix + 'BirthMonth');
+      const year = document.getElementById(prefix + 'BirthYear');
+      if (!day || !month || !year) return;
+      day.value = parsed.day || '';
+      month.value = parsed.month || '';
+      year.value = parsed.year || '';
+      updateBirthHidden(prefix);
+    }
+
+    function parseBirthDateParts(value) {
+      const s = String(value || '').trim();
+      if (!s) return { day: '', month: '', year: '' };
+      let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (m) return { day: String(m[3]).padStart(2, '0'), month: String(m[2]).padStart(2, '0'), year: m[1] };
+      m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (m) {
+        const yy = m[3].length === 2 ? '20' + m[3] : m[3];
+        return { day: String(m[1]).padStart(2, '0'), month: String(m[2]).padStart(2, '0'), year: yy };
+      }
+      return { day: '', month: '', year: '' };
     }
 
     async function validateExistingSession() {
@@ -618,10 +773,15 @@
       const outletUtama = document.getElementById('regOutlet').value;
       const noHp = document.getElementById('regNoHp').value.trim();
       const email = document.getElementById('regEmail').value.trim();
-      const tanggalLahir = document.getElementById('regTanggalLahir').value;
+      const tanggalLahir = getSelectedBirthDate('reg');
 
       if (/\s/.test(username)) {
         showPopup('Username tidak boleh memakai spasi.', 'error');
+        return;
+      }
+
+      if (!tanggalLahir) {
+        showPopup('Tanggal lahir wajib dipilih lengkap: tanggal, bulan, dan tahun.', 'error');
         return;
       }
 
@@ -647,6 +807,7 @@
 
         showPopup('Pendaftaran terkirim. Tunggu Owner/Admin mengaktifkan akun.', 'success');
         document.getElementById('registerForm').reset();
+        setBirthDate('reg', '');
         document.getElementById('username').value = username;
         switchMode('login');
         setLoading('register', false, 'Kirim Pendaftaran');
@@ -674,17 +835,9 @@
       }
       document.getElementById('profileNoHp').value = profile?.noHp || '';
       document.getElementById('profileEmail').value = profile?.email || '';
-      document.getElementById('profileTanggalLahir').value = toDateInputValue(profile?.tanggalLahir || '');
+      setBirthDate('profile', profile?.tanggalLahir || '');
     }
 
-    function toDateInputValue(value) {
-      const s = String(value || '').trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-      const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-      if (!m) return '';
-      const y = m[3].length === 2 ? '20' + m[3] : m[3];
-      return `${y}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
-    }
 
     async function handleProfileSubmit(event) {
       event.preventDefault();
@@ -699,7 +852,12 @@
 
       const noHp = document.getElementById('profileNoHp').value.trim();
       const email = document.getElementById('profileEmail').value.trim();
-      const tanggalLahir = document.getElementById('profileTanggalLahir').value;
+      const tanggalLahir = getSelectedBirthDate('profile');
+
+      if (!tanggalLahir) {
+        showPopup('Tanggal lahir wajib dipilih lengkap: tanggal, bulan, dan tahun.', 'error');
+        return;
+      }
 
       setLoading('profile', true, 'Menyimpan profil...');
       try {
