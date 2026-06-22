@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Login | APJ Central</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --apj-bg: #0f172a;
+      --apj-card: rgba(15, 23, 42, .86);
+      --apj-border: rgba(51, 65, 85, .78);
+      --apj-blue: #2563eb;
+      --apj-cyan: #06b6d4;
+      --apj-emerald: #10b981;
+      --apj-rose: #f43f5e;
+      --apj-amber: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; }
+
+    body {
+      min-height: 100vh;
+      min-height: 100svh;
+      font-family: 'Inter', sans-serif;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(37, 99, 235, .20), transparent 32%),
+        radial-gradient(circle at 82% 15%, rgba(6, 182, 212, .16), transparent 28%),
+        radial-gradient(circle at 70% 86%, rgba(16, 185, 129, .12), transparent 24%),
+        linear-gradient(135deg, #020617 0%, #0f172a 52%, #111827 100%);
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(148, 163, 184, .05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, .05) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: radial-gradient(circle at center, black 0%, transparent 78%);
+    }
+
+    .login-card,
+    .glass-panel {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(15, 23, 42, .88), rgba(2, 6, 23, .92));
+      border: 1px solid var(--apj-border);
+      box-shadow: 0 26px 90px rgba(0, 0, 0, .50), inset 0 1px 0 rgba(255,255,255,.04);
+      backdrop-filter: blur(18px);
+    }
+
+    .login-card::before,
+    .glass-panel::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: linear-gradient(120deg, rgba(37, 99, 235, .38), transparent 28%, transparent 65%, rgba(6, 182, 212, .26));
+      opacity: .75;
+      pointer-events: none;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      padding: 1px;
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      border-radius: inherit;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(38px);
+      opacity: .45;
+      animation: floatOrb 7s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .orb-a { width: 170px; height: 170px; background: #2563eb; left: -90px; top: -70px; }
+    .orb-b { width: 150px; height: 150px; background: #06b6d4; right: -80px; bottom: -70px; animation-delay: -2s; }
+
+    @keyframes floatOrb {
+      0%, 100% { transform: translate3d(0,0,0) scale(1); }
+      50% { transform: translate3d(12px,-10px,0) scale(1.06); }
+    }
+
+    .animate-fade-in-up { animation: fadeInUp .55s cubic-bezier(.16, 1, .3, 1) forwards; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(18px) scale(.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -46%) scale(.97);
+      transition: opacity .24s ease, transform .24s cubic-bezier(.16, 1, .3, 1);
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, .30);
+      border-radius: 50%;
+      border-top: 3px solid #fff;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .input-wrap:focus-within {
+      border-color: rgba(59, 130, 246, .95);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
+    }
+
+    .flat-icon { display: inline-flex; align-items: center; justify-content: center; color: currentColor; flex-shrink: 0; }
+    .flat-icon svg { display: block; }
+
+    .primary-btn {
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      box-shadow: 0 16px 32px rgba(37, 99, 235, .24);
+    }
+    .primary-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    .primary-btn:active { transform: translateY(0); }
+    .primary-btn:disabled { opacity: .72; cursor: not-allowed; transform: none; filter: none; }
+
+    .soft-btn {
+      background: rgba(15, 23, 42, .74);
+      border: 1px solid rgba(71, 85, 105, .8);
+    }
+    .soft-btn:hover { border-color: rgba(6, 182, 212, .65); color: #e0f2fe; }
+
+    .tab-btn {
+      border: 1px solid rgba(71, 85, 105, .7);
+      background: rgba(15, 23, 42, .62);
+      color: #94a3b8;
+    }
+    .tab-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, rgba(37, 99, 235, .92), rgba(14, 165, 233, .88));
+      border-color: rgba(125, 211, 252, .28);
+      box-shadow: 0 12px 26px rgba(37, 99, 235, .22);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(2, 6, 23, .78);
+      backdrop-filter: blur(12px);
+    }
+    .modal-backdrop.show { display: flex; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
+
+    .date-picker {
+      display: grid;
+      grid-template-columns: .85fr 1.35fr 1fr;
+      gap: .55rem;
+    }
+
+    .date-select {
+      width: 100%;
+      border: 1px solid rgba(51, 65, 85, .95);
+      background:
+        linear-gradient(180deg, rgba(15, 23, 42, .96), rgba(2, 6, 23, .92));
+      color: #f8fafc;
+      border-radius: .9rem;
+      padding: .78rem .85rem;
+      font-size: .875rem;
+      font-weight: 700;
+      outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, #67e8f9 50%),
+        linear-gradient(135deg, #67e8f9 50%, transparent 50%),
+        linear-gradient(180deg, rgba(15, 23, 42, .96), rgba(2, 6, 23, .92));
+      background-position:
+        calc(100% - 18px) calc(50% - 3px),
+        calc(100% - 13px) calc(50% - 3px),
+        0 0;
+      background-size: 5px 5px, 5px 5px, 100% 100%;
+      background-repeat: no-repeat;
+      padding-right: 2.1rem;
+    }
+
+    .date-select:focus {
+      border-color: rgba(34, 211, 238, .9);
+      box-shadow: 0 0 0 4px rgba(6, 182, 212, .13);
+    }
+
+    .date-select option {
+      background: #0f172a;
+      color: #f8fafc;
+    }
+
+    .date-summary {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      margin-top: .55rem;
+      border: 1px solid rgba(6, 182, 212, .18);
+      background: rgba(6, 182, 212, .08);
+      color: #bae6fd;
+      border-radius: 999px;
+      padding: .35rem .65rem;
+      font-size: .7rem;
+      font-weight: 800;
+    }
+
+
+    @media (max-width: 1023px) {
+      body { align-items: flex-start; }
+      .mobile-hero { display: block; }
+    }
+
+    @media (max-width: 640px) {
+      .toast { width: calc(100% - 2rem); max-width: calc(100% - 2rem); }
+      input, button, select, textarea { font-size: 16px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .date-picker { grid-template-columns: 1fr; }
+      .login-card { padding: 1.25rem; border-radius: 1.25rem; }
+      .main-shell { padding: .9rem; min-height: 100svh; align-items: flex-start; }
+      .mobile-hero h2 { font-size: 2rem; line-height: 1.08; }
+      .feature-card { padding: .85rem; }
+    }
+  </style>
+</head>
+<body class="antialiased">
+  <div id="customToast" class="toast flex items-center w-full max-w-md p-4 rounded-xl shadow-2xl border backdrop-blur-md" role="alert" aria-live="polite" aria-atomic="true">
+    <div class="inline-flex items-center justify-center flex-shrink-0 w-9 h-9 rounded-xl" id="toastIconContainer">
+      <svg id="toastIcon" class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"></svg>
+    </div>
+    <div class="ml-3 text-sm font-semibold leading-relaxed" id="toastMessage"></div>
+  </div>
+
+  <div id="mobileIntroModal" class="modal-backdrop lg:hidden" aria-modal="true" role="dialog">
+    <div class="glass-panel w-full max-w-sm rounded-3xl p-6 text-center animate-fade-in-up opacity-0">
+      <div class="relative">
+        <div class="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/25 bg-cyan-500/12 text-cyan-200">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h10M4 18h16"/></svg>
+        </div>
+        <h2 class="text-2xl font-black text-white tracking-tight">Selamat datang di APJ Central</h2>
+        <p class="mt-3 text-sm leading-6 text-slate-300">Satu pintu untuk login operasional APJ. Inventory aktif dulu, absensi dan modul lain menyusul bertahap.</p>
+        <button type="button" onclick="closeMobileIntro()" class="primary-btn mt-5 w-full rounded-2xl px-4 py-3 text-sm font-extrabold text-white transition-all">Lanjut ke Login</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="profileModal" class="modal-backdrop" aria-modal="true" role="dialog">
+    <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-7 animate-fade-in-up opacity-0">
+      <div class="relative">
+        <div class="flex items-start gap-4">
+          <div class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-300">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"/></svg>
+          </div>
+          <div>
+            <h2 class="text-xl font-black text-white">Lengkapi Data Profil</h2>
+            <p class="mt-1 text-sm leading-6 text-slate-400">Data ini dibutuhkan untuk dashboard APJ, kontak karyawan, dan fitur ulang tahun.</p>
+          </div>
+        </div>
+
+        <form id="profileForm" class="mt-5 space-y-4" onsubmit="handleProfileSubmit(event)">
+          <div class="form-grid">
+            <div>
+              <label for="profileNoHp" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">No. HP</label>
+              <input id="profileNoHp" type="tel" inputmode="tel" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="08xxxxxxxxxx">
+            </div>
+            <div>
+              <label for="profileEmail" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
+              <input id="profileEmail" type="email" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="nama@email.com">
+            </div>
+          </div>
+          <div>
+            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
+            <div class="date-picker" data-picker="profileTanggal">
+              <select id="profileTanggalDay" class="date-select" aria-label="Tanggal lahir"></select>
+              <select id="profileTanggalMonth" class="date-select" aria-label="Bulan lahir"></select>
+              <select id="profileTanggalYear" class="date-select" aria-label="Tahun lahir"></select>
+            </div>
+            <div id="profileTanggalSummary" class="date-summary hidden">Tanggal lahir belum dipilih</div>
+          </div>
+          <button id="profileBtn" type="submit" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-extrabold text-white transition-all">
+            <span id="profileBtnText">Simpan & Lanjut</span>
+            <span id="profileSpinner" class="spinner hidden"></span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <main class="main-shell relative z-10 flex min-h-screen min-h-[100svh] w-full items-center justify-center p-4">
+    <div class="relative grid w-full max-w-6xl grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-8">
+      <section class="hidden px-2 opacity-0 lg:block animate-fade-in-up" style="animation-delay:.05s;">
+        <div class="inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-4 py-2 text-xs font-bold text-blue-200 shadow-lg shadow-blue-950/20">
+          <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,.12)]"></span>
+          <span>Sistem pusat operasional APJ</span>
+        </div>
+
+        <h2 class="mt-7 text-4xl font-extrabold leading-tight tracking-tight text-white xl:text-5xl">
+          Satu pintu APJ,<br>
+          kerja rapi,<br>
+          tim kompak.
+        </h2>
+        <p class="mt-5 max-w-xl text-sm leading-7 text-slate-300 xl:text-base">
+          Login pusat untuk Inventory, Absensi, Keuangan, dan operasional APJ. Data user cukup satu sumber, akses lebih aman, dan pengembangan modul baru jadi lebih ringan.
+        </p>
+
+        <div class="mt-8 grid max-w-xl grid-cols-3 gap-3">
+          <div class="feature-card rounded-2xl border border-slate-700/70 bg-slate-950/55 p-4 backdrop-blur-sm">
+            <div class="flat-icon mb-2 text-blue-300"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 8.5 12 3 3 8.5m18 0-9 5.2m9-5.2v7L12 21m0-7.3L3 8.5m9 5.2V21M3 8.5v7L12 21"/></svg></div>
+            <p class="text-xs text-slate-400">Inventory</p>
+            <p class="mt-1 text-sm font-bold text-white">Terpantau</p>
+          </div>
+          <div class="feature-card rounded-2xl border border-slate-700/70 bg-slate-950/55 p-4 backdrop-blur-sm">
+            <div class="flat-icon mb-2 text-cyan-300"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3M4 11h16M6 21h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"/></svg></div>
+            <p class="text-xs text-slate-400">Absensi</p>
+            <p class="mt-1 text-sm font-bold text-white">Terpusat</p>
+          </div>
+          <div class="feature-card rounded-2xl border border-slate-700/70 bg-slate-950/55 p-4 backdrop-blur-sm">
+            <div class="flat-icon mb-2 text-emerald-300"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 19V5m0 14h16M8 16v-5m4 5V8m4 8v-7"/></svg></div>
+            <p class="text-xs text-slate-400">Dashboard</p>
+            <p class="mt-1 text-sm font-bold text-white">Siap Tumbuh</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="mobile-hero mb-1 px-1 text-center lg:hidden">
+        <div class="inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-4 py-2 text-xs font-bold text-blue-200">
+          <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+          <span>APJ Central</span>
+        </div>
+        <h2 class="mt-4 font-black tracking-tight text-white">Satu pintu APJ, kerja rapi.</h2>
+        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-300">Login pusat untuk Inventory, Absensi, Keuangan, dan operasional APJ.</p>
+      </section>
+
+      <section class="login-card mx-auto w-full max-w-md rounded-2xl p-7 opacity-0 sm:p-8 animate-fade-in-up" style="animation-delay:.12s;">
+        <div class="orb orb-a"></div>
+        <div class="orb orb-b"></div>
+
+        <div class="relative mb-6 text-center">
+          <div class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-500/30 bg-blue-500/15 text-blue-300 shadow-lg shadow-blue-950/30">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3 3 8l9 5 9-5-9-5Zm0 10v8m-7-9v5l7 4 7-4v-5"></path>
+            </svg>
+          </div>
+          <h1 class="text-2xl font-extrabold uppercase tracking-tight text-white">APJ Central</h1>
+          <p class="mt-2 text-xs text-slate-400">Login Pusat Operasional Ampera Pak Jenggot</p>
+          <div class="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-cyan-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-cyan-300"></span><span>Core Login v18 Ready</span>
+          </div>
+        </div>
+
+        <div class="relative mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-950/45 p-1">
+          <button id="loginTabBtn" type="button" class="tab-btn active rounded-xl px-3 py-2 text-xs font-extrabold transition-all" onclick="switchMode('login')">Masuk</button>
+          <button id="registerTabBtn" type="button" class="tab-btn rounded-xl px-3 py-2 text-xs font-extrabold transition-all" onclick="switchMode('register')">Daftar</button>
+        </div>
+
+        <form id="loginForm" class="relative space-y-5" onsubmit="handleLogin(event)">
+          <div>
+            <label for="username" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Username</label>
+            <div class="input-wrap flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950/80 px-4 transition-all duration-200">
+              <span class="flat-icon text-slate-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"/></svg></span>
+              <input type="text" id="username" required autocomplete="username" inputmode="text" class="w-full bg-transparent py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Masukkan username Anda">
+            </div>
+          </div>
+
+          <div>
+            <label for="password" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
+            <div class="input-wrap flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950/80 px-4 transition-all duration-200">
+              <span class="flat-icon text-slate-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 11V8a5 5 0 0 1 10 0v3m-9 0h8a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z"/></svg></span>
+              <input type="password" id="password" required autocomplete="current-password" class="w-full bg-transparent py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="••••••••">
+              <button type="button" onclick="togglePassword('password', this)" class="text-xs font-bold text-slate-400 transition-colors hover:text-white" aria-label="Tampilkan atau sembunyikan password">LIHAT</button>
+            </div>
+          </div>
+
+          <button type="submit" id="submitBtn" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition-all duration-200">
+            <span id="btnText">Masuk ke APJ Central</span>
+            <span id="btnSpinner" class="spinner hidden"></span>
+          </button>
+        </form>
+
+        <form id="registerForm" class="relative hidden space-y-4" onsubmit="handleRegister(event)">
+          <div class="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs leading-5 text-amber-100">
+            Akun baru akan masuk dengan status <b>NONAKTIF</b>. Owner/Admin harus mengaktifkan akun sebelum bisa login.
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="regUsername" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Username</label>
+              <input id="regUsername" type="text" required autocomplete="username" inputmode="text" class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="tanpa spasi">
+            </div>
+            <div>
+              <label for="regNama" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Nama Lengkap</label>
+              <input id="regNama" type="text" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Nama karyawan">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="regPassword" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
+              <div class="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/80 px-4">
+                <input id="regPassword" type="password" required minlength="6" autocomplete="new-password" class="w-full bg-transparent py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Minimal 6 karakter">
+                <button type="button" onclick="togglePassword('regPassword', this)" class="text-xs font-bold text-slate-400 hover:text-white">LIHAT</button>
+              </div>
+            </div>
+            <div>
+              <label for="regOutlet" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Outlet Utama</label>
+              <select id="regOutlet" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white focus:outline-none">
+                <option value="">Pilih outlet</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="regNoHp" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">No. HP</label>
+              <input id="regNoHp" type="tel" inputmode="tel" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="08xxxxxxxxxx">
+            </div>
+            <div>
+              <label for="regEmail" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
+              <input id="regEmail" type="email" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="nama@email.com">
+            </div>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
+            <div class="date-picker" data-picker="regTanggal">
+              <select id="regTanggalDay" class="date-select" aria-label="Tanggal lahir"></select>
+              <select id="regTanggalMonth" class="date-select" aria-label="Bulan lahir"></select>
+              <select id="regTanggalYear" class="date-select" aria-label="Tahun lahir"></select>
+            </div>
+            <div id="regTanggalSummary" class="date-summary hidden">Tanggal lahir belum dipilih</div>
+          </div>
+
+          <button type="submit" id="registerBtn" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition-all duration-200">
+            <span id="registerBtnText">Kirim Pendaftaran</span>
+            <span id="registerSpinner" class="spinner hidden"></span>
+          </button>
+        </form>
+
+        <div class="relative mt-8 border-t border-slate-800/80 pt-6 text-center">
+          <p class="text-[10px] uppercase tracking-wider text-slate-500">Hak akses hanya untuk personel resmi APJ</p>
+          <p class="mt-2 text-[11px] text-slate-600">Gunakan akun masing-masing. Jangan pinjam akun, nanti auditnya ikut pinjam juga.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXjexCdYXsygij_WdgA6H26Xp__GCpRbLk1oxpocnvmOvyy8_9G2lVKW_6wr2qV19YkQ/exec";
+    const APP_NAME = "APJ_CENTRAL_INDEX";
+    let pendingRedirect = "dashboard.html";
+    let currentSessionToken = "";
+    let currentProfile = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setupMobileIntro();
+      setupDatePickers();
+      loadOutletsForRegister();
+      validateExistingSession();
+    });
+
+    function setupMobileIntro() {
+      const modal = document.getElementById('mobileIntroModal');
+      if (window.innerWidth <= 768 && modal) modal.classList.add('show');
+    }
+
+    function closeMobileIntro() {
+      document.getElementById('mobileIntroModal')?.classList.remove('show');
+    }
+
+    function showPopup(message, type = 'success') {
+      const toast = document.getElementById('customToast');
+      const toastMessage = document.getElementById('toastMessage');
+      const iconContainer = document.getElementById('toastIconContainer');
+      const icon = document.getElementById('toastIcon');
+      toastMessage.innerText = message || '-';
+
+      if (type === 'success') {
+        toast.className = "toast show flex items-center w-full max-w-md p-4 rounded-xl shadow-2xl border bg-emerald-950/95 border-emerald-700/80 text-emerald-200 backdrop-blur-md";
+        iconContainer.className = "inline-flex items-center justify-center flex-shrink-0 w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/20";
+        icon.innerHTML = `<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>`;
+      } else {
+        toast.className = "toast show flex items-center w-full max-w-md p-4 rounded-xl shadow-2xl border bg-rose-950/95 border-rose-700/80 text-rose-200 backdrop-blur-md";
+        iconContainer.className = "inline-flex items-center justify-center flex-shrink-0 w-9 h-9 rounded-xl bg-rose-500/15 text-rose-300 border border-rose-500/20";
+        icon.innerHTML = `<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z"/>`;
+      }
+
+      window.clearTimeout(window.__apjToastTimer);
+      window.__apjToastTimer = setTimeout(() => toast.classList.remove('show'), 4200);
+    }
+
+    function switchMode(mode) {
+      const isLogin = mode === 'login';
+      document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
+      document.getElementById('registerForm').classList.toggle('hidden', isLogin);
+      document.getElementById('loginTabBtn').classList.toggle('active', isLogin);
+      document.getElementById('registerTabBtn').classList.toggle('active', !isLogin);
+    }
+
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      btn.textContent = isPassword ? 'TUTUP' : 'LIHAT';
+    }
+
+    function setLoading(prefix, isLoading, text) {
+      const btn = document.getElementById(prefix + 'Btn');
+      const btnText = document.getElementById(prefix + 'BtnText');
+      const spinner = document.getElementById(prefix + 'Spinner');
+      if (btn) btn.disabled = isLoading;
+      if (btnText && text) btnText.innerText = text;
+      if (spinner) spinner.classList.toggle('hidden', !isLoading);
+    }
+
+    function resetLoginButton() {
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      const btnSpinner = document.getElementById('btnSpinner');
+      submitBtn.disabled = false;
+      btnText.innerText = "Masuk ke APJ Central";
+      btnSpinner.classList.add('hidden');
+    }
+
+    async function callCore(action, payload = {}) {
+      if (!APPS_SCRIPT_URL) throw new Error('URL API Apps Script belum diisi.');
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow',
+        body: JSON.stringify({
+          action,
+          appName: APP_NAME,
+          userAgent: navigator.userAgent,
+          ...payload
+        })
+      });
+      return response.json();
+    }
+
+    async function validateExistingSession() {
+      const token = localStorage.getItem('APJ_SESSION_TOKEN') || '';
+      if (!token || localStorage.getItem('APJ_SESSION_ACTIVE') !== 'true') return;
+      try {
+        const result = await callCore('getMyProfile', { sessionToken: token });
+        if (!result.success) throw new Error(result.message || 'Session tidak valid');
+        const profile = result.user || {};
+        if (needsProfileCompletion(profile)) {
+          currentSessionToken = token;
+          currentProfile = profile;
+          fillProfileModal(profile);
+          document.getElementById('profileModal').classList.add('show');
+          return;
+        }
+        window.location.href = 'dashboard.html';
+      } catch (error) {
+        clearSession();
+      }
+    }
+
+    async function loadOutletsForRegister() {
+      const select = document.getElementById('regOutlet');
+      const fallback = ['LAHOR', 'SENISONO', 'PUJON', 'NGUJUNG', 'POKOPEK'];
+      try {
+        const result = await callCore('getOutlets', {});
+        const outlets = (result.outlets || []).filter(o => (o.kodeOutlet || '').toUpperCase() !== 'ALL');
+        setOutletOptions(select, outlets.map(o => ({ value: o.kodeOutlet, label: o.namaOutlet || o.kodeOutlet })));
+      } catch (err) {
+        setOutletOptions(select, fallback.map(v => ({ value: v, label: v })));
+      }
+    }
+
+    function setOutletOptions(select, options) {
+      if (!select) return;
+      const current = select.value;
+      select.innerHTML = '<option value="">Pilih outlet</option>';
+      options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = String(opt.value || '').toUpperCase();
+        option.textContent = opt.label || opt.value;
+        select.appendChild(option);
+      });
+      if (current) select.value = current;
+    }
+
+
+    const APJ_MONTHS = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    function setupDatePickers() {
+      populateDatePicker('regTanggal');
+      populateDatePicker('profileTanggal');
+    }
+
+    function populateDatePicker(prefix) {
+      const dayEl = document.getElementById(prefix + 'Day');
+      const monthEl = document.getElementById(prefix + 'Month');
+      const yearEl = document.getElementById(prefix + 'Year');
+      if (!dayEl || !monthEl || !yearEl) return;
+
+      dayEl.innerHTML = '<option value="">Tanggal</option>';
+      for (let d = 1; d <= 31; d++) {
+        const option = document.createElement('option');
+        option.value = String(d).padStart(2, '0');
+        option.textContent = String(d).padStart(2, '0');
+        dayEl.appendChild(option);
+      }
+
+      monthEl.innerHTML = '<option value="">Bulan</option>';
+      APJ_MONTHS.forEach((name, index) => {
+        const option = document.createElement('option');
+        option.value = String(index + 1).padStart(2, '0');
+        option.textContent = name;
+        monthEl.appendChild(option);
+      });
+
+      const currentYear = new Date().getFullYear();
+      yearEl.innerHTML = '<option value="">Tahun</option>';
+      for (let y = currentYear; y >= 1950; y--) {
+        const option = document.createElement('option');
+        option.value = String(y);
+        option.textContent = String(y);
+        yearEl.appendChild(option);
+      }
+
+      [dayEl, monthEl, yearEl].forEach(el => {
+        el.addEventListener('change', () => updateDateSummary(prefix));
+      });
+      updateDateSummary(prefix);
+    }
+
+    function getDatePickerValue(prefix) {
+      const day = document.getElementById(prefix + 'Day')?.value || '';
+      const month = document.getElementById(prefix + 'Month')?.value || '';
+      const year = document.getElementById(prefix + 'Year')?.value || '';
+      if (!day || !month || !year) return '';
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      const valid = date.getFullYear() === Number(year) && date.getMonth() === Number(month) - 1 && date.getDate() === Number(day);
+      return valid ? `${year}-${month}-${day}` : '';
+    }
+
+    function setDatePickerValue(prefix, value) {
+      const parts = parseDateParts(value);
+      const dayEl = document.getElementById(prefix + 'Day');
+      const monthEl = document.getElementById(prefix + 'Month');
+      const yearEl = document.getElementById(prefix + 'Year');
+      if (!dayEl || !monthEl || !yearEl) return;
+      dayEl.value = parts?.day || '';
+      monthEl.value = parts?.month || '';
+      yearEl.value = parts?.year || '';
+      updateDateSummary(prefix);
+    }
+
+    function parseDateParts(value) {
+      const s = String(value || '').trim();
+      let m;
+      if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) {
+        return { year: m[1], month: String(m[2]).padStart(2, '0'), day: String(m[3]).padStart(2, '0') };
+      }
+      if ((m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/))) {
+        const year = m[3].length === 2 ? '20' + m[3] : m[3];
+        return { year, month: String(m[2]).padStart(2, '0'), day: String(m[1]).padStart(2, '0') };
+      }
+      return null;
+    }
+
+    function updateDateSummary(prefix) {
+      const summary = document.getElementById(prefix + 'Summary');
+      if (!summary) return;
+      const day = document.getElementById(prefix + 'Day')?.value || '';
+      const month = document.getElementById(prefix + 'Month')?.value || '';
+      const year = document.getElementById(prefix + 'Year')?.value || '';
+      if (!day || !month || !year) {
+        summary.classList.add('hidden');
+        summary.textContent = 'Tanggal lahir belum dipilih';
+        return;
+      }
+      const dateValue = getDatePickerValue(prefix);
+      if (!dateValue) {
+        summary.classList.remove('hidden');
+        summary.textContent = 'Tanggal lahir tidak valid';
+        return;
+      }
+      summary.classList.remove('hidden');
+      summary.textContent = `${day} ${APJ_MONTHS[Number(month) - 1]} ${year}`;
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const usernameInput = document.getElementById('username').value.trim();
+      const passwordInput = document.getElementById('password').value;
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      const btnSpinner = document.getElementById('btnSpinner');
+
+      submitBtn.disabled = true;
+      btnText.innerText = "Memverifikasi akun pusat...";
+      btnSpinner.classList.remove('hidden');
+
+      try {
+        const result = await callCore('login', {
+          username: usernameInput,
+          password: passwordInput
+        });
+
+        if (!result.success) {
+          showPopup(result.message || 'Login gagal. Periksa username dan password.', 'error');
+          resetLoginButton();
+          return;
+        }
+
+        currentSessionToken = result.sessionToken || result.token || '';
+        let profile = result.user || {};
+        let modules = result.modules || [];
+
+        try {
+          const fresh = await callCore('getMyProfile', { sessionToken: currentSessionToken });
+          if (fresh.success) {
+            profile = fresh.user || profile;
+            modules = fresh.modules || modules;
+          }
+        } catch (_) {}
+
+        storeSession(currentSessionToken, profile, modules);
+        currentProfile = profile;
+
+        const secureMsg = result.migratedToHash ? ' Password sudah diamankan menjadi HASH.' : '';
+        showPopup('Login berhasil. Selamat datang, ' + (profile.nama || usernameInput) + '.' + secureMsg, 'success');
+
+        if (needsProfileCompletion(profile)) {
+          fillProfileModal(profile);
+          setTimeout(() => document.getElementById('profileModal').classList.add('show'), 550);
+          resetLoginButton();
+          return;
+        }
+
+        setTimeout(() => { window.location.href = pendingRedirect; }, 900);
+      } catch (error) {
+        console.error(error);
+        showPopup('Gagal terhubung ke API Login Pusat. Periksa koneksi atau deployment Apps Script.', 'error');
+        resetLoginButton();
+      }
+    }
+
+    async function handleRegister(event) {
+      event.preventDefault();
+      const username = document.getElementById('regUsername').value.trim().toLowerCase();
+      const nama = document.getElementById('regNama').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const outletUtama = document.getElementById('regOutlet').value;
+      const noHp = document.getElementById('regNoHp').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const tanggalLahir = getDatePickerValue('regTanggal');
+
+      if (/\s/.test(username)) {
+        showPopup('Username tidak boleh memakai spasi.', 'error');
+        return;
+      }
+      if (!tanggalLahir) {
+        showPopup('Tanggal lahir belum lengkap atau tidak valid.', 'error');
+        return;
+      }
+
+      setLoading('register', true, 'Mengirim pendaftaran...');
+      try {
+        const result = await callCore('registerUser', {
+          username,
+          nama,
+          password,
+          level: 'KARYAWAN',
+          outletUtama,
+          outletAkses: outletUtama,
+          noHp,
+          email,
+          tanggalLahir
+        });
+
+        if (!result.success) {
+          showPopup(result.message || 'Pendaftaran gagal.', 'error');
+          setLoading('register', false, 'Kirim Pendaftaran');
+          return;
+        }
+
+        showPopup('Pendaftaran terkirim. Tunggu Owner/Admin mengaktifkan akun.', 'success');
+        document.getElementById('registerForm').reset();
+        document.getElementById('username').value = username;
+        switchMode('login');
+        setLoading('register', false, 'Kirim Pendaftaran');
+      } catch (error) {
+        console.error(error);
+        showPopup('Gagal mengirim pendaftaran ke server.', 'error');
+        setLoading('register', false, 'Kirim Pendaftaran');
+      }
+    }
+
+    function needsProfileCompletion(profile) {
+      return !String(profile?.noHp || '').trim() || !String(profile?.email || '').trim() || !String(profile?.tanggalLahir || '').trim();
+    }
+
+    function fillProfileModal(profile) {
+      document.getElementById('profileNoHp').value = profile?.noHp || '';
+      document.getElementById('profileEmail').value = profile?.email || '';
+      setDatePickerValue('profileTanggal', profile?.tanggalLahir || '');
+    }
+
+    function toDateInputValue(value) {
+      const s = String(value || '').trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (!m) return '';
+      const y = m[3].length === 2 ? '20' + m[3] : m[3];
+      return `${y}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+    }
+
+    async function handleProfileSubmit(event) {
+      event.preventDefault();
+      const noHp = document.getElementById('profileNoHp').value.trim();
+      const email = document.getElementById('profileEmail').value.trim();
+      const tanggalLahir = getDatePickerValue('profileTanggal');
+
+      if (!tanggalLahir) {
+        showPopup('Tanggal lahir belum lengkap atau tidak valid.', 'error');
+        return;
+      }
+
+      setLoading('profile', true, 'Menyimpan profil...');
+      try {
+        const result = await callCore('updateMyProfile', {
+          sessionToken: currentSessionToken,
+          noHp,
+          email,
+          tanggalLahir
+        });
+
+        if (!result.success) {
+          showPopup(result.message || 'Profil gagal disimpan.', 'error');
+          setLoading('profile', false, 'Simpan & Lanjut');
+          return;
+        }
+
+        const profile = result.user || { ...currentProfile, noHp, email, tanggalLahir };
+        storeSession(currentSessionToken, profile, JSON.parse(localStorage.getItem('APJ_USER_MODULES') || '[]'));
+        showPopup('Profil berhasil dilengkapi. Mengalihkan ke dashboard...', 'success');
+        setTimeout(() => { window.location.href = pendingRedirect; }, 800);
+      } catch (error) {
+        console.error(error);
+        showPopup('Gagal menyimpan profil.', 'error');
+        setLoading('profile', false, 'Simpan & Lanjut');
+      }
+    }
+
+    function storeSession(token, user, modules) {
+      localStorage.setItem('APJ_SESSION_ACTIVE', 'true');
+      localStorage.setItem('APJ_SESSION_TOKEN', token || '');
+      localStorage.setItem('APJ_USER_ID', user.userId || '');
+      localStorage.setItem('APJ_USER_USERNAME', user.username || '');
+      localStorage.setItem('APJ_USER_NAME', user.nama || '');
+      localStorage.setItem('APJ_USER_LEVEL', user.level || '');
+      localStorage.setItem('APJ_USER_OUTLET', user.outlet || user.outletUtama || '');
+      localStorage.setItem('APJ_USER_OUTLET_AKSES', user.outletAkses || '');
+      localStorage.setItem('APJ_USER_NO_HP', user.noHp || '');
+      localStorage.setItem('APJ_USER_EMAIL', user.email || '');
+      localStorage.setItem('APJ_USER_TANGGAL_LAHIR', user.tanggalLahir || '');
+      localStorage.setItem('APJ_USER_PERMISSIONS', JSON.stringify(user.permissions || {}));
+      localStorage.setItem('APJ_USER_MODULES', JSON.stringify(modules || []));
+    }
+
+    function clearSession() {
+      [
+        'APJ_SESSION_ACTIVE','APJ_SESSION_TOKEN','APJ_USER_ID','APJ_USER_USERNAME','APJ_USER_NAME','APJ_USER_LEVEL',
+        'APJ_USER_OUTLET','APJ_USER_OUTLET_AKSES','APJ_USER_NO_HP','APJ_USER_EMAIL','APJ_USER_TANGGAL_LAHIR',
+        'APJ_USER_PERMISSIONS','APJ_USER_MODULES'
+      ].forEach(k => localStorage.removeItem(k));
+    }
+  </script>
+</body>
+</html>
