@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Dashboard | APJ Central</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/apj-core.css">
+</head>
+<body>
+  <script>
+    window.APJ_PAGE_TITLE = 'Dashboard APJ';
+    window.APJ_PAGE_SUBTITLE = 'Ringkasan pusat untuk Inventory, Absensi, Keuangan, dan operasional.';
+    window.APJ_PAGE_PERMISSION = 'dashboard';
+    window.APJ_ENABLE_GUIDE = false;
+  </script>
+
+  <div class="apj-app">
+    <div id="apjSidebar"></div>
+    <main class="apj-main">
+      <header id="apjTopbar"></header>
+      <section id="apjPageContent" class="apj-page">
+        <section class="apj-hero">
+          <div>
+            <div class="apj-kicker"><span class="apj-kicker-dot"></span><span id="modeBadge">APJ Central</span></div>
+            <h1 class="apj-hero-title">Satu dashboard untuk semua operasional APJ.</h1>
+            <p id="modeDescription" class="apj-hero-text">Memuat ringkasan user, inventory, dan modul yang tersedia sesuai akses akun.</p>
+          </div>
+          <div class="apj-hero-actions" id="quickActionMini"></div>
+        </section>
+
+        <div class="apj-dashboard-layout">
+          <div class="apj-dashboard-main">
+            <div id="loadingState" class="apj-card">
+              <div class="apj-list-row">
+                <div>
+                  <h2 class="apj-card-title">Memuat Dashboard</h2>
+                  <p class="apj-card-subtitle">Menarik data dari APJ_CORE_USER dan APJ_INVENTORY...</p>
+                </div>
+                <span class="apj-sync-badge"><span class="apj-dot"></span>Loading</span>
+              </div>
+            </div>
+
+            <div id="dashboardContent" class="apj-hidden">
+              <div id="kpiGrid" class="apj-kpi-grid"></div>
+
+              <div class="apj-dashboard-grid">
+                <section class="apj-card">
+                  <div class="apj-section-head">
+                    <div><h2 class="apj-card-title">Prioritas Hari Ini</h2><p class="apj-card-subtitle">Kesimpulan cepat dari data stok dan aktivitas.</p></div>
+                  </div>
+                  <div id="insightList" class="apj-list"></div>
+                </section>
+
+                <section class="apj-card">
+                  <div class="apj-section-head">
+                    <div><h2 class="apj-card-title">Ringkasan Lokasi</h2><p class="apj-card-subtitle">Pantauan Pusat/outlet dari stok akhir.</p></div>
+                  </div>
+                  <div id="locationList" class="apj-list"></div>
+                </section>
+
+                <section class="apj-card">
+                  <div class="apj-section-head">
+                    <div><h2 class="apj-card-title">Pergerakan Hari Ini</h2><p class="apj-card-subtitle">Qty transaksi terbesar hari ini.</p></div>
+                  </div>
+                  <div id="movementList" class="apj-list"></div>
+                </section>
+              </div>
+
+              <div class="apj-dashboard-grid apj-grid-wide">
+                <section class="apj-card">
+                  <div class="apj-section-head">
+                    <div><h2 id="primaryPanelTitle" class="apj-card-title">Ringkasan Kategori</h2><p id="primaryPanelDesc" class="apj-card-subtitle">Komposisi stok per kategori.</p></div>
+                    <span id="syncDate" class="apj-sync-badge"><span class="apj-dot"></span>Update: -</span>
+                  </div>
+                  <div class="apj-table-wrap">
+                    <table class="apj-table" id="categoryTable">
+                      <thead>
+                        <tr>
+                          <th>Kategori</th>
+                          <th>Total Item</th>
+                          <th>Aman</th>
+                          <th>Waspada</th>
+                          <th>Kritis</th>
+                        </tr>
+                      </thead>
+                      <tbody id="categoryBody"></tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <section class="apj-card">
+                  <div class="apj-section-head">
+                    <div><h2 id="attentionTitle" class="apj-card-title">Stok Perlu Perhatian</h2><p id="attentionDesc" class="apj-card-subtitle">Item dengan status waspada/kritis.</p></div>
+                  </div>
+                  <div id="criticalList" class="apj-list"></div>
+                </section>
+              </div>
+
+              <section class="apj-card">
+                <div class="apj-section-head">
+                  <div><h2 id="activityTitle" class="apj-card-title">Aktivitas Terbaru</h2><p id="activityDesc" class="apj-card-subtitle">Gabungan aktivitas transaksi yang relevan.</p></div>
+                </div>
+                <div id="activityList" class="apj-list"></div>
+              </section>
+            </div>
+          </div>
+
+          <aside class="apj-dashboard-side">
+            <section class="apj-card">
+              <div class="apj-section-head">
+                <div><h2 class="apj-card-title">Menu Saya</h2><p id="quickMenuDesc" class="apj-card-subtitle">Menu dari MODULE_ACCESS sesuai izin.</p></div>
+              </div>
+              <div id="moduleGrid" class="apj-module-grid"></div>
+            </section>
+
+            <section class="apj-card">
+              <div class="apj-section-head">
+                <div><h2 class="apj-card-title">Ulang Tahun Hari Ini</h2><p class="apj-card-subtitle">Berikan doa terbaik untuk tim APJ.</p></div>
+              </div>
+              <div id="birthdayList" class="apj-list"></div>
+            </section>
+
+            <section class="apj-card">
+              <div class="apj-section-head">
+                <div><h2 class="apj-card-title">Status Sistem</h2><p class="apj-card-subtitle">Koneksi modul saat ini.</p></div>
+              </div>
+              <div id="systemStatus" class="apj-list"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="assets/js/apj-config.js"></script>
+  <script src="assets/js/apj-api.js"></script>
+  <script src="assets/js/apj-auth.js"></script>
+  <script src="assets/js/apj-toast.js"></script>
+  <script src="assets/js/apj-sidebar.js"></script>
+  <script src="assets/js/apj-layout.js"></script>
+  <script src="assets/js/apj-table.js"></script>
+  <script src="assets/js/apj-dashboard.js"></script>
+</body>
+</html>
