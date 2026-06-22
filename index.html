@@ -4,1124 +4,262 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Login | APJ Central</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --apj-bg: #0f172a;
-      --apj-card: rgba(15, 23, 42, .86);
-      --apj-border: rgba(51, 65, 85, .78);
-      --apj-blue: #2563eb;
-      --apj-cyan: #06b6d4;
-      --apj-emerald: #10b981;
-      --apj-rose: #f43f5e;
-      --apj-amber: #f59e0b;
-    }
-
-    * { box-sizing: border-box; }
-
-    html { min-height: 100%; }
-
-    body {
-      min-height: 100vh;
-      min-height: 100svh;
-      font-family: 'Inter', sans-serif;
-      background:
-        radial-gradient(circle at 18% 20%, rgba(37, 99, 235, .20), transparent 32%),
-        radial-gradient(circle at 82% 15%, rgba(6, 182, 212, .16), transparent 28%),
-        radial-gradient(circle at 70% 86%, rgba(16, 185, 129, .12), transparent 24%),
-        linear-gradient(135deg, #020617 0%, #0f172a 52%, #111827 100%);
-      color: #f8fafc;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background-image:
-        linear-gradient(rgba(148, 163, 184, .05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(148, 163, 184, .05) 1px, transparent 1px);
-      background-size: 42px 42px;
-      mask-image: radial-gradient(circle at center, black 0%, transparent 78%);
-    }
-
-    .login-card,
-    .glass-panel {
-      position: relative;
-      overflow: hidden;
-      background: linear-gradient(180deg, rgba(15, 23, 42, .88), rgba(2, 6, 23, .92));
-      border: 1px solid var(--apj-border);
-      box-shadow: 0 26px 90px rgba(0, 0, 0, .50), inset 0 1px 0 rgba(255,255,255,.04);
-      backdrop-filter: blur(18px);
-    }
-
-    .login-card::before,
-    .glass-panel::before {
-      content: "";
-      position: absolute;
-      inset: -1px;
-      background: linear-gradient(120deg, rgba(37, 99, 235, .38), transparent 28%, transparent 65%, rgba(6, 182, 212, .26));
-      opacity: .75;
-      pointer-events: none;
-      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      padding: 1px;
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      border-radius: inherit;
-    }
-
-    .orb {
-      position: absolute;
-      border-radius: 999px;
-      filter: blur(38px);
-      opacity: .45;
-      animation: floatOrb 7s ease-in-out infinite;
-      pointer-events: none;
-    }
-
-    .orb-a { width: 170px; height: 170px; background: #2563eb; left: -90px; top: -70px; }
-    .orb-b { width: 150px; height: 150px; background: #06b6d4; right: -80px; bottom: -70px; animation-delay: -2s; }
-
-    @keyframes floatOrb {
-      0%, 100% { transform: translate3d(0,0,0) scale(1); }
-      50% { transform: translate3d(12px,-10px,0) scale(1.06); }
-    }
-
-    .animate-fade-in-up { animation: fadeInUp .55s cubic-bezier(.16, 1, .3, 1) forwards; }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(18px) scale(.985); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .toast {
-      position: fixed;
-      left: 50%;
-      right: auto;
-      bottom: calc(1.15rem + env(safe-area-inset-bottom));
-      top: auto;
-      transform: translate(-50%, 16px) scale(.97);
-      transition: opacity .24s ease, transform .24s cubic-bezier(.16, 1, .3, 1);
-      z-index: 9999;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto; }
-
-    .spinner {
-      border: 3px solid rgba(255, 255, 255, .30);
-      border-radius: 50%;
-      border-top: 3px solid #fff;
-      width: 20px;
-      height: 20px;
-      animation: spin 1s linear infinite;
-      display: inline-block;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .input-wrap:focus-within {
-      border-color: rgba(59, 130, 246, .95);
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
-    }
-
-    .flat-icon { display: inline-flex; align-items: center; justify-content: center; color: currentColor; flex-shrink: 0; }
-    .flat-icon svg { display: block; }
-
-    .primary-btn {
-      background: linear-gradient(135deg, #2563eb, #0ea5e9);
-      box-shadow: 0 16px 32px rgba(37, 99, 235, .24);
-    }
-    .primary-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
-    .primary-btn:active { transform: translateY(0); }
-    .primary-btn:disabled { opacity: .72; cursor: not-allowed; transform: none; filter: none; }
-
-    .soft-btn {
-      background: rgba(15, 23, 42, .74);
-      border: 1px solid rgba(71, 85, 105, .8);
-    }
-    .soft-btn:hover { border-color: rgba(6, 182, 212, .65); color: #e0f2fe; }
-
-
-    .mini-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: .35rem;
-      color: #7dd3fc;
-      transition: color .2s ease, transform .2s ease;
-    }
-    .mini-link:hover { color: #e0f2fe; transform: translateY(-1px); }
-
-    .step-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 1.55rem;
-      height: 1.55rem;
-      border-radius: 999px;
-      border: 1px solid rgba(125, 211, 252, .28);
-      background: rgba(14, 165, 233, .12);
-      color: #bae6fd;
-      font-size: .72rem;
-      font-weight: 900;
-    }
-
-    .tab-btn {
-      border: 1px solid rgba(71, 85, 105, .7);
-      background: rgba(15, 23, 42, .62);
-      color: #94a3b8;
-    }
-    .tab-btn.active {
-      color: #fff;
-      background: linear-gradient(135deg, rgba(37, 99, 235, .92), rgba(14, 165, 233, .88));
-      border-color: rgba(125, 211, 252, .28);
-      box-shadow: 0 12px 26px rgba(37, 99, 235, .22);
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 9000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-      background: rgba(2, 6, 23, .78);
-      backdrop-filter: blur(12px);
-    }
-    .modal-backdrop.show { display: flex; }
-
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
-
-
-    .date-select-grid {
-      display: grid;
-      grid-template-columns: .85fr 1.25fr 1fr;
-      gap: .65rem;
-    }
-
-    .apj-select {
-      appearance: none;
-      -webkit-appearance: none;
-      background-color: rgba(2, 6, 23, .80);
-      background-image:
-        linear-gradient(45deg, transparent 50%, rgba(125, 211, 252, .95) 50%),
-        linear-gradient(135deg, rgba(125, 211, 252, .95) 50%, transparent 50%);
-      background-position:
-        calc(100% - 18px) calc(50% - 3px),
-        calc(100% - 12px) calc(50% - 3px);
-      background-size: 6px 6px, 6px 6px;
-      background-repeat: no-repeat;
-      color: #f8fafc;
-      border: 1px solid rgba(51, 65, 85, .94);
-      transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
-    }
-
-    .apj-select:focus {
-      outline: none;
-      border-color: rgba(14, 165, 233, .95);
-      box-shadow: 0 0 0 4px rgba(14, 165, 233, .12);
-      background-color: rgba(15, 23, 42, .92);
-    }
-
-    .apj-select option {
-      background: #0f172a;
-      color: #f8fafc;
-    }
-
-    @media (max-width: 1023px) {
-      body { align-items: flex-start; }
-      .mobile-hero { display: block; }
-    }
-
-    @media (max-width: 640px) {
-      .toast { width: calc(100% - 2rem); max-width: calc(100% - 2rem); }
-      input, button, select, textarea { font-size: 16px; }
-      .form-grid { grid-template-columns: 1fr; }
-      .date-select-grid { grid-template-columns: 1fr; }
-      .login-card { padding: 1.25rem; border-radius: 1.25rem; }
-      .main-shell { padding: .9rem; min-height: 100svh; align-items: flex-start; }
-      .mobile-hero h2 { font-size: 2rem; line-height: 1.08; }
-      .feature-card { padding: .85rem; }
-    }
-  </style>
+  <link rel="stylesheet" href="assets/css/apj-core.css">
 </head>
-<body class="antialiased">
-  <div id="customToast" class="toast flex items-center w-full max-w-md p-4 rounded-xl shadow-2xl border backdrop-blur-md" role="alert" aria-live="polite" aria-atomic="true">
-    <div class="inline-flex items-center justify-center flex-shrink-0 w-9 h-9 rounded-xl" id="toastIconContainer">
-      <svg id="toastIcon" class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"></svg>
-    </div>
-    <div class="ml-3 text-sm font-semibold leading-relaxed" id="toastMessage"></div>
-  </div>
-
-  <div id="mobileIntroModal" class="modal-backdrop lg:hidden" aria-modal="true" role="dialog">
-    <div class="glass-panel w-full max-w-sm rounded-3xl p-6 text-center animate-fade-in-up opacity-0">
-      <div class="relative">
-        <div class="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/25 bg-cyan-500/12 text-cyan-200">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h10M4 18h16"/></svg>
-        </div>
-        <h2 class="text-2xl font-black text-white tracking-tight">Selamat datang di APJ Central</h2>
-        <p class="mt-3 text-sm leading-6 text-slate-300">Satu pintu untuk login operasional APJ. Inventory aktif dulu, absensi dan modul lain menyusul bertahap.</p>
-        <button type="button" onclick="closeMobileIntro()" class="primary-btn mt-5 w-full rounded-2xl px-4 py-3 text-sm font-extrabold text-white transition-all">Lanjut ke Login</button>
+<body>
+  <div id="mobileIntroModal" class="apj-modal" aria-modal="true" role="dialog" aria-labelledby="mobileIntroTitle">
+    <div class="apj-modal-card">
+      <div class="apj-mobile-intro-copy">
+        <div class="apj-mobile-intro-icon">☰</div>
+        <h2 id="mobileIntroTitle">Selamat datang di APJ Central</h2>
+        <p>Satu pintu untuk login operasional APJ. Inventory aktif dulu, Absensi, Keuangan, dan modul lain menyusul bertahap.</p>
+        <button id="mobileIntroClose" type="button" class="apj-btn apj-btn-primary apj-btn-block apj-mt-4">Lanjut ke Login</button>
       </div>
     </div>
   </div>
 
-  <div id="profileModal" class="modal-backdrop" aria-modal="true" role="dialog">
-    <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-7 animate-fade-in-up opacity-0">
-      <div class="relative">
-        <div class="flex items-start gap-4">
-          <div class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-300">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"/></svg>
+  <div id="profileModal" class="apj-modal" aria-modal="true" role="dialog" aria-labelledby="profileTitle">
+    <div class="apj-modal-card">
+      <div class="apj-modal-header">
+        <div>
+          <h2 id="profileTitle" class="apj-modal-title">Lengkapi Data Profil</h2>
+          <p class="apj-modal-subtitle">Data ini dipakai untuk kontak karyawan, fitur ulang tahun, dan keamanan lupa password.</p>
+          <p id="profileAccountLabel" class="apj-hidden apj-help-text">Melengkapi untuk akun: <b id="profileAccountName">-</b></p>
+        </div>
+      </div>
+
+      <form id="profileForm" class="apj-form-grid">
+        <div class="apj-form-grid apj-form-grid-2">
+          <div class="apj-field">
+            <label for="profileNoHp">No. HP</label>
+            <input id="profileNoHp" class="apj-input" type="tel" required placeholder="08xxxxxxxxxx" inputmode="tel">
           </div>
-          <div>
-            <h2 class="text-xl font-black text-white">Lengkapi Data Profil</h2>
-            <p class="mt-1 text-sm leading-6 text-slate-400">Data ini dibutuhkan untuk dashboard APJ, kontak karyawan, dan fitur ulang tahun.</p>
-            <p id="profileAccountLabel" class="mt-3 hidden rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100">
-              Melengkapi untuk akun: <span id="profileAccountName" class="text-white">-</span>
-            </p>
+          <div class="apj-field">
+            <label for="profileEmail">Email</label>
+            <input id="profileEmail" class="apj-input" type="email" required placeholder="nama@email.com">
           </div>
         </div>
 
-        <form id="profileForm" class="mt-5 space-y-4" onsubmit="handleProfileSubmit(event)">
-          <div class="form-grid">
-            <div>
-              <label for="profileNoHp" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">No. HP</label>
-              <input id="profileNoHp" type="tel" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="08xxxxxxxxxx">
-            </div>
-            <div>
-              <label for="profileEmail" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
-              <input id="profileEmail" type="email" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="nama@email.com">
-            </div>
+        <div class="apj-field">
+          <label>Tanggal Lahir</label>
+          <div class="apj-date-grid">
+            <select id="profileBirthDay" class="apj-select" required></select>
+            <select id="profileBirthMonth" class="apj-select" required></select>
+            <select id="profileBirthYear" class="apj-select" required></select>
           </div>
-          <div>
-            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
-            <div class="date-select-grid">
-              <select id="profileBirthDay" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
-                <option value="">Tanggal</option>
-              </select>
-              <select id="profileBirthMonth" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
-                <option value="">Bulan</option>
-              </select>
-              <select id="profileBirthYear" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
-                <option value="">Tahun</option>
-              </select>
-            </div>
-            <input id="profileTanggalLahir" type="hidden">
+        </div>
+
+        <button id="profileBtn" type="submit" class="apj-btn apj-btn-primary apj-btn-block">
+          <span id="profileBtnText">Simpan & Lanjut</span>
+          <span id="profileSpinner" class="apj-spinner apj-hidden"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="forgotModal" class="apj-modal" aria-modal="true" role="dialog" aria-labelledby="forgotTitle">
+    <div class="apj-modal-card">
+      <div class="apj-modal-header">
+        <div>
+          <h2 id="forgotTitle" class="apj-modal-title">Lupa Password</h2>
+          <p class="apj-modal-subtitle">Reset mandiri memakai username, No. HP, dan tanggal lahir yang sudah tersimpan.</p>
+        </div>
+        <button id="forgotCloseBtn" type="button" class="apj-modal-close" aria-label="Tutup">×</button>
+      </div>
+
+      <form id="forgotUsernameForm" class="apj-form-grid">
+        <div class="apj-auth-note">Langkah 1: masukkan username untuk cek apakah akun bisa reset mandiri.</div>
+        <div class="apj-field">
+          <label for="forgotUsername">Username</label>
+          <input id="forgotUsername" class="apj-input" type="text" required autocomplete="username" placeholder="Masukkan username">
+        </div>
+        <button id="forgotCheckBtn" type="submit" class="apj-btn apj-btn-primary apj-btn-block">
+          <span id="forgotCheckBtnText">Lanjut</span>
+          <span id="forgotCheckSpinner" class="apj-spinner apj-hidden"></span>
+        </button>
+      </form>
+
+      <form id="forgotResetForm" class="apj-form-grid apj-hidden">
+        <div id="forgotAccountLabel" class="apj-auth-note">Akun ditemukan. Isi data verifikasi lalu buat password baru.</div>
+        <input id="forgotVerifiedUsername" type="hidden">
+
+        <div class="apj-field">
+          <label for="forgotNoHp">No. HP Terdaftar</label>
+          <input id="forgotNoHp" class="apj-input" type="tel" required placeholder="08xxxxxxxxxx" inputmode="tel">
+        </div>
+
+        <div class="apj-field">
+          <label>Tanggal Lahir</label>
+          <div class="apj-date-grid">
+            <select id="forgotBirthDay" class="apj-select" required></select>
+            <select id="forgotBirthMonth" class="apj-select" required></select>
+            <select id="forgotBirthYear" class="apj-select" required></select>
           </div>
-          <button id="profileBtn" type="submit" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-extrabold text-white transition-all">
-            <span id="profileBtnText">Simpan & Lanjut</span>
-            <span id="profileSpinner" class="spinner hidden"></span>
+        </div>
+
+        <div class="apj-form-grid apj-form-grid-2">
+          <div class="apj-field">
+            <label for="forgotNewPassword">Password Baru</label>
+            <input id="forgotNewPassword" class="apj-input" type="password" required minlength="6" autocomplete="new-password" placeholder="Minimal 6 karakter">
+          </div>
+          <div class="apj-field">
+            <label for="forgotConfirmPassword">Konfirmasi</label>
+            <input id="forgotConfirmPassword" class="apj-input" type="password" required minlength="6" autocomplete="new-password" placeholder="Ulangi password">
+          </div>
+        </div>
+
+        <div class="apj-form-grid apj-form-grid-2">
+          <button id="forgotBackBtn" type="button" class="apj-btn apj-btn-ghost apj-btn-block">Kembali</button>
+          <button id="forgotResetBtn" type="submit" class="apj-btn apj-btn-primary apj-btn-block">
+            <span id="forgotResetBtnText">Simpan Password Baru</span>
+            <span id="forgotResetSpinner" class="apj-spinner apj-hidden"></span>
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   </div>
 
-  <div id="forgotModal" class="modal-backdrop" aria-modal="true" role="dialog">
-    <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-7 animate-fade-in-up opacity-0">
-      <div class="relative">
-        <div class="flex items-start justify-between gap-4">
-          <div class="flex items-start gap-4">
-            <div class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-500/15 text-cyan-300">
-              <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 17h.01M8.6 9a3.5 3.5 0 1 1 5.7 2.7c-1.2.9-2.3 1.6-2.3 3.3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-            </div>
-            <div>
-              <h2 class="text-xl font-black text-white">Lupa Password</h2>
-              <p class="mt-1 text-sm leading-6 text-slate-400">Reset mandiri memakai username, No. HP, dan tanggal lahir yang sudah tersimpan.</p>
-            </div>
-          </div>
-          <button type="button" onclick="closeForgotModal()" class="soft-btn rounded-xl px-3 py-2 text-xs font-extrabold text-slate-300 transition-all">Tutup</button>
-        </div>
+  <main class="apj-login-shell">
+    <div class="apj-login-grid">
+      <section class="apj-login-left">
+        <div class="apj-kicker"><span class="apj-kicker-dot"></span>Sistem pusat operasional APJ</div>
+        <h2 class="apj-login-title">Satu pintu APJ,<br>kerja rapi,<br>tim kompak.</h2>
+        <p class="apj-login-text">Login pusat untuk Inventory, Absensi, Keuangan, dan operasional APJ. Data user cukup satu sumber, akses lebih aman, dan pengembangan modul baru jadi lebih ringan.</p>
 
-        <form id="forgotUsernameForm" class="mt-5 space-y-4" onsubmit="handleForgotUsername(event)">
-          <div class="flex items-center gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/45 p-3 text-xs font-bold text-slate-300">
-            <span class="step-badge">1</span>
-            <span>Cek username dulu.</span>
+        <div class="apj-feature-grid">
+          <div class="apj-feature-card">
+            <div class="apj-feature-icon">📦</div>
+            <div class="apj-feature-label">Inventory</div>
+            <div class="apj-feature-value">Terpantau</div>
           </div>
-          <div>
-            <label for="forgotUsername" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Username</label>
-            <input id="forgotUsername" type="text" required autocomplete="username" class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Masukkan username">
+          <div class="apj-feature-card">
+            <div class="apj-feature-icon">🗓️</div>
+            <div class="apj-feature-label">Absensi</div>
+            <div class="apj-feature-value">Terpusat</div>
           </div>
-          <button id="forgotCheckBtn" type="submit" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-extrabold text-white transition-all">
-            <span id="forgotCheckBtnText">Lanjut</span>
-            <span id="forgotCheckSpinner" class="spinner hidden"></span>
-          </button>
-        </form>
-
-        <form id="forgotResetForm" class="mt-5 hidden space-y-4" onsubmit="handleForgotReset(event)">
-          <div class="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-xs font-bold leading-5 text-cyan-100">
-            <span class="step-badge mr-2">2</span>
-            <span id="forgotAccountLabel">Verifikasi akun.</span>
-          </div>
-          <input id="forgotVerifiedUsername" type="hidden">
-          <div>
-            <label for="forgotNoHp" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">No. HP Terdaftar</label>
-            <input id="forgotNoHp" type="tel" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="08xxxxxxxxxx">
-          </div>
-          <div>
-            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
-            <div class="date-select-grid">
-              <select id="forgotBirthDay" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold"><option value="">Tanggal</option></select>
-              <select id="forgotBirthMonth" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold"><option value="">Bulan</option></select>
-              <select id="forgotBirthYear" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold"><option value="">Tahun</option></select>
-            </div>
-            <input id="forgotTanggalLahir" type="hidden">
-          </div>
-          <div class="form-grid">
-            <div>
-              <label for="forgotNewPassword" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Password Baru</label>
-              <input id="forgotNewPassword" type="password" required minlength="6" autocomplete="new-password" class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Minimal 6 karakter">
-            </div>
-            <div>
-              <label for="forgotConfirmPassword" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Konfirmasi</label>
-              <input id="forgotConfirmPassword" type="password" required minlength="6" autocomplete="new-password" class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Ulangi password">
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-2 sm:grid-cols-[.9fr_1.1fr]">
-            <button type="button" onclick="backToForgotUsername()" class="soft-btn rounded-xl px-4 py-3 text-sm font-extrabold text-slate-300 transition-all">Kembali</button>
-            <button id="forgotResetBtn" type="submit" class="primary-btn flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-extrabold text-white transition-all">
-              <span id="forgotResetBtnText">Simpan Password Baru</span>
-              <span id="forgotResetSpinner" class="spinner hidden"></span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <main class="main-shell relative z-10 flex min-h-screen min-h-[100svh] w-full items-center justify-center p-4">
-    <div class="relative grid w-full max-w-6xl grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-8">
-      <section class="hidden px-2 opacity-0 lg:block animate-fade-in-up" style="animation-delay:.05s;">
-        <div class="inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-4 py-2 text-xs font-bold text-blue-200 shadow-lg shadow-blue-950/20">
-          <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,.12)]"></span>
-          <span>Sistem pusat operasional APJ</span>
-        </div>
-
-        <h2 class="mt-7 text-4xl font-extrabold leading-tight tracking-tight text-white xl:text-5xl">
-          Satu pintu APJ,<br>
-          kerja rapi,<br>
-          tim kompak.
-        </h2>
-        <p class="mt-5 max-w-xl text-sm leading-7 text-slate-300 xl:text-base">
-          Login pusat untuk Inventory, Absensi, Keuangan, dan operasional APJ. Data user cukup satu sumber, akses lebih aman, dan pengembangan modul baru jadi lebih ringan.
-        </p>
-
-        <div class="mt-8 grid max-w-xl grid-cols-3 gap-3">
-          <div class="feature-card rounded-2xl border border-slate-700/70 bg-slate-950/55 p-4 backdrop-blur-sm">
-            <div class="flat-icon mb-2 text-blue-300"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 8.5 12 3 3 8.5m18 0-9 5.2m9-5.2v7L12 21m0-7.3L3 8.5m9 5.2V21M3 8.5v7L12 21"/></svg></div>
-            <p class="text-xs text-slate-400">Inventory</p>
-            <p class="mt-1 text-sm font-bold text-white">Terpantau</p>
-          </div>
-          <div class="feature-card rounded-2xl border border-slate-700/70 bg-slate-950/55 p-4 backdrop-blur-sm">
-            <div class="flat-icon mb-2 text-cyan-300"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3M4 11h16M6 21h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"/></svg></div>
-            <p class="text-xs text-slate-400">Absensi</p>
-            <p class="mt-1 text-sm font-bold text-white">Terpusat</p>
-          </div>
-          <div class="feature-card rounded-2xl border border-slate-700/70 bg-slate-950/55 p-4 backdrop-blur-sm">
-            <div class="flat-icon mb-2 text-emerald-300"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 19V5m0 14h16M8 16v-5m4 5V8m4 8v-7"/></svg></div>
-            <p class="text-xs text-slate-400">Dashboard</p>
-            <p class="mt-1 text-sm font-bold text-white">Siap Tumbuh</p>
+          <div class="apj-feature-card">
+            <div class="apj-feature-icon">📊</div>
+            <div class="apj-feature-label">Dashboard</div>
+            <div class="apj-feature-value">Siap Tumbuh</div>
           </div>
         </div>
       </section>
 
-      <section class="mobile-hero mb-1 px-1 text-center lg:hidden">
-        <div class="inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-4 py-2 text-xs font-bold text-blue-200">
-          <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
-          <span>APJ Central</span>
-        </div>
-        <h2 class="mt-4 font-black tracking-tight text-white">Satu pintu APJ, kerja rapi.</h2>
-        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-300">Login pusat untuk Inventory, Absensi, Keuangan, dan operasional APJ.</p>
+      <section class="apj-login-mobile-hero">
+        <div class="apj-kicker"><span class="apj-kicker-dot"></span>APJ Central</div>
+        <h2>Satu pintu APJ, kerja rapi.</h2>
+        <p>Login pusat untuk Inventory, Absensi, Keuangan, dan operasional APJ.</p>
       </section>
 
-      <section class="login-card mx-auto w-full max-w-md rounded-2xl p-7 opacity-0 sm:p-8 animate-fade-in-up" style="animation-delay:.12s;">
-        <div class="orb orb-a"></div>
-        <div class="orb orb-b"></div>
-
-        <div class="relative mb-6 text-center">
-          <div class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-500/30 bg-blue-500/15 text-blue-300 shadow-lg shadow-blue-950/30">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3 3 8l9 5 9-5-9-5Zm0 10v8m-7-9v5l7 4 7-4v-5"></path>
-            </svg>
-          </div>
-          <h1 class="text-2xl font-extrabold uppercase tracking-tight text-white">APJ Central</h1>
-          <p class="mt-2 text-xs text-slate-400">Login Pusat Operasional Ampera Pak Jenggot</p>
-          <div class="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-cyan-200">
-            <span class="h-1.5 w-1.5 rounded-full bg-cyan-300"></span><span>Core Login v18 Ready</span>
-          </div>
+      <section class="apj-card apj-login-card" aria-labelledby="loginTitle">
+        <div class="apj-login-heading">
+          <div class="apj-login-logo">APJ</div>
+          <h1 id="loginTitle">APJ Central</h1>
+          <p>Login Pusat Operasional Ampera Pak Jenggot</p>
+          <span class="apj-version-pill">Core Login v18 Ready</span>
         </div>
 
-        <div class="relative mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-950/45 p-1">
-          <button id="loginTabBtn" type="button" class="tab-btn active rounded-xl px-3 py-2 text-xs font-extrabold transition-all" onclick="switchMode('login')">Masuk</button>
-          <button id="registerTabBtn" type="button" class="tab-btn rounded-xl px-3 py-2 text-xs font-extrabold transition-all" onclick="switchMode('register')">Daftar</button>
+        <div class="apj-tab-grid" role="tablist" aria-label="Mode login">
+          <button id="loginTabBtn" type="button" class="apj-tab-btn apj-active">Masuk</button>
+          <button id="registerTabBtn" type="button" class="apj-tab-btn">Daftar</button>
         </div>
 
-        <form id="loginForm" class="relative space-y-5" onsubmit="handleLogin(event)">
-          <div>
-            <label for="username" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Username</label>
-            <div class="input-wrap flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950/80 px-4 transition-all duration-200">
-              <span class="flat-icon text-slate-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"/></svg></span>
-              <input type="text" id="username" required autocomplete="username" class="w-full bg-transparent py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Masukkan username Anda">
+        <form id="loginForm" class="apj-form-grid">
+          <div class="apj-field">
+            <label for="username">Username</label>
+            <input id="username" class="apj-input" type="text" required autocomplete="username" placeholder="Masukkan username Anda">
+          </div>
+
+          <div class="apj-field">
+            <label for="password">Password</label>
+            <div class="apj-password-row">
+              <input id="password" class="apj-input" type="password" required autocomplete="current-password" placeholder="••••••••">
+              <button type="button" class="apj-btn apj-btn-ghost apj-btn-sm" data-toggle-password="password">LIHAT</button>
             </div>
           </div>
 
-          <div>
-            <label for="password" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
-            <div class="input-wrap flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950/80 px-4 transition-all duration-200">
-              <span class="flat-icon text-slate-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 11V8a5 5 0 0 1 10 0v3m-9 0h8a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z"/></svg></span>
-              <input type="password" id="password" required autocomplete="current-password" class="w-full bg-transparent py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="••••••••">
-              <button type="button" onclick="togglePassword('password', this)" class="text-xs font-bold text-slate-400 transition-colors hover:text-white" aria-label="Tampilkan atau sembunyikan password">LIHAT</button>
-            </div>
+          <div class="apj-text-right">
+            <button id="forgotOpenBtn" type="button" class="apj-inline-link">Lupa password?</button>
           </div>
 
-
-          <div class="-mt-2 flex justify-end">
-            <button type="button" onclick="openForgotModal()" class="mini-link text-xs font-extrabold">Lupa password?</button>
-          </div>
-
-          <button type="submit" id="submitBtn" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition-all duration-200">
+          <button id="submitBtn" type="submit" class="apj-btn apj-btn-primary apj-btn-block">
             <span id="btnText">Masuk ke APJ Central</span>
-            <span id="btnSpinner" class="spinner hidden"></span>
+            <span id="btnSpinner" class="apj-spinner apj-hidden"></span>
           </button>
         </form>
 
-        <form id="registerForm" class="relative hidden space-y-4" onsubmit="handleRegister(event)">
-          <div class="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs leading-5 text-amber-100">
-            Akun baru akan masuk dengan status <b>NONAKTIF</b>. Owner/Admin harus mengaktifkan akun sebelum bisa login.
-          </div>
+        <form id="registerForm" class="apj-form-grid apj-hidden">
+          <div class="apj-auth-note">Akun baru akan masuk dengan status <b>NONAKTIF</b>. Owner/Admin harus mengaktifkan akun sebelum bisa login.</div>
 
-          <div class="form-grid">
-            <div>
-              <label for="regUsername" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Username</label>
-              <input id="regUsername" type="text" required autocomplete="username" class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="tanpa spasi">
+          <div class="apj-form-grid apj-form-grid-2">
+            <div class="apj-field">
+              <label for="regUsername">Username</label>
+              <input id="regUsername" class="apj-input" type="text" required autocomplete="username" placeholder="tanpa spasi">
             </div>
-            <div>
-              <label for="regNama" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Nama Lengkap</label>
-              <input id="regNama" type="text" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Nama karyawan">
+            <div class="apj-field">
+              <label for="regNama">Nama Lengkap</label>
+              <input id="regNama" class="apj-input" type="text" required placeholder="Nama karyawan">
             </div>
           </div>
 
-          <div class="form-grid">
-            <div>
-              <label for="regPassword" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
-              <div class="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/80 px-4">
-                <input id="regPassword" type="password" required minlength="6" autocomplete="new-password" class="w-full bg-transparent py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="Minimal 6 karakter">
-                <button type="button" onclick="togglePassword('regPassword', this)" class="text-xs font-bold text-slate-400 hover:text-white">LIHAT</button>
+          <div class="apj-form-grid apj-form-grid-2">
+            <div class="apj-field">
+              <label for="regPassword">Password</label>
+              <div class="apj-password-row">
+                <input id="regPassword" class="apj-input" type="password" required minlength="6" autocomplete="new-password" placeholder="Minimal 6 karakter">
+                <button type="button" class="apj-btn apj-btn-ghost apj-btn-sm" data-toggle-password="regPassword">LIHAT</button>
               </div>
             </div>
-            <div>
-              <label for="regOutlet" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Outlet Utama</label>
-              <select id="regOutlet" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white focus:outline-none">
+            <div class="apj-field">
+              <label for="regOutlet">Outlet Utama</label>
+              <select id="regOutlet" class="apj-select" required>
                 <option value="">Pilih outlet</option>
               </select>
             </div>
           </div>
 
-          <div class="form-grid">
-            <div>
-              <label for="regNoHp" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">No. HP</label>
-              <input id="regNoHp" type="tel" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="08xxxxxxxxxx">
+          <div class="apj-form-grid apj-form-grid-2">
+            <div class="apj-field">
+              <label for="regNoHp">No. HP</label>
+              <input id="regNoHp" class="apj-input" type="tel" required placeholder="08xxxxxxxxxx" inputmode="tel">
             </div>
-            <div>
-              <label for="regEmail" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
-              <input id="regEmail" type="email" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none" placeholder="nama@email.com">
+            <div class="apj-field">
+              <label for="regEmail">Email</label>
+              <input id="regEmail" class="apj-input" type="email" required placeholder="nama@email.com">
             </div>
           </div>
 
-          <div>
-            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir</label>
-            <div class="date-select-grid">
-              <select id="regBirthDay" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
-                <option value="">Tanggal</option>
-              </select>
-              <select id="regBirthMonth" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
-                <option value="">Bulan</option>
-              </select>
-              <select id="regBirthYear" required class="apj-select w-full rounded-xl px-4 py-3 text-sm font-semibold">
-                <option value="">Tahun</option>
-              </select>
+          <div class="apj-field">
+            <label>Tanggal Lahir</label>
+            <div class="apj-date-grid">
+              <select id="regBirthDay" class="apj-select" required></select>
+              <select id="regBirthMonth" class="apj-select" required></select>
+              <select id="regBirthYear" class="apj-select" required></select>
             </div>
-            <input id="regTanggalLahir" type="hidden">
           </div>
 
-          <button type="submit" id="registerBtn" class="primary-btn flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition-all duration-200">
+          <button id="registerBtn" type="submit" class="apj-btn apj-btn-primary apj-btn-block">
             <span id="registerBtnText">Kirim Pendaftaran</span>
-            <span id="registerSpinner" class="spinner hidden"></span>
+            <span id="registerSpinner" class="apj-spinner apj-hidden"></span>
           </button>
         </form>
 
-        <div class="relative mt-8 border-t border-slate-800/80 pt-6 text-center">
-          <p class="text-[10px] uppercase tracking-wider text-slate-500">Hak akses hanya untuk personel resmi APJ</p>
-          <p class="mt-2 text-[11px] text-slate-600">Gunakan akun masing-masing. Jangan pinjam akun, nanti auditnya ikut pinjam juga.</p>
+        <div class="apj-login-footer">
+          <p>Hak akses hanya untuk personel resmi APJ</p>
+          <p>Gunakan akun masing-masing. Jangan pinjam akun, nanti auditnya ikut pinjam juga.</p>
         </div>
       </section>
     </div>
   </main>
 
-  <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXjexCdYXsygij_WdgA6H26Xp__GCpRbLk1oxpocnvmOvyy8_9G2lVKW_6wr2qV19YkQ/exec";
-    const APP_NAME = "APJ_CENTRAL_INDEX";
-    let pendingRedirect = "dashboard.html";
-    let currentSessionToken = "";
-    let currentProfile = null;
-
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('profileModal')?.classList.remove('show');
-      currentSessionToken = '';
-      currentProfile = null;
-      setupMobileIntro();
-      initBirthDateSelects();
-      loadOutletsForRegister();
-      validateExistingSession();
-    });
-
-    function setupMobileIntro() {
-      const modal = document.getElementById('mobileIntroModal');
-      if (window.innerWidth <= 768 && modal) modal.classList.add('show');
-    }
-
-    function closeMobileIntro() {
-      document.getElementById('mobileIntroModal')?.classList.remove('show');
-    }
-
-    function showPopup(message, type = 'success') {
-      const toast = document.getElementById('customToast');
-      const toastMessage = document.getElementById('toastMessage');
-      const iconContainer = document.getElementById('toastIconContainer');
-      const icon = document.getElementById('toastIcon');
-      toastMessage.innerText = message || '-';
-
-      if (type === 'success') {
-        toast.className = "toast show flex items-center w-full max-w-md p-4 rounded-xl shadow-2xl border bg-emerald-950/95 border-emerald-700/80 text-emerald-200 backdrop-blur-md";
-        iconContainer.className = "inline-flex items-center justify-center flex-shrink-0 w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/20";
-        icon.innerHTML = `<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>`;
-      } else {
-        toast.className = "toast show flex items-center w-full max-w-md p-4 rounded-xl shadow-2xl border bg-rose-950/95 border-rose-700/80 text-rose-200 backdrop-blur-md";
-        iconContainer.className = "inline-flex items-center justify-center flex-shrink-0 w-9 h-9 rounded-xl bg-rose-500/15 text-rose-300 border border-rose-500/20";
-        icon.innerHTML = `<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z"/>`;
-      }
-
-      window.clearTimeout(window.__apjToastTimer);
-      window.__apjToastTimer = setTimeout(() => toast.classList.remove('show'), 4200);
-    }
-
-    function switchMode(mode) {
-      const isLogin = mode === 'login';
-      document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
-      document.getElementById('registerForm').classList.toggle('hidden', isLogin);
-      document.getElementById('loginTabBtn').classList.toggle('active', isLogin);
-      document.getElementById('registerTabBtn').classList.toggle('active', !isLogin);
-    }
-
-    function togglePassword(inputId, btn) {
-      const input = document.getElementById(inputId);
-      const isPassword = input.type === 'password';
-      input.type = isPassword ? 'text' : 'password';
-      btn.textContent = isPassword ? 'TUTUP' : 'LIHAT';
-    }
-
-    function setLoading(prefix, isLoading, text) {
-      const btn = document.getElementById(prefix + 'Btn');
-      const btnText = document.getElementById(prefix + 'BtnText');
-      const spinner = document.getElementById(prefix + 'Spinner');
-      if (btn) btn.disabled = isLoading;
-      if (btnText && text) btnText.innerText = text;
-      if (spinner) spinner.classList.toggle('hidden', !isLoading);
-    }
-
-    function resetLoginButton() {
-      const submitBtn = document.getElementById('submitBtn');
-      const btnText = document.getElementById('btnText');
-      const btnSpinner = document.getElementById('btnSpinner');
-      submitBtn.disabled = false;
-      btnText.innerText = "Masuk ke APJ Central";
-      btnSpinner.classList.add('hidden');
-    }
-
-    async function callCore(action, payload = {}) {
-      if (!APPS_SCRIPT_URL) throw new Error('URL API Apps Script belum diisi.');
-      const response = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        redirect: 'follow',
-        body: JSON.stringify({
-          action,
-          appName: APP_NAME,
-          userAgent: navigator.userAgent,
-          ...payload
-        })
-      });
-      return response.json();
-    }
-
-    const APJ_MONTHS_ID = [
-      { value: '01', label: 'Januari' },
-      { value: '02', label: 'Februari' },
-      { value: '03', label: 'Maret' },
-      { value: '04', label: 'April' },
-      { value: '05', label: 'Mei' },
-      { value: '06', label: 'Juni' },
-      { value: '07', label: 'Juli' },
-      { value: '08', label: 'Agustus' },
-      { value: '09', label: 'September' },
-      { value: '10', label: 'Oktober' },
-      { value: '11', label: 'November' },
-      { value: '12', label: 'Desember' }
-    ];
-
-    function initBirthDateSelects() {
-      setupBirthSelects('reg');
-      setupBirthSelects('profile');
-      setupBirthSelects('forgot');
-    }
-
-    function setupBirthSelects(prefix) {
-      const day = document.getElementById(prefix + 'BirthDay');
-      const month = document.getElementById(prefix + 'BirthMonth');
-      const year = document.getElementById(prefix + 'BirthYear');
-      if (!day || !month || !year) return;
-
-      if (day.options.length <= 1) {
-        for (let i = 1; i <= 31; i++) {
-          const opt = document.createElement('option');
-          opt.value = String(i).padStart(2, '0');
-          opt.textContent = String(i).padStart(2, '0');
-          day.appendChild(opt);
-        }
-      }
-
-      if (month.options.length <= 1) {
-        APJ_MONTHS_ID.forEach(item => {
-          const opt = document.createElement('option');
-          opt.value = item.value;
-          opt.textContent = item.label;
-          month.appendChild(opt);
-        });
-      }
-
-      if (year.options.length <= 1) {
-        const thisYear = new Date().getFullYear();
-        for (let y = thisYear; y >= 1950; y--) {
-          const opt = document.createElement('option');
-          opt.value = String(y);
-          opt.textContent = String(y);
-          year.appendChild(opt);
-        }
-      }
-
-      [day, month, year].forEach(el => el.addEventListener('change', () => updateBirthHidden(prefix)));
-    }
-
-    function getSelectedBirthDate(prefix) {
-      const day = document.getElementById(prefix + 'BirthDay')?.value || '';
-      const month = document.getElementById(prefix + 'BirthMonth')?.value || '';
-      const year = document.getElementById(prefix + 'BirthYear')?.value || '';
-      if (!day || !month || !year) return '';
-      return `${day}/${month}/${year}`;
-    }
-
-    function updateBirthHidden(prefix) {
-      const hidden = document.getElementById(prefix + 'TanggalLahir');
-      if (hidden) hidden.value = getSelectedBirthDate(prefix);
-    }
-
-    function setBirthDate(prefix, value) {
-      const parsed = parseBirthDateParts(value);
-      const day = document.getElementById(prefix + 'BirthDay');
-      const month = document.getElementById(prefix + 'BirthMonth');
-      const year = document.getElementById(prefix + 'BirthYear');
-      if (!day || !month || !year) return;
-      day.value = parsed.day || '';
-      month.value = parsed.month || '';
-      year.value = parsed.year || '';
-      updateBirthHidden(prefix);
-    }
-
-    function parseBirthDateParts(value) {
-      const s = String(value || '').trim();
-      if (!s) return { day: '', month: '', year: '' };
-      let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-      if (m) return { day: String(m[3]).padStart(2, '0'), month: String(m[2]).padStart(2, '0'), year: m[1] };
-      m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-      if (m) {
-        const yy = m[3].length === 2 ? '20' + m[3] : m[3];
-        return { day: String(m[1]).padStart(2, '0'), month: String(m[2]).padStart(2, '0'), year: yy };
-      }
-      return { day: '', month: '', year: '' };
-    }
-
-    async function validateExistingSession() {
-      const token = localStorage.getItem('APJ_SESSION_TOKEN') || '';
-      if (!token || localStorage.getItem('APJ_SESSION_ACTIVE') !== 'true') return;
-      try {
-        const result = await callCore('getMyProfile', { sessionToken: token });
-        if (!result.success) throw new Error(result.message || 'Session tidak valid');
-        const profile = result.user || {};
-
-        // Login page tidak boleh memunculkan modal Lengkapi Profil otomatis.
-        // Kalau profil lama belum lengkap, minta user login ulang supaya username/session jelas.
-        if (!profile.username || needsProfileCompletion(profile)) {
-          clearSession();
-          document.getElementById('profileModal')?.classList.remove('show');
-          return;
-        }
-
-        window.location.href = 'dashboard.html';
-      } catch (error) {
-        clearSession();
-        document.getElementById('profileModal')?.classList.remove('show');
-      }
-    }
-
-    async function loadOutletsForRegister() {
-      const select = document.getElementById('regOutlet');
-      const fallback = ['LAHOR', 'SENISONO', 'PUJON', 'NGUJUNG', 'POKOPEK'];
-      try {
-        const result = await callCore('getOutlets', {});
-        const outlets = (result.outlets || []).filter(o => (o.kodeOutlet || '').toUpperCase() !== 'ALL');
-        setOutletOptions(select, outlets.map(o => ({ value: o.kodeOutlet, label: o.namaOutlet || o.kodeOutlet })));
-      } catch (err) {
-        setOutletOptions(select, fallback.map(v => ({ value: v, label: v })));
-      }
-    }
-
-    function setOutletOptions(select, options) {
-      if (!select) return;
-      const current = select.value;
-      select.innerHTML = '<option value="">Pilih outlet</option>';
-      options.forEach(opt => {
-        const option = document.createElement('option');
-        option.value = String(opt.value || '').toUpperCase();
-        option.textContent = opt.label || opt.value;
-        select.appendChild(option);
-      });
-      if (current) select.value = current;
-    }
-
-
-    function openForgotModal() {
-      document.getElementById('forgotModal')?.classList.add('show');
-      document.getElementById('forgotUsernameForm')?.classList.remove('hidden');
-      document.getElementById('forgotResetForm')?.classList.add('hidden');
-      const username = document.getElementById('username')?.value.trim() || '';
-      document.getElementById('forgotUsername').value = username;
-      document.getElementById('forgotVerifiedUsername').value = '';
-      document.getElementById('forgotNoHp').value = '';
-      document.getElementById('forgotNewPassword').value = '';
-      document.getElementById('forgotConfirmPassword').value = '';
-      setBirthDate('forgot', '');
-      setTimeout(() => document.getElementById('forgotUsername')?.focus(), 100);
-    }
-
-    function closeForgotModal() {
-      document.getElementById('forgotModal')?.classList.remove('show');
-      setLoading('forgotCheck', false, 'Lanjut');
-      setLoading('forgotReset', false, 'Simpan Password Baru');
-    }
-
-    function backToForgotUsername() {
-      document.getElementById('forgotUsernameForm')?.classList.remove('hidden');
-      document.getElementById('forgotResetForm')?.classList.add('hidden');
-      setLoading('forgotCheck', false, 'Lanjut');
-      setLoading('forgotReset', false, 'Simpan Password Baru');
-    }
-
-    async function handleForgotUsername(event) {
-      event.preventDefault();
-      const username = document.getElementById('forgotUsername').value.trim().toLowerCase();
-      if (!username) {
-        showPopup('Username wajib diisi.', 'error');
-        return;
-      }
-      setLoading('forgotCheck', true, 'Mengecek username...');
-      try {
-        const result = await callCore('forgotPasswordCheckUsername', { username });
-        if (!result.success) {
-          showPopup(result.message || 'Username belum bisa reset mandiri.', 'error');
-          setLoading('forgotCheck', false, 'Lanjut');
-          return;
-        }
-        document.getElementById('forgotVerifiedUsername').value = username;
-        document.getElementById('forgotAccountLabel').textContent = 'Akun ditemukan: ' + (result.nama || username) + ' (' + username + '). Isi data verifikasi lalu buat password baru.';
-        document.getElementById('forgotUsernameForm')?.classList.add('hidden');
-        document.getElementById('forgotResetForm')?.classList.remove('hidden');
-        setLoading('forgotCheck', false, 'Lanjut');
-        setTimeout(() => document.getElementById('forgotNoHp')?.focus(), 100);
-      } catch (error) {
-        console.error(error);
-        showPopup('Gagal mengecek username ke server.', 'error');
-        setLoading('forgotCheck', false, 'Lanjut');
-      }
-    }
-
-    async function handleForgotReset(event) {
-      event.preventDefault();
-      const username = document.getElementById('forgotVerifiedUsername').value.trim().toLowerCase();
-      const noHp = document.getElementById('forgotNoHp').value.trim();
-      const tanggalLahir = getSelectedBirthDate('forgot');
-      const newPassword = document.getElementById('forgotNewPassword').value;
-      const confirmPassword = document.getElementById('forgotConfirmPassword').value;
-
-      if (!username) {
-        showPopup('Silakan cek username dulu.', 'error');
-        backToForgotUsername();
-        return;
-      }
-      if (!tanggalLahir) {
-        showPopup('Tanggal lahir wajib dipilih lengkap.', 'error');
-        return;
-      }
-      if (newPassword.length < 6) {
-        showPopup('Password baru minimal 6 karakter.', 'error');
-        return;
-      }
-      if (newPassword !== confirmPassword) {
-        showPopup('Konfirmasi password belum sama.', 'error');
-        return;
-      }
-
-      setLoading('forgotReset', true, 'Menyimpan password...');
-      try {
-        const result = await callCore('resetPasswordWithVerification', {
-          username,
-          noHp,
-          tanggalLahir,
-          newPassword
-        });
-        if (!result.success) {
-          showPopup(result.message || 'Reset password gagal.', 'error');
-          setLoading('forgotReset', false, 'Simpan Password Baru');
-          return;
-        }
-        showPopup('Password berhasil diperbarui. Silakan login.', 'success');
-        document.getElementById('username').value = username;
-        document.getElementById('password').value = '';
-        closeForgotModal();
-        switchMode('login');
-      } catch (error) {
-        console.error(error);
-        showPopup('Gagal reset password ke server.', 'error');
-        setLoading('forgotReset', false, 'Simpan Password Baru');
-      }
-    }
-
-    async function handleLogin(event) {
-      event.preventDefault();
-      const usernameInput = document.getElementById('username').value.trim();
-      const passwordInput = document.getElementById('password').value;
-      const submitBtn = document.getElementById('submitBtn');
-      const btnText = document.getElementById('btnText');
-      const btnSpinner = document.getElementById('btnSpinner');
-
-      submitBtn.disabled = true;
-      btnText.innerText = "Memverifikasi akun pusat...";
-      btnSpinner.classList.remove('hidden');
-
-      try {
-        const result = await callCore('login', {
-          username: usernameInput,
-          password: passwordInput
-        });
-
-        if (!result.success) {
-          showPopup(result.message || 'Login gagal. Periksa username dan password.', 'error');
-          resetLoginButton();
-          return;
-        }
-
-        currentSessionToken = result.sessionToken || result.token || '';
-        let profile = result.user || {};
-        let modules = result.modules || [];
-
-        if (!currentSessionToken || !profile.username) {
-          showPopup('Login berhasil dari server, tapi session/user belum lengkap. Silakan deploy ulang API Login Pusat lalu coba lagi.', 'error');
-          clearSession();
-          resetLoginButton();
-          return;
-        }
-
-        try {
-          const fresh = await callCore('getMyProfile', { sessionToken: currentSessionToken });
-          if (fresh.success) {
-            profile = fresh.user || profile;
-            modules = fresh.modules || modules;
-          }
-        } catch (_) {}
-
-        storeSession(currentSessionToken, profile, modules);
-        currentProfile = profile;
-
-        const secureMsg = result.migratedToHash ? ' Password sudah diamankan menjadi HASH.' : '';
-        showPopup('Login berhasil. Selamat datang, ' + (profile.nama || usernameInput) + '.' + secureMsg, 'success');
-
-        if (needsProfileCompletion(profile)) {
-          fillProfileModal(profile);
-          setTimeout(() => document.getElementById('profileModal').classList.add('show'), 550);
-          resetLoginButton();
-          return;
-        }
-
-        setTimeout(() => { window.location.href = pendingRedirect; }, 900);
-      } catch (error) {
-        console.error(error);
-        showPopup('Gagal terhubung ke API Login Pusat. Periksa koneksi atau deployment Apps Script.', 'error');
-        resetLoginButton();
-      }
-    }
-
-    async function handleRegister(event) {
-      event.preventDefault();
-      const username = document.getElementById('regUsername').value.trim().toLowerCase();
-      const nama = document.getElementById('regNama').value.trim();
-      const password = document.getElementById('regPassword').value;
-      const outletUtama = document.getElementById('regOutlet').value;
-      const noHp = document.getElementById('regNoHp').value.trim();
-      const email = document.getElementById('regEmail').value.trim();
-      const tanggalLahir = getSelectedBirthDate('reg');
-
-      if (/\s/.test(username)) {
-        showPopup('Username tidak boleh memakai spasi.', 'error');
-        return;
-      }
-
-      if (!tanggalLahir) {
-        showPopup('Tanggal lahir wajib dipilih lengkap: tanggal, bulan, dan tahun.', 'error');
-        return;
-      }
-
-      setLoading('register', true, 'Mengirim pendaftaran...');
-      try {
-        const result = await callCore('registerUser', {
-          username,
-          nama,
-          password,
-          level: 'KARYAWAN',
-          outletUtama,
-          outletAkses: outletUtama,
-          noHp,
-          email,
-          tanggalLahir
-        });
-
-        if (!result.success) {
-          showPopup(result.message || 'Pendaftaran gagal.', 'error');
-          setLoading('register', false, 'Kirim Pendaftaran');
-          return;
-        }
-
-        showPopup('Pendaftaran terkirim. Tunggu Owner/Admin mengaktifkan akun.', 'success');
-        document.getElementById('registerForm').reset();
-        setBirthDate('reg', '');
-        document.getElementById('username').value = username;
-        switchMode('login');
-        setLoading('register', false, 'Kirim Pendaftaran');
-      } catch (error) {
-        console.error(error);
-        showPopup('Gagal mengirim pendaftaran ke server.', 'error');
-        setLoading('register', false, 'Kirim Pendaftaran');
-      }
-    }
-
-    function needsProfileCompletion(profile) {
-      return !String(profile?.noHp || '').trim() || !String(profile?.email || '').trim() || !String(profile?.tanggalLahir || '').trim();
-    }
-
-    function fillProfileModal(profile) {
-      const username = String(profile?.username || '').trim();
-      const nama = String(profile?.nama || '').trim();
-      const label = document.getElementById('profileAccountLabel');
-      const name = document.getElementById('profileAccountName');
-      if (label && name && username) {
-        name.textContent = nama ? `${nama} (${username})` : username;
-        label.classList.remove('hidden');
-      } else if (label) {
-        label.classList.add('hidden');
-      }
-      document.getElementById('profileNoHp').value = profile?.noHp || '';
-      document.getElementById('profileEmail').value = profile?.email || '';
-      setBirthDate('profile', profile?.tanggalLahir || '');
-    }
-
-
-    async function handleProfileSubmit(event) {
-      event.preventDefault();
-
-      if (!currentSessionToken || !currentProfile || !currentProfile.username) {
-        document.getElementById('profileModal')?.classList.remove('show');
-        showPopup('Silakan login dulu sebelum melengkapi profil.', 'error');
-        clearSession();
-        resetLoginButton();
-        return;
-      }
-
-      const noHp = document.getElementById('profileNoHp').value.trim();
-      const email = document.getElementById('profileEmail').value.trim();
-      const tanggalLahir = getSelectedBirthDate('profile');
-
-      if (!tanggalLahir) {
-        showPopup('Tanggal lahir wajib dipilih lengkap: tanggal, bulan, dan tahun.', 'error');
-        return;
-      }
-
-      setLoading('profile', true, 'Menyimpan profil...');
-      try {
-        const result = await callCore('updateMyProfile', {
-          sessionToken: currentSessionToken,
-          noHp,
-          email,
-          tanggalLahir
-        });
-
-        if (!result.success) {
-          showPopup(result.message || 'Profil gagal disimpan.', 'error');
-          setLoading('profile', false, 'Simpan & Lanjut');
-          return;
-        }
-
-        const profile = result.user || { ...currentProfile, noHp, email, tanggalLahir };
-        currentProfile = profile;
-        storeSession(currentSessionToken, profile, JSON.parse(localStorage.getItem('APJ_USER_MODULES') || '[]'));
-        document.getElementById('profileModal')?.classList.remove('show');
-        showPopup('Profil berhasil dilengkapi. Mengalihkan ke dashboard...', 'success');
-        setTimeout(() => { window.location.href = pendingRedirect; }, 800);
-      } catch (error) {
-        console.error(error);
-        showPopup('Gagal menyimpan profil.', 'error');
-        setLoading('profile', false, 'Simpan & Lanjut');
-      }
-    }
-
-    function storeSession(token, user, modules) {
-      localStorage.setItem('APJ_SESSION_ACTIVE', 'true');
-      localStorage.setItem('APJ_SESSION_TOKEN', token || '');
-      localStorage.setItem('APJ_USER_ID', user.userId || '');
-      localStorage.setItem('APJ_USER_USERNAME', user.username || '');
-      localStorage.setItem('APJ_USER_NAME', user.nama || '');
-      localStorage.setItem('APJ_USER_LEVEL', user.level || '');
-      localStorage.setItem('APJ_USER_OUTLET', user.outlet || user.outletUtama || '');
-      localStorage.setItem('APJ_USER_OUTLET_AKSES', user.outletAkses || '');
-      localStorage.setItem('APJ_USER_NO_HP', user.noHp || '');
-      localStorage.setItem('APJ_USER_EMAIL', user.email || '');
-      localStorage.setItem('APJ_USER_TANGGAL_LAHIR', user.tanggalLahir || '');
-      localStorage.setItem('APJ_USER_PERMISSIONS', JSON.stringify(user.permissions || {}));
-      localStorage.setItem('APJ_USER_MODULES', JSON.stringify(modules || []));
-    }
-
-    function clearSession() {
-      currentSessionToken = '';
-      currentProfile = null;
-      [
-        'APJ_SESSION_ACTIVE','APJ_SESSION_TOKEN','APJ_USER_ID','APJ_USER_USERNAME','APJ_USER_NAME','APJ_USER_LEVEL',
-        'APJ_USER_OUTLET','APJ_USER_OUTLET_AKSES','APJ_USER_NO_HP','APJ_USER_EMAIL','APJ_USER_TANGGAL_LAHIR',
-        'APJ_USER_PERMISSIONS','APJ_USER_MODULES'
-      ].forEach(k => localStorage.removeItem(k));
-    }
-  </script>
+  <script src="assets/js/apj-config.js" defer></script>
+  <script src="assets/js/apj-api.js" defer></script>
+  <script src="assets/js/apj-toast.js" defer></script>
+  <script src="assets/js/apj-auth.js" defer></script>
+  <script src="assets/js/apj-date.js" defer></script>
+  <script src="assets/js/apj-login.js" defer></script>
 </body>
 </html>
