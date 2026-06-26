@@ -1,19 +1,18 @@
-# APJ Produk Outlet V95 - Print Pesanan 58mm Blank & Nama Pemesan Sheet Fix
+# APJ Produk Outlet V96 - Print Pesanan 58mm Font 14px Fix
 
-Paket ini berbasis file final sementara Produk Outlet terbaru.
+Basis: V95 Print Pesanan 58mm Blank & Nama Pemesan Sheet Fix.
 
-## Perubahan V95
-- Format print Pesanan 58mm diperbesar agar lebih terbaca di printer thermal.
-- Print memakai popup cetak nyata, menunggu render dokumen, dan ukuran @page eksplisit 58mm x 297mm untuk mengurangi risiko hasil cetak kosong.
-- Nama Pemesan diperbaiki agar tersimpan dan tampil di cetak ulang walaupun sheet masih memakai header lama/typo `Nama Pesanan`.
-- Backend append pesanan: penulisan data mengikuti posisi header aktual sheet, sekaligus mengisi alias header lama jika kolom tersebut masih ada.
-- File pendamping menggunakan format MASTER.
+## Perubahan V96
+- Print Pesanan 58mm tidak lagi bold semua.
+- Font utama struk pesanan dinaikkan menjadi 14px.
+- Body/data menggunakan font-weight 500.
+- Label penting tetap bold 700.
+- Judul dan brand tetap tebal agar struk mudah dibaca.
+- Query string produk-outlet.html dinaikkan ke ?v=96 agar cache browser tidak memakai JS/CSS lama.
 
-## File yang diupload
-- produk-outlet.html
-- assets/css/pages/apj-produk-outlet.css
-- assets/js/pages/apj-produk-outlet.js
-- CODE_GS_APJ_INVENTORI_MASTER.txt
-
-## Catatan
-Setelah mengganti Code.gs, deploy ulang Apps Script Inventory dan tekan Ctrl+F5 di browser.
+## Cara pasang
+1. Replace seluruh file frontend dari paket ini.
+2. Upload ulang CODE_GS_APJ_INVENTORI_MASTER.txt ke Apps Script jika belum memakai V95.
+3. Deploy ulang Apps Script bila Code.gs diganti.
+4. Buka aplikasi lalu tekan Ctrl + F5.
+5. Tes Produk Outlet > Pesanan > Cetak 58mm.

@@ -1,6 +1,6 @@
 /**
  * ================================================================
- * APJ INVENTORY V3 - OPTIMAL BACKEND / CODE.GS - V95 PRINT PESANAN SHEET ALIGN FIX
+ * APJ INVENTORY V3 - OPTIMAL BACKEND / CODE.GS - V96 PRINT PESANAN FONT14 FRONTEND FIX
  * ================================================================
  * Target Spreadsheet:
  * APJ_INVENTORY V.3. Jika script bound ke spreadsheet, SPREADSHEET_ID boleh dikosongkan.

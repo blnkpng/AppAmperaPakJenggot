@@ -1170,3 +1170,7 @@ body.apj-produk-outlet-v93 .modal-print-pesanan-card .modal-actions{
 body.apj-produk-outlet-v95 .print-pesanan-title{font-size:15px;}
 body.apj-produk-outlet-v95 .print-pesanan-meta{font-size:13.5px;}
 body.apj-produk-outlet-v95 .print-pesanan-card .btn-print{font-weight:950;}
+
+
+/* APJ Produk Outlet V96 - Print Pesanan 58mm Font 14px Normal Weight */
+/* Catatan: style utama print pesanan 58mm ada di buildPesananPrintHtml() dalam assets/js/pages/apj-produk-outlet.js. */
