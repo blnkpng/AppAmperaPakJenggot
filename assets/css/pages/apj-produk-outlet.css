@@ -1100,3 +1100,67 @@ html[data-theme="light"] body.apj-produk-outlet-v91 .print-pesanan-title{color:#
   body.apj-produk-outlet-v91 .print-pesanan-card{grid-template-columns:1fr;}
   body.apj-produk-outlet-v91 .print-pesanan-card .btn-print{width:100%;}
 }
+
+/* V93 - Produk Outlet action buttons sync */
+body.apj-produk-outlet-v93 .produk-actions{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:12px;
+}
+body.apj-produk-outlet-v93 .produk-actions > button{
+  min-height:56px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:0;
+  border-radius:18px;
+  padding:0 22px;
+  font-size:16px;
+  line-height:1.1;
+  font-weight:950;
+  white-space:nowrap;
+  text-align:center;
+  box-shadow:0 16px 34px rgba(15,23,42,.16);
+  transition:transform .16s ease, filter .16s ease, box-shadow .16s ease;
+}
+body.apj-produk-outlet-v93 .produk-actions > button:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.05);
+}
+body.apj-produk-outlet-v93 .produk-actions .btn-primary{
+  background:linear-gradient(135deg,#2563eb,#0ea5e9);
+  color:#fff;
+  box-shadow:0 16px 34px rgba(37,99,235,.22);
+}
+body.apj-produk-outlet-v93 .produk-actions .btn-warning{
+  background:linear-gradient(135deg,#f59e0b,#f97316);
+  color:#fff;
+  box-shadow:0 16px 34px rgba(249,115,22,.22);
+}
+body.apj-produk-outlet-v93 .produk-actions .btn-pesanan-red{
+  background:linear-gradient(135deg,#ef4444,#e11d48) !important;
+  color:#fff !important;
+  box-shadow:0 16px 34px rgba(225,29,72,.24) !important;
+}
+body.apj-produk-outlet-v93 .produk-actions .btn-pesanan-print{
+  background:linear-gradient(135deg,#7c3aed,#2563eb) !important;
+  color:#fff !important;
+  box-shadow:0 16px 34px rgba(79,70,229,.24) !important;
+}
+body.apj-produk-outlet-v93 .modal-pesanan-card .modal-actions,
+body.apj-produk-outlet-v93 .modal-print-pesanan-card .modal-actions{
+  gap:12px;
+  flex-wrap:wrap;
+}
+@media(max-width:1080px){
+  body.apj-produk-outlet-v93 .produk-actions{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  body.apj-produk-outlet-v93 .produk-actions > button{width:100%;}
+}
+@media(max-width:640px){
+  body.apj-produk-outlet-v93 .produk-actions{grid-template-columns:1fr;}
+  body.apj-produk-outlet-v93 .produk-actions > button{min-height:52px;font-size:15px;}
+}

@@ -1,4 +1,4 @@
-/* APJ Produk Outlet V91 - Print Pesanan Reprint + 58mm Roll Fix */
+/* APJ Produk Outlet V93 - Print Popup Fix + Master Files */
 (function(){
   'use strict';
 
@@ -453,22 +453,27 @@
 
   async function savePesananOutlet(printAfter){
     const btn = document.getElementById(printAfter ? 'btnSavePrintPesanan' : 'btnSavePesanan');
+    let printWindow = null;
     try {
       const payload = collectPesananPayload(true);
+      if (printAfter) printWindow = openPrintWindowShell('Menyiapkan Print Pesanan');
       setButtonLoading(btn, printAfter ? 'Menyimpan...' : 'Menyimpan...');
       const result = await callInventory('simpanPesananOutlet', payload);
       if (!result.success) throw new Error(result.message || 'Gagal menyimpan pesanan.');
       state.lastPesananNo = result.noPesanan || '';
       payload.noPesanan = state.lastPesananNo;
       showToast(result.message || 'Pesanan berhasil disimpan.', 'success');
-      if (printAfter) printPesananPayload(payload, state.lastPesananNo || 'DRAFT');
+      if (printAfter) printPesananPayload(payload, state.lastPesananNo || 'DRAFT', printWindow);
       closeModal('modalPesanan');
+      updatePesananSummary();
     } catch (err) {
-      showToast(err.message || 'Data pesanan belum valid.', 'error');
+      if (printWindow && !printWindow.closed) { try { printWindow.close(); } catch (_) {} }
+      showToast(err.message || 'Gagal menyimpan pesanan.', 'error');
     } finally {
       resetButton(btn, printAfter ? 'Simpan & Cetak' : 'Simpan Pesanan');
     }
   }
+
 
   function printPesananOutlet(noPesanan){
     let payload;
@@ -476,13 +481,16 @@
     printPesananPayload(payload, noPesanan || state.lastPesananNo || 'DRAFT');
   }
 
-  function printPesananPayload(payload, noPesanan){
+  function printPesananPayload(payload, noPesanan, printWindow){
     const html = buildPesananPrintHtml(payload, noPesanan || payload.noPesanan || 'DRAFT');
-    printHtml58Roll(html);
+    printHtml58Roll(html, printWindow);
   }
 
   function buildPesananPrintHtml(payload, noPesanan){
-    const nomor = noPesanan || payload.noPesanan || 'DRAFT';
+    payload = payload || {};
+    const nomor = noPesanan || payload.noPesanan || payload['No Pesanan'] || 'DRAFT';
+    const namaPemesan = payload.namaPemesan || payload.pemesan || payload.namaCustomer || payload.customer || payload['Nama Pemesan'] || payload['Pemesan'] || '';
+    const nomorHp = payload.nomorHp || payload.noHp || payload.hp || payload['Nomor HP'] || payload['No HP'] || '';
     const now = new Date();
     const rowsHtml = (payload.groups || []).map((g, i) => `<div class="order-block">
       <div class="order-title">${i+1}. ${esc(g.jenisPesanan || '-')}</div>
@@ -493,10 +501,10 @@
     </div>`).join('');
     const bayar = `${payload.statusPembayaran || '-'} - ${payload.metodePembayaran || '-'}${payload.metodePembayaran === 'Transfer' && payload.bank ? ' ' + payload.bank : ''}`;
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pesanan Outlet 58mm</title><style>
-      @page{size:58mm auto;margin:0}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-height:auto!important;height:auto!important;overflow:visible!important}body{font-family:Arial,Helvetica,sans-serif;font-size:8px;line-height:1.22;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{width:54mm;max-width:54mm;margin:0 auto;padding:2mm 0 1.5mm 0;break-inside:auto;page-break-inside:auto}.center{text-align:center}.brand{font-size:11px;font-weight:800;text-transform:uppercase}.title{font-size:9px;font-weight:800;text-transform:uppercase;margin-top:.7mm}.dash{border-top:1px dashed #000;margin:1.3mm 0}.meta{display:grid;grid-template-columns:17mm 1fr;gap:.35mm .8mm;font-size:7.4px}.order-block{border-bottom:1px dashed #888;padding:1.1mm 0;break-inside:avoid;page-break-inside:avoid}.order-title{font-size:8.6px;font-weight:800}.order-sub{font-weight:700;margin-top:.7mm}.lauk{padding-left:1.5mm}.note{margin-top:.7mm}.footer{margin-top:1.5mm;font-size:7px;text-align:center}@media print{@page{size:58mm auto;margin:0}html,body{width:58mm!important;height:auto!important;overflow:visible!important}.wrap{width:54mm!important;max-width:54mm!important}.order-block{break-inside:avoid;page-break-inside:avoid}body:after{content:"";display:block;height:1mm}}
+      @page{size:58mm auto;margin:0!important}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-height:auto!important;height:auto!important;overflow:visible!important}body{font-family:Arial,Helvetica,sans-serif;font-size:8px;line-height:1.22;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{width:54mm;max-width:54mm;margin:0 auto;padding:2mm 0 1.5mm 0;break-inside:auto;page-break-inside:auto}.center{text-align:center}.brand{font-size:11px;font-weight:800;text-transform:uppercase}.title{font-size:9px;font-weight:800;text-transform:uppercase;margin-top:.7mm}.dash{border-top:1px dashed #000;margin:1.3mm 0}.meta{display:grid;grid-template-columns:17mm 1fr;gap:.35mm .8mm;font-size:7.4px}.order-block{border-bottom:1px dashed #888;padding:1.1mm 0;break-inside:avoid;page-break-inside:avoid}.order-title{font-size:8.6px;font-weight:800}.order-sub{font-weight:700;margin-top:.7mm}.lauk{padding-left:1.5mm}.note{margin-top:.7mm}.footer{margin-top:1.5mm;font-size:7px;text-align:center}@media print{@page{size:58mm auto;margin:0!important}html,body{width:58mm!important;height:auto!important;overflow:visible!important}.wrap{width:54mm!important;max-width:54mm!important}.order-block{break-inside:avoid;page-break-inside:avoid}body:after{content:"";display:block;height:1mm}}
     </style></head><body><div class="wrap">
       <div class="center"><div class="brand">AMPERA PAK JENGGOT</div><div class="title">Form Pesanan Outlet</div></div><div class="dash"></div>
-      <div class="meta"><div>No</div><div>: ${esc(nomor)}</div><div>Outlet</div><div>: ${esc(payload.outlet || '-')}</div><div>Tgl Pesanan</div><div>: ${esc(formatLongDateId(payload.tanggalPesanan || ''))}</div><div>Jam</div><div>: ${esc(payload.jam || '-')}</div><div>Penerima</div><div>: ${esc(payload.penerima || '-')}</div><div>Pemesan</div><div>: ${esc(payload.namaPemesan || '-')}</div><div>HP</div><div>: ${esc(payload.nomorHp || '-')}</div></div>
+      <div class="meta"><div>No</div><div>: ${esc(nomor)}</div><div>Outlet</div><div>: ${esc(payload.outlet || '-')}</div><div>Tgl Pesanan</div><div>: ${esc(formatLongDateId(payload.tanggalPesanan || ''))}</div><div>Jam</div><div>: ${esc(payload.jam || '-')}</div><div>Penerima</div><div>: ${esc(payload.penerima || '-')}</div><div>Pemesan</div><div>: ${esc(namaPemesan || '-')}</div><div>HP</div><div>: ${esc(nomorHp || '-')}</div></div>
       <div class="dash"></div>${rowsHtml}<div class="dash"></div>
       <div class="meta"><div>Bayar</div><div>: ${esc(bayar)}</div><div>Jumlah</div><div>: Rp ${esc(formatRupiahPlain(payload.jumlahRp || 0))}</div><div>Pesanan</div><div>: ${esc(payload.jenisPengambilan || '-')}</div></div>
       ${payload.jenisPengambilan === 'DIANTAR' ? `<div class="dash"></div><div><b>Alamat:</b><br>${esc(payload.alamat || '-')}</div>` : ''}
@@ -505,13 +513,43 @@
     </div></body></html>`;
   }
 
-  function printHtml58Roll(html){
-    const frame = document.createElement('iframe');
-    frame.style.position = 'fixed'; frame.style.right = '0'; frame.style.bottom = '0'; frame.style.width = '0'; frame.style.height = '0'; frame.style.border = '0';
-    document.body.appendChild(frame);
-    frame.contentDocument.open(); frame.contentDocument.write(html); frame.contentDocument.close();
-    setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); setTimeout(()=>frame.remove(), 1500); }, 350);
+  function openPrintWindowShell(title){
+    const win = window.open('', '_blank', 'width=380,height=720,noopener=false');
+    if (!win) return null;
+    try {
+      win.document.open();
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(title || 'Cetak Pesanan')}</title></head><body style="font-family:Arial,sans-serif;padding:16px">Menyiapkan dokumen cetak...</body></html>`);
+      win.document.close();
+    } catch (_) {}
+    return win;
   }
+
+  function printHtml58Roll(html, printWindow){
+    // V93: gunakan popup cetak nyata, bukan iframe tersembunyi.
+    // RawBT / sebagian driver thermal sering mengirim kertas kosong jika sumber cetak dari iframe tersembunyi.
+    const win = printWindow && !printWindow.closed ? printWindow : openPrintWindowShell('Cetak Pesanan 58mm');
+    if (!win) {
+      showToast('Popup cetak diblokir browser. Izinkan popup lalu coba cetak lagi.', 'error');
+      return;
+    }
+    try {
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      const runPrint = () => {
+        try {
+          win.focus();
+          win.print();
+        } catch (err) {
+          showToast(err.message || 'Gagal membuka dialog cetak.', 'error');
+        }
+      };
+      setTimeout(runPrint, 450);
+    } catch (err) {
+      showToast(err.message || 'Gagal menyiapkan dokumen cetak.', 'error');
+    }
+  }
+
 
   function openPrintPesananModal(){
     renderPrintPesananOutletSelect();
@@ -565,11 +603,13 @@
 
   async function printSavedPesanan(noPesanan){
     if (!noPesanan) return showToast('Nomor pesanan tidak valid.', 'error');
+    const printWindow = openPrintWindowShell('Memuat Pesanan');
     try {
       const result = await callInventory('getPesananOutletPrintData', { noPesanan });
       if (!result.success) throw new Error(result.message || 'Pesanan tidak ditemukan.');
-      printPesananPayload(result.data || {}, noPesanan);
+      printPesananPayload(result.data || {}, noPesanan, printWindow);
     } catch (err) {
+      if (printWindow && !printWindow.closed) { try { printWindow.close(); } catch (_) {} }
       showToast(err.message || 'Gagal mencetak pesanan.', 'error');
     }
   }
