@@ -1,0 +1,961 @@
+/* APJ Produk Outlet V90 - Pesanan Outlet UX Fix */
+(function(){
+  'use strict';
+
+  const CFG = window.APJ_CONFIG || {};
+  const API_URL = CFG.inventoryApiUrl || (CFG.apis && CFG.apis.inventory) || '';
+  const SESSION_KEY = 'APJ_SESSION_TOKEN';
+  const state = {
+    rows: [],
+    filtered: [],
+    outlets: [],
+    canSelectOutlet: true,
+    currentOutlet: '',
+    loading: false,
+    gorengSourceIndex: null,
+    pesananProducts: [],
+    lastPesananNo: ''
+  };
+
+  document.addEventListener('DOMContentLoaded', initProdukOutletPage);
+
+  function initProdukOutletPage(){
+    if (localStorage.getItem('APJ_SESSION_ACTIVE') !== 'true' || !localStorage.getItem(SESSION_KEY)) {
+      window.location.href = 'index.html';
+      return;
+    }
+    initIdentity();
+    bindSidebar();
+    setToday();
+    loadProdukOutlet();
+    const seen = sessionStorage.getItem('APJ_PRODUK_OUTLET_HELP_SEEN_V81');
+    if (!seen) setTimeout(() => openProdukHelpModal(true), 550);
+  }
+
+  function initIdentity(){
+    const name = localStorage.getItem('APJ_USER_NAME') || 'Petugas';
+    const level = localStorage.getItem('APJ_USER_LEVEL') || '-';
+    const initial = getInitial(name);
+    setText('displayNama', name);
+    setText('displayLevel', level);
+    setText('displayInisial', initial);
+    setText('namaPetugas', name);
+  }
+
+  function setToday(){
+    const el = document.getElementById('tanggalInput');
+    if (el && !el.value) el.value = new Date().toISOString().slice(0,10);
+  }
+
+  async function callInventory(action, payload, attempt){
+    attempt = attempt || 1;
+    if (!API_URL) throw new Error('Alamat server Inventory belum tersedia.');
+    const body = Object.assign({}, payload || {}, {
+      action,
+      sessionToken: localStorage.getItem(SESSION_KEY) || '',
+      _ts: Date.now()
+    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 45000);
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        cache: 'no-store',
+        redirect: 'follow',
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      const text = await res.text();
+      const json = parseJsonResponse(text);
+      if (!json || typeof json !== 'object') throw new Error('Response server tidak valid.');
+      return json;
+    } catch (err) {
+      if (attempt < 3) {
+        await delay(650 * attempt);
+        return callInventory(action, payload, attempt + 1);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function parseJsonResponse(text){
+    if (!text) return null;
+    try { return JSON.parse(text); } catch(e) {}
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      try { return JSON.parse(text.slice(start, end + 1)); } catch(e) {}
+    }
+    return null;
+  }
+
+  async function loadProdukOutlet(){
+    const tanggal = document.getElementById('tanggalInput')?.value || new Date().toISOString().slice(0,10);
+    const outlet = document.getElementById('outletSelect')?.value || state.currentOutlet || '';
+    state.loading = true;
+    renderLoading('Memuat produk outlet...', 'Mohon tunggu, data sedang disiapkan.');
+    setText('lastInfo', 'Memuat data...');
+    try {
+      const result = await callInventory('getProdukOutletData', {
+        tanggal,
+        outlet,
+        petugas: localStorage.getItem('APJ_USER_NAME') || '',
+        level: localStorage.getItem('APJ_USER_LEVEL') || ''
+      });
+      if (!result.success) throw new Error(result.message || 'Gagal memuat produk outlet.');
+      state.rows = sortRows(Array.isArray(result.data) ? result.data.map(normalizeRow) : []);
+      state.outlets = Array.isArray(result.allowedOutlets) ? result.allowedOutlets : [];
+      state.canSelectOutlet = result.canSelectOutlet !== false;
+      state.currentOutlet = result.outlet || outlet || (state.outlets[0] || '');
+      renderOutletSelect();
+      renderTable();
+      setText('kpiOutlet', state.currentOutlet || '-');
+      setText('lastInfo', 'Data berhasil diperbarui.');
+    } catch (err) {
+      state.rows = [];
+      state.filtered = [];
+      renderError(err.message || 'Gagal memuat data.');
+      updateKpis([]);
+      showToast(err.message || 'Gagal memuat data produk outlet.', 'error');
+      setText('lastInfo', 'Gagal memuat data.');
+    } finally {
+      state.loading = false;
+    }
+  }
+
+  function normalizeRow(r){
+    return {
+      id: r.id || r.idItem || r.idProduk || '',
+      idProduk: r.idProduk || '',
+      nama: r.nama || r.namaProduk || r['Nama Produk'] || r['Nama Item'] || '-',
+      kategori: r.kategori || r.kategoriProduk || r['Kategori'] || '-',
+      satuan: r.satuan || r.satuanStok || r['Satuan'] || '-',
+      keterangan: r.keterangan || '',
+      urutan: numberOf(r.urutan || r['Urutan'] || 999999),
+      stokKemarin: numberOf(r.stokKemarin),
+      stokMasuk: numberOf(r.stokMasuk),
+      stokTerjual: numberOf(r.stokTerjual),
+      selisihOpname: numberOf(r.selisihOpname),
+      stokSisa: numberOf(r.stokSisa)
+    };
+  }
+
+  function categoryRank(kategori){
+    const k = normalizeKey(kategori);
+    if (k.includes('PRODUK_JADI') || k === 'PRODUKSI') return 1;
+    if (k.includes('BAHAN_PREPARASI') || k.includes('PREPARASI') || k.includes('SETENGAH_JADI')) return 2;
+    if (k.includes('MINUMAN') || k.includes('BARANG_DAGANG')) return 3;
+    return 9;
+  }
+
+  function sortRows(rows){
+    return (rows || []).slice().sort((a,b)=>{
+      const ca = categoryRank(a.kategori), cb = categoryRank(b.kategori);
+      if (ca !== cb) return ca - cb;
+      if ((a.urutan || 999999) !== (b.urutan || 999999)) return (a.urutan || 999999) - (b.urutan || 999999);
+      return String(a.nama || '').localeCompare(String(b.nama || ''), 'id');
+    });
+  }
+
+  function renderOutletSelect(){
+    const select = document.getElementById('outletSelect');
+    if (!select) return;
+    const outlets = state.outlets.length ? state.outlets : [state.currentOutlet || 'LAHOR'];
+    select.innerHTML = outlets.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    select.value = state.currentOutlet || outlets[0] || '';
+    select.disabled = !state.canSelectOutlet;
+  }
+
+  function renderLoading(title, subtitle){
+    const tbody = document.getElementById('tbodyProduk');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="table-loading"><span class="spinner"></span><div><b>${esc(title)}</b><p>${esc(subtitle || '')}</p></div></div></td></tr>`;
+  }
+
+  function renderError(message){
+    const tbody = document.getElementById('tbodyProduk');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="9" class="py-10 text-center text-rose-500 font-bold">${esc(message)}</td></tr>`;
+    setText('rowsInfo', '0 data tampil');
+  }
+
+  function renderTable(){
+    const query = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+    state.filtered = state.rows.filter(r => !query || `${r.nama} ${r.kategori}`.toLowerCase().includes(query));
+    updateKpis(state.filtered);
+    const tbody = document.getElementById('tbodyProduk');
+    if (!tbody) return;
+    if (!state.filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="py-10 text-center text-slate-500 font-bold">Tidak ada produk outlet yang cocok.</td></tr>';
+      setText('rowsInfo', '0 data tampil');
+      return;
+    }
+    tbody.innerHTML = state.filtered.map((r, idx) => `
+      <tr>
+        <td>${idx + 1}</td>
+        <td><div class="produk-name">${esc(r.nama)}</div>${r.keterangan ? `<div class="produk-meta">${esc(cleanKeterangan(r.keterangan))}</div>` : ''}</td>
+        <td><span class="kategori-pill">${esc(r.kategori || '-')}</span></td>
+        <td class="num">${fmt(r.stokKemarin)}</td>
+        <td class="num num-in">${fmt(r.stokMasuk)}</td>
+        <td class="num num-out">${fmt(r.stokTerjual)}</td>
+        <td class="num num-adj ${r.selisihOpname < 0 ? 'neg' : (r.selisihOpname > 0 ? 'pos' : '')}">${fmt(r.selisihOpname)}</td>
+        <td class="num num-end">${fmt(r.stokSisa)}</td>
+        <td>${esc(r.satuan || '-')}</td>
+      </tr>`).join('');
+    setText('rowsInfo', `${state.filtered.length} data tampil dari ${state.rows.length} produk`);
+  }
+
+  function cleanKeterangan(text){
+    const t = String(text || '').trim();
+    if (/migrasi\s+dari/i.test(t)) return '';
+    return t;
+  }
+
+  function updateKpis(rows){
+    rows = rows || [];
+    setText('kpiProduk', rows.length);
+    setText('kpiMasuk', fmt(rows.reduce((s,r)=>s+numberOf(r.stokMasuk),0)));
+    setText('kpiTerjual', fmt(rows.reduce((s,r)=>s+numberOf(r.stokTerjual),0)));
+    setText('kpiSisa', fmt(rows.reduce((s,r)=>s+numberOf(r.stokSisa),0)));
+  }
+
+
+  function openPesananModal(){
+    const today = new Date().toISOString().slice(0,10);
+    const penerima = localStorage.getItem('APJ_USER_NAME') || 'Petugas';
+    setValue('pesananPenerima', penerima);
+    setValue('pesananNamaPemesan', '');
+    setValue('pesananHp', '');
+    setValue('pesananTanggalPesanan', '');
+    updateTanggalPesananLabel();
+    renderPesananOutletSelect();
+    state.pesananProducts = state.rows.slice();
+    setValue('pesananStatusBayar', 'Belum Bayar');
+    setValue('pesananMetodeBayar', 'Tunai');
+    setValue('pesananBank', '');
+    setValue('pesananJumlahRp', '');
+    setValue('pesananJenisPengambilan', 'DIAMBIL');
+    setValue('pesananJam', '');
+    setValue('pesananAlamat', '');
+    setValue('pesananCatatan', '');
+    togglePesananBank();
+    togglePesananAlamat();
+    const wrap = document.getElementById('pesananGroups');
+    if (wrap) wrap.innerHTML = '';
+    addPesananGroup();
+    openModal('modalPesanan');
+  }
+
+  function renderPesananOutletSelect(){
+    const select = document.getElementById('pesananOutletSelect');
+    if (!select) return;
+    const outlets = state.outlets.length ? state.outlets : [state.currentOutlet || 'LAHOR'];
+    select.innerHTML = outlets.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    select.value = state.currentOutlet || outlets[0] || '';
+  }
+
+  async function syncPesananProducts(){
+    const outlet = document.getElementById('pesananOutletSelect')?.value || state.currentOutlet;
+    if (!outlet || normalizeKey(outlet) === normalizeKey(state.currentOutlet)) {
+      state.pesananProducts = state.rows.slice();
+      refreshPesananProductOptions();
+      return;
+    }
+    const summary = document.getElementById('pesananSummary');
+    if (summary) summary.textContent = 'Memuat daftar lauk untuk outlet yang dipilih...';
+    try {
+      const result = await callInventory('getPesananOutletInit', { outlet, tanggal: document.getElementById('tanggalInput')?.value || '' });
+      if (!result.success) throw new Error(result.message || 'Gagal memuat daftar lauk.');
+      state.pesananProducts = sortRows(Array.isArray(result.produk) ? result.produk.map(normalizeRow) : []);
+      refreshPesananProductOptions();
+      updatePesananSummary();
+    } catch (err) {
+      showToast(err.message || 'Gagal memuat daftar lauk pesanan.', 'error');
+      state.pesananProducts = state.rows.slice();
+      refreshPesananProductOptions();
+      updatePesananSummary();
+    }
+  }
+
+  function refreshPesananProductOptions(){
+    document.querySelectorAll('.pesanan-lauk-select').forEach(select => {
+      const current = select.value;
+      fillProdukSelect(select);
+      if (current) select.value = current;
+    });
+  }
+
+  function addPesananGroup(){
+    const wrap = document.getElementById('pesananGroups');
+    if (!wrap) return;
+    const groupNo = wrap.querySelectorAll('.pesanan-group').length + 1;
+    const div = document.createElement('div');
+    div.className = 'pesanan-group';
+    div.dataset.group = String(groupNo);
+    div.innerHTML = `
+      <div class="pesanan-group-head">
+        <div><b>Pesanan ${groupNo}</b><span>Isi jenis pesanan, jumlah, dan lauk.</span></div>
+        <button class="btn-mini danger" onclick="removePesananGroup(this)" type="button">Hapus</button>
+      </div>
+      <div class="pesanan-group-grid">
+        <div><label class="form-label">Jenis Pesanan</label><select class="form-control pesanan-jenis" onchange="syncKemasanPesanan(this); updatePesananSummary()"><option value="Nasi Box">Nasi Box</option><option value="Nasi Bungkus">Nasi Bungkus</option><option value="Custom">Custom</option></select></div>
+        <div><label class="form-label">Qty Pesanan</label><input class="form-control pesanan-qty" type="number" min="0" step="any" placeholder="Jumlah" oninput="updatePesananSummary()" /></div>
+        <div><label class="form-label">Kemasan</label><input class="form-control pesanan-kemasan" type="text" value="Box" /></div>
+        <div class="pesanan-full"><label class="form-label">Catatan Pesanan</label><input class="form-control pesanan-catatan-grup" type="text" placeholder="Contoh: tanpa pedas / sambal dipisah" oninput="updatePesananSummary()" /></div>
+      </div>
+      <div class="pesanan-lauk-head"><span>Isi Lauk</span><button class="btn-mini btn-add-lauk" onclick="addLaukRow(this)" type="button">+ Tambah Lauk</button></div>
+      <div class="pesanan-lauk-list"></div>`;
+    wrap.appendChild(div);
+    addLaukRow(div.querySelector('.pesanan-lauk-head button'));
+    updatePesananGroupNumbers();
+    updatePesananSummary();
+  }
+
+  function updatePesananGroupNumbers(){
+    document.querySelectorAll('.pesanan-group').forEach((group, idx) => {
+      group.dataset.group = String(idx + 1);
+      const b = group.querySelector('.pesanan-group-head b');
+      if (b) b.textContent = `Pesanan ${idx + 1}`;
+    });
+  }
+
+  function removePesananGroup(btn){
+    const group = btn && btn.closest('.pesanan-group');
+    if (!group) return;
+    group.remove();
+    if (!document.querySelectorAll('.pesanan-group').length) addPesananGroup();
+    updatePesananGroupNumbers();
+    updatePesananSummary();
+  }
+
+  function addLaukRow(btn){
+    const group = btn && btn.closest('.pesanan-group');
+    if (!group) return;
+    const list = group.querySelector('.pesanan-lauk-list');
+    const row = document.createElement('div');
+    row.className = 'pesanan-lauk-row';
+    row.innerHTML = `<select class="form-control pesanan-lauk-select" onchange="updatePesananSummary()"></select><button class="btn-mini danger" onclick="removeLaukRow(this)" type="button">Hapus</button>`;
+    list.appendChild(row);
+    fillProdukSelect(row.querySelector('select'));
+    updatePesananSummary();
+  }
+
+  function removeLaukRow(btn){
+    const row = btn && btn.closest('.pesanan-lauk-row');
+    const list = row && row.parentElement;
+    if (!row || !list) return;
+    row.remove();
+    if (!list.querySelector('.pesanan-lauk-row')) addLaukRow(list.closest('.pesanan-group').querySelector('.pesanan-lauk-head button'));
+    updatePesananSummary();
+  }
+
+  function fillProdukSelect(select){
+    if (!select) return;
+    const rows = (state.pesananProducts && state.pesananProducts.length ? state.pesananProducts : state.rows).slice();
+    select.innerHTML = '<option value="">-- Pilih lauk --</option>' + rows.map(r => `<option value="${esc(r.id)}">${esc(r.nama)}</option>`).join('');
+  }
+
+  function syncKemasanPesanan(select){
+    const group = select.closest('.pesanan-group');
+    const kemasan = group && group.querySelector('.pesanan-kemasan');
+    if (!kemasan) return;
+    const val = select.value;
+    if (val === 'Nasi Box') kemasan.value = 'Box';
+    else if (val === 'Nasi Bungkus') kemasan.value = 'Bungkus';
+    else if (!kemasan.value || kemasan.value === 'Box' || kemasan.value === 'Bungkus') kemasan.value = 'Custom';
+  }
+
+  function togglePesananBank(){
+    const metode = document.getElementById('pesananMetodeBayar')?.value || 'Tunai';
+    const wrap = document.getElementById('pesananBankWrap');
+    if (!wrap) return;
+    wrap.classList.toggle('hidden', metode !== 'Transfer');
+  }
+
+  function togglePesananAlamat(){
+    const jenis = document.getElementById('pesananJenisPengambilan')?.value || 'DIAMBIL';
+    const wrap = document.getElementById('pesananAlamatWrap');
+    if (!wrap) return;
+    wrap.classList.toggle('hidden', jenis !== 'DIANTAR');
+  }
+
+  function updateTanggalPesananLabel(){
+    const val = document.getElementById('pesananTanggalPesanan')?.value || '';
+    setValue('pesananTanggalLabel', formatLongDateId(val));
+  }
+
+  function collectPesananPayload(strict){
+    const groups = [];
+    const produkMap = {};
+    (state.pesananProducts.length ? state.pesananProducts : state.rows).forEach(r => { produkMap[String(r.id)] = r; });
+    document.querySelectorAll('.pesanan-group').forEach((group, idx) => {
+      const jenisPesanan = group.querySelector('.pesanan-jenis')?.value || '';
+      const qtyPesananRaw = group.querySelector('.pesanan-qty')?.value || '';
+      const kemasan = group.querySelector('.pesanan-kemasan')?.value || '';
+      const catatanGrup = group.querySelector('.pesanan-catatan-grup')?.value || '';
+      const lauk = [];
+      group.querySelectorAll('.pesanan-lauk-select').forEach((select, laukIdx) => {
+        const id = select.value || '';
+        const item = produkMap[String(id)] || {};
+        if (id) lauk.push({ id, nama: item.nama || select.options[select.selectedIndex]?.text || '', kategori: item.kategori || '', urutan: laukIdx + 1 });
+      });
+      const hasAny = jenisPesanan || qtyPesananRaw || kemasan || catatanGrup || lauk.length;
+      if (!hasAny) return;
+      const qtyPesanan = numberOf(qtyPesananRaw);
+      if (strict) {
+        if (!jenisPesanan) throw new Error(`Jenis pesanan wajib diisi pada Pesanan ${idx + 1}.`);
+        if (qtyPesanan <= 0) throw new Error(`Qty pesanan wajib lebih dari 0 pada Pesanan ${idx + 1}.`);
+        if (!kemasan) throw new Error(`Kemasan wajib diisi pada Pesanan ${idx + 1}.`);
+        if (!lauk.length) throw new Error(`Isi lauk wajib dipilih pada Pesanan ${idx + 1}.`);
+      }
+      groups.push({ noGrup: idx + 1, jenisPesanan, qtyPesanan, kemasan, catatanGrup, lauk });
+    });
+    const payload = {
+      tanggalInput: new Date().toISOString().slice(0,10),
+      outlet: document.getElementById('pesananOutletSelect')?.value || state.currentOutlet || '',
+      tanggalPesanan: document.getElementById('pesananTanggalPesanan')?.value || '',
+      penerima: document.getElementById('pesananPenerima')?.value || localStorage.getItem('APJ_USER_NAME') || '',
+      namaPemesan: document.getElementById('pesananNamaPemesan')?.value || '',
+      nomorHp: document.getElementById('pesananHp')?.value || '',
+      statusPembayaran: document.getElementById('pesananStatusBayar')?.value || 'Belum Bayar',
+      metodePembayaran: document.getElementById('pesananMetodeBayar')?.value || 'Tunai',
+      bank: document.getElementById('pesananBank')?.value || '',
+      jumlahRp: getRupiahNumber(document.getElementById('pesananJumlahRp')?.value || ''),
+      jenisPengambilan: document.getElementById('pesananJenisPengambilan')?.value || 'DIAMBIL',
+      jam: document.getElementById('pesananJam')?.value || '',
+      alamat: document.getElementById('pesananAlamat')?.value || '',
+      catatanTambahan: document.getElementById('pesananCatatan')?.value || '',
+      statusPesanan: 'Baru',
+      groups
+    };
+    if (strict) {
+      if (!payload.outlet) throw new Error('Outlet wajib dipilih.');
+      if (!payload.tanggalPesanan) throw new Error('Tanggal pesanan wajib dipilih.');
+      if (!payload.namaPemesan.trim()) throw new Error('Nama pemesan wajib diisi.');
+      if (!groups.length) throw new Error('Tambahkan minimal 1 pesanan.');
+      if (payload.metodePembayaran === 'Transfer' && !payload.bank.trim()) throw new Error('Nama bank wajib diisi untuk pembayaran transfer.');
+      if (payload.jenisPengambilan === 'DIANTAR' && !payload.alamat.trim()) throw new Error('Alamat wajib diisi untuk pesanan diantar.');
+    }
+    return payload;
+  }
+
+  function updatePesananSummary(){
+    const p = collectPesananPayload(false);
+    const totalGroup = p.groups.length;
+    const totalQty = p.groups.reduce((s,g)=>s+numberOf(g.qtyPesanan),0);
+    const totalLauk = p.groups.reduce((s,g)=>s+(g.lauk ? g.lauk.length : 0),0);
+    setText('pesananSummary', totalGroup ? `${totalGroup} jenis pesanan. Total qty: ${fmt(totalQty)}. Isi lauk: ${totalLauk} item.` : 'Belum ada rincian pesanan.');
+  }
+
+  async function savePesananOutlet(printAfter){
+    const btn = document.getElementById(printAfter ? 'btnSavePrintPesanan' : 'btnSavePesanan');
+    try {
+      const payload = collectPesananPayload(true);
+      setButtonLoading(btn, printAfter ? 'Menyimpan...' : 'Menyimpan...');
+      const result = await callInventory('simpanPesananOutlet', payload);
+      if (!result.success) throw new Error(result.message || 'Gagal menyimpan pesanan.');
+      state.lastPesananNo = result.noPesanan || '';
+      showToast(result.message || 'Pesanan berhasil disimpan.', 'success');
+      if (printAfter) printPesananOutlet(result.noPesanan || '');
+      closeModal('modalPesanan');
+    } catch (err) {
+      showToast(err.message || 'Data pesanan belum valid.', 'error');
+    } finally {
+      resetButton(btn, printAfter ? 'Simpan & Cetak' : 'Simpan Pesanan');
+    }
+  }
+
+  function printPesananOutlet(noPesanan){
+    let payload;
+    try { payload = collectPesananPayload(true); } catch (err) { showToast(err.message || 'Data pesanan belum valid.', 'error'); return; }
+    const nomor = noPesanan || state.lastPesananNo || 'DRAFT';
+    const now = new Date();
+    const rowsHtml = payload.groups.map((g, i) => `<div class="order-block">
+      <div class="order-title">${i+1}. ${esc(g.jenisPesanan || '-')}</div>
+      <div>Qty: <b>${esc(fmt(g.qtyPesanan))} ${esc(g.kemasan || '')}</b></div>
+      <div class="order-sub">Isi:</div>
+      ${(g.lauk || []).map(l => `<div class="lauk">- ${esc(l.nama || '')}</div>`).join('')}
+      ${g.catatanGrup ? `<div class="note">Catatan: ${esc(g.catatanGrup)}</div>` : ''}
+    </div>`).join('');
+    const bayar = `${payload.statusPembayaran || '-'} - ${payload.metodePembayaran || '-'}${payload.metodePembayaran === 'Transfer' && payload.bank ? ' ' + payload.bank : ''}`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pesanan Outlet 58mm</title><style>
+      @page{size:58mm auto;margin:2mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#000}body{width:54mm;font-family:Arial,Helvetica,sans-serif;font-size:8px;line-height:1.22}.wrap{width:54mm;margin:0 auto}.center{text-align:center}.brand{font-size:11px;font-weight:800;text-transform:uppercase}.title{font-size:9px;font-weight:800;text-transform:uppercase;margin-top:.7mm}.dash{border-top:1px dashed #000;margin:1.5mm 0}.meta{display:grid;grid-template-columns:17mm 1fr;gap:.4mm .8mm;font-size:7.4px}.order-block{border-bottom:1px dashed #888;padding:1.2mm 0;break-inside:avoid}.order-title{font-size:8.6px;font-weight:800}.order-sub{font-weight:700;margin-top:.8mm}.lauk{padding-left:1.5mm}.note{margin-top:.8mm}.footer{margin-top:1.5mm;font-size:7px;text-align:center}@media print{body{width:54mm}.wrap{width:54mm}}
+    </style></head><body><div class="wrap">
+      <div class="center"><div class="brand">AMPERA PAK JENGGOT</div><div class="title">Form Pesanan Outlet</div></div><div class="dash"></div>
+      <div class="meta"><div>No</div><div>: ${esc(nomor)}</div><div>Outlet</div><div>: ${esc(payload.outlet)}</div><div>Tgl Pesanan</div><div>: ${esc(formatLongDateId(payload.tanggalPesanan))}</div><div>Jam</div><div>: ${esc(payload.jam || '-')}</div><div>Penerima</div><div>: ${esc(payload.penerima || '-')}</div><div>Pemesan</div><div>: ${esc(payload.namaPemesan || '-')}</div><div>HP</div><div>: ${esc(payload.nomorHp || '-')}</div></div>
+      <div class="dash"></div>${rowsHtml}<div class="dash"></div>
+      <div class="meta"><div>Bayar</div><div>: ${esc(bayar)}</div><div>Jumlah</div><div>: Rp ${esc(formatRupiahPlain(payload.jumlahRp))}</div><div>Pesanan</div><div>: ${esc(payload.jenisPengambilan || '-')}</div></div>
+      ${payload.jenisPengambilan === 'DIANTAR' ? `<div class="dash"></div><div><b>Alamat:</b><br>${esc(payload.alamat || '-')}</div>` : ''}
+      ${payload.catatanTambahan ? `<div class="dash"></div><div><b>Catatan:</b><br>${esc(payload.catatanTambahan)}</div>` : ''}
+      <div class="dash"></div><div class="footer">Dicetak : ${esc(now.toLocaleString('id-ID'))}</div>
+    </div></body></html>`;
+    const frame = document.createElement('iframe');
+    frame.style.position = 'fixed'; frame.style.right = '0'; frame.style.bottom = '0'; frame.style.width = '0'; frame.style.height = '0'; frame.style.border = '0';
+    document.body.appendChild(frame);
+    frame.contentDocument.open(); frame.contentDocument.write(html); frame.contentDocument.close();
+    setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); setTimeout(()=>frame.remove(), 1000); }, 250);
+  }
+
+  function openTerjualModal(){
+    if (!state.rows.length) return showToast('Data produk belum dimuat.', 'error');
+    const tbody = document.getElementById('tbodyTerjual');
+    tbody.innerHTML = state.rows.map((r, idx) => {
+      const preparasi = isBahanPreparasi(r);
+      return `
+      <tr data-index="${idx}" class="${preparasi ? 'row-preparasi' : ''}">
+        <td>
+          <div class="produk-name">${esc(r.nama)}</div>
+          <div class="produk-meta">${esc(r.kategori || '')}</div>
+          ${preparasi ? '<div class="prep-note">Siap goreng · proses dahulu</div>' : ''}
+        </td>
+        <td class="num num-end text-center">${fmt(r.stokSisa)}</td>
+        <td>${preparasi ? '<div class="modal-cell-note">Proses dulu</div>' : '<input class="modal-input text-center input-terjual" type="number" min="0" step="any" placeholder="Kosong" oninput="updateTerjualSummary()">'}</td>
+        <td class="text-center">${esc(r.satuan || '-')}</td>
+        <td>${preparasi ? '<span class="modal-muted">Tidak dijual langsung</span>' : '<input class="modal-input input-catatan" type="text" placeholder="Opsional...">'}</td>
+        <td class="text-center">${preparasi ? `<button class="btn-goreng" type="button" onclick="openGorengModal(${idx})">Goreng</button>` : '<span class="modal-muted">-</span>'}</td>
+      </tr>`;
+    }).join('');
+    updateTerjualSummary();
+    openModal('modalTerjual');
+  }
+
+  function updateTerjualSummary(){
+    const rows = collectTerjualRows(false);
+    const total = rows.reduce((s,r)=>s+numberOf(r.qtyKeluar),0);
+    setText('terjualSummary', rows.length ? `${rows.length} produk akan dicatat. Total jumlah terjual: ${fmt(total)}.` : 'Belum ada jumlah terjual.');
+  }
+
+  function collectTerjualRows(strict){
+    const rows = [];
+    document.querySelectorAll('#tbodyTerjual tr').forEach(tr => {
+      const item = state.rows[Number(tr.dataset.index)];
+      if (!item) return;
+      if (isBahanPreparasi(item)) return;
+      const qty = tr.querySelector('.input-terjual')?.value || '';
+      if (qty === '' || numberOf(qty) === 0) return;
+      if (strict && numberOf(qty) < 0) throw new Error(`Jumlah terjual ${item.nama} tidak boleh minus.`);
+      rows.push({ id:item.id, idItem:item.id, nama:item.nama, satuan:item.satuan, qtyKeluar: qty, keterangan: tr.querySelector('.input-catatan')?.value || 'Terjual outlet' });
+    });
+    return rows;
+  }
+
+  async function saveTerjual(){
+    const btn = document.getElementById('btnSaveTerjual');
+    try {
+      const rows = collectTerjualRows(true);
+      if (!rows.length) throw new Error('Isi minimal 1 produk terjual.');
+      setButtonLoading(btn, 'Menyimpan...');
+      const result = await callInventory('simpanProdukOutletKeluar', {
+        tanggal: document.getElementById('tanggalInput')?.value || '',
+        outlet: document.getElementById('outletSelect')?.value || state.currentOutlet,
+        petugas: localStorage.getItem('APJ_USER_NAME') || '',
+        rows
+      });
+      if (!result.success) throw new Error(result.message || 'Gagal menyimpan produk terjual.');
+      closeModal('modalTerjual');
+      showToast(result.message || 'Produk terjual berhasil disimpan.', 'success');
+      await loadProdukOutlet();
+    } catch (err) {
+      showToast(err.message || 'Data belum valid.', 'error');
+    } finally {
+      resetButton(btn, 'Simpan Terjual');
+    }
+  }
+
+  function isBahanPreparasi(row){
+    const k = normalizeKey(row && row.kategori);
+    return k.includes('BAHAN_PREPARASI') || k.includes('PREPARASI') || k.includes('SETENGAH_JADI');
+  }
+
+  function isProdukJadi(row){
+    const k = normalizeKey(row && row.kategori);
+    return k.includes('PRODUK_JADI') || k === 'PRODUKSI';
+  }
+
+  function openGorengModal(index){
+    const source = state.rows[Number(index)];
+    if (!source) return showToast('Produk belum ditemukan.', 'error');
+    if (!isBahanPreparasi(source)) return showToast('Aksi goreng hanya untuk bahan preparasi.', 'warning');
+    if (numberOf(source.stokSisa) <= 0) return showToast('Stok bahan preparasi belum tersedia untuk digoreng.', 'error');
+
+    state.gorengSourceIndex = Number(index);
+    const targetSelect = document.getElementById('gorengTargetSelect');
+    const qtyInput = document.getElementById('gorengQtyInput');
+    const catatanInput = document.getElementById('gorengCatatanInput');
+    const targets = state.rows.filter(isProdukJadi);
+    if (!targets.length) return showToast('Produk jadi belum tersedia di outlet ini.', 'error');
+
+    const inferred = inferGorengTarget(source, targets);
+    targetSelect.innerHTML = targets.map((r, i) => `<option value="${esc(r.id)}" ${inferred && inferred.id === r.id ? 'selected' : (!inferred && i === 0 ? 'selected' : '')}>${esc(r.nama)}</option>`).join('');
+    if (qtyInput) qtyInput.value = '';
+    if (catatanInput) catatanInput.value = `Goreng ${source.nama}`;
+    setText('gorengSourceInfo', `${source.nama} | Stok siap goreng: ${fmt(source.stokSisa)} ${source.satuan || ''}`);
+    setText('gorengSummary', 'Stok bahan preparasi akan berkurang dan produk siap jual akan bertambah.');
+    openModal('modalGorengOutlet');
+  }
+
+  function inferGorengTarget(source, targets){
+    const src = normalizeKey(source.nama);
+    const has11 = /(^|_)11(_|$)/.test(src) || src.includes('POTONG_11');
+    const has8 = /(^|_)8(_|$)/.test(src) || src.includes('POTONG_8');
+    const ayamTargets = targets.filter(t => normalizeKey(t.nama).includes('AYAM') && normalizeKey(t.nama).includes('GORENG'));
+    if (has11) return ayamTargets.find(t => /(^|_)11(_|$)/.test(normalizeKey(t.nama))) || ayamTargets.find(t => normalizeKey(t.nama).includes('AYAM_GORENG_11')) || ayamTargets[0] || targets[0];
+    if (has8) return ayamTargets.find(t => /(^|_)8(_|$)/.test(normalizeKey(t.nama))) || ayamTargets.find(t => normalizeKey(t.nama) === 'AYAM_GORENG') || ayamTargets[0] || targets[0];
+    if (normalizeKey(source.nama).includes('AYAM')) return ayamTargets[0] || targets[0];
+    return targets.find(t => normalizeKey(t.nama).includes(normalizeKey(source.nama).split('_')[0] || '')) || targets[0];
+  }
+
+  async function saveGorengOutlet(){
+    const btn = document.getElementById('btnSaveGoreng');
+    try {
+      const source = state.rows[Number(state.gorengSourceIndex)];
+      if (!source) throw new Error('Produk bahan preparasi belum dipilih.');
+      const idHasil = document.getElementById('gorengTargetSelect')?.value || '';
+      const target = state.rows.find(r => String(r.id) === String(idHasil));
+      if (!target) throw new Error('Pilih hasil setelah digoreng.');
+      const qty = numberOf(document.getElementById('gorengQtyInput')?.value || '');
+      if (qty <= 0) throw new Error('Jumlah digoreng wajib lebih dari 0.');
+      if (qty > numberOf(source.stokSisa)) throw new Error(`Jumlah digoreng melebihi stok ${source.nama}.`);
+      setButtonLoading(btn, 'Menyimpan...');
+      const catatan = (document.getElementById('gorengCatatanInput')?.value || '').trim() || `Goreng outlet: ${source.nama} menjadi ${target.nama}`;
+      const result = await callInventory('simpanOlahOutlet', {
+        tanggal: document.getElementById('tanggalInput')?.value || '',
+        outlet: document.getElementById('outletSelect')?.value || state.currentOutlet,
+        petugas: localStorage.getItem('APJ_USER_NAME') || '',
+        keterangan: catatan,
+        rows: [{ idBahan: source.id, namaAsal: source.nama, idHasil: target.id, namaHasil: target.nama, qtyGoreng: qty, keterangan: catatan }]
+      });
+      if (!result.success) throw new Error(result.message || 'Gagal menyimpan proses goreng outlet.');
+      closeModal('modalGorengOutlet');
+      closeModal('modalTerjual');
+      showToast(result.message || 'Proses goreng berhasil disimpan.', 'success');
+      await loadProdukOutlet();
+    } catch (err) {
+      showToast(err.message || 'Data proses goreng belum valid.', 'error');
+    } finally {
+      resetButton(btn, 'Simpan Goreng');
+    }
+  }
+
+  function openOpnameModal(){
+    if (!state.rows.length) return showToast('Data produk belum dimuat.', 'error');
+    const tbody = document.getElementById('tbodyOpname');
+    tbody.innerHTML = state.rows.map((r, idx) => `
+      <tr data-index="${idx}">
+        <td><div class="produk-name">${esc(r.nama)}</div><div class="produk-meta">${esc(r.kategori || '')}</div></td>
+        <td class="num num-end text-center stok-sistem">${fmt(r.stokSisa)}</td>
+        <td><input class="modal-input text-center input-fisik" type="number" min="0" step="any" placeholder="Kosong" oninput="updateOpnameRow(this); updateOpnameSummary();"></td>
+        <td class="num text-center label-selisih">-</td>
+        <td class="text-center">${esc(r.satuan || '-')}</td>
+        <td><input class="modal-input input-alasan" type="text" placeholder="Wajib jika selisih..."></td>
+      </tr>`).join('');
+    updateOpnameSummary();
+    openModal('modalOpname');
+  }
+
+  function updateOpnameRow(input){
+    const tr = input.closest('tr');
+    const item = state.rows[Number(tr.dataset.index)];
+    const label = tr.querySelector('.label-selisih');
+    if (!item || !label) return;
+    if (input.value === '') { label.textContent = '-'; label.className = 'num text-center label-selisih'; return; }
+    const diff = numberOf(input.value) - numberOf(item.stokSisa);
+    label.textContent = fmt(diff);
+    label.className = `num text-center label-selisih ${diff < 0 ? 'num-adj neg' : (diff > 0 ? 'num-adj pos' : '')}`;
+  }
+
+  function updateOpnameSummary(){
+    const rows = collectOpnameRows(false);
+    setText('opnameSummary', rows.length ? `${rows.length} produk akan dicatat opname.` : 'Belum ada stok fisik yang diisi.');
+  }
+
+  function collectOpnameRows(strict){
+    const rows = [];
+    document.querySelectorAll('#tbodyOpname tr').forEach(tr => {
+      const item = state.rows[Number(tr.dataset.index)];
+      if (!item) return;
+      const fisikVal = tr.querySelector('.input-fisik')?.value || '';
+      if (fisikVal === '') return;
+      const fisik = numberOf(fisikVal);
+      if (strict && fisik < 0) throw new Error(`Stok fisik ${item.nama} tidak boleh minus.`);
+      const selisih = fisik - numberOf(item.stokSisa);
+      const alasan = (tr.querySelector('.input-alasan')?.value || '').trim();
+      if (strict && Math.abs(selisih) > 0.0001 && !alasan) throw new Error(`Alasan wajib diisi untuk opname ${item.nama}.`);
+      rows.push({ id:item.id, idItem:item.id, nama:item.nama, satuan:item.satuan, stokSistem:item.stokSisa, stokFisik:fisikVal, selisih, alasan });
+    });
+    return rows;
+  }
+
+  async function saveOpname(){
+    const btn = document.getElementById('btnSaveOpname');
+    try {
+      const rows = collectOpnameRows(true);
+      if (!rows.length) throw new Error('Isi minimal 1 stok fisik.');
+      setButtonLoading(btn, 'Menyimpan...');
+      const result = await callInventory('simpanProdukOutletOpname', {
+        tanggal: document.getElementById('tanggalInput')?.value || '',
+        outlet: document.getElementById('outletSelect')?.value || state.currentOutlet,
+        petugas: localStorage.getItem('APJ_USER_NAME') || '',
+        rows
+      });
+      if (!result.success) throw new Error(result.message || 'Gagal menyimpan opname outlet.');
+      closeModal('modalOpname');
+      showToast(result.message || 'Opname outlet berhasil disimpan.', 'success');
+      await loadProdukOutlet();
+    } catch (err) {
+      showToast(err.message || 'Data belum valid.', 'error');
+    } finally {
+      resetButton(btn, 'Simpan Opname');
+    }
+  }
+
+  function printProdukOutlet(){
+    const outlet = state.currentOutlet || document.getElementById('outletSelect')?.value || '-';
+    const tanggal = document.getElementById('tanggalInput')?.value || '';
+    const rows = state.filtered.length ? state.filtered : state.rows;
+    if (!rows.length) return showToast('Tidak ada data untuk dicetak.', 'error');
+
+    const now = new Date();
+    const docNo = `PO-${normalizeKey(outlet).replace(/_/g,'')}-${tanggal.replaceAll('-','')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    const totalAwal = rows.reduce((s,r)=>s+numberOf(r.stokKemarin),0);
+    const totalMasuk = rows.reduce((s,r)=>s+numberOf(r.stokMasuk),0);
+    const totalTerjual = rows.reduce((s,r)=>s+numberOf(r.stokTerjual),0);
+    const totalAdj = rows.reduce((s,r)=>s+numberOf(r.selisihOpname),0);
+    const totalAkhir = rows.reduce((s,r)=>s+numberOf(r.stokSisa),0);
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rekap Produk Outlet 58mm</title><style>
+      @page{size:58mm auto;margin:2mm}
+      *{box-sizing:border-box}
+      html,body{margin:0;padding:0;background:#fff;color:#000}
+      body{width:54mm;font-family:Arial,Helvetica,sans-serif;font-size:8px;line-height:1.18}
+      .wrap{width:54mm;margin:0 auto;padding:0;background:#fff}
+      .center{text-align:center}.right{text-align:right}.muted{font-size:7px;color:#222}.bold{font-weight:700}
+      .brand{font-size:11px;font-weight:800;letter-spacing:.02em;margin:0;text-transform:uppercase}
+      .title{font-size:8.5px;font-weight:700;margin-top:.7mm;text-transform:uppercase}
+      .dash{border-top:1px dashed #000;margin:1.4mm 0}
+      .meta{display:grid;grid-template-columns:13mm 1fr;gap:.35mm .7mm;margin-top:1mm;font-size:7.4px}
+      .legend{display:grid;grid-template-columns:5mm 1fr 7mm 7mm 7mm 7mm 7mm;gap:.4mm;font-size:6.4px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #000;padding-bottom:.8mm;margin-top:1mm}
+      .row{display:grid;grid-template-columns:5mm 1fr 7mm 7mm 7mm 7mm 7mm;gap:.4mm;align-items:start;border-bottom:1px dashed #999;padding:.8mm 0;break-inside:avoid;page-break-inside:avoid}
+      .no{font-weight:700}.name{font-size:7.5px;font-weight:700;line-height:1.13;word-break:break-word}.unit{font-size:6.4px;font-weight:400;color:#222;margin-top:.25mm}
+      .num{text-align:right;font-size:7.3px;white-space:nowrap}
+      .footer{margin-top:1.5mm;font-size:7px;line-height:1.25}
+      @media print{body{width:54mm}.wrap{width:54mm}.no-print{display:none!important}}
+    </style></head><body><div class="wrap">
+      <div class="center"><p class="brand">AMPERA PAK JENGGOT</p><div class="title">Rekap Produk Outlet</div></div>
+      <div class="dash"></div>
+      <div class="meta">
+        <div>No</div><div>: ${esc(docNo)}</div>
+        <div>Tanggal</div><div>: ${esc(formatDateId(tanggal))}</div>
+        <div>Outlet</div><div>: ${esc(outlet)}</div>
+        <div>Petugas</div><div>: ${esc(localStorage.getItem('APJ_USER_NAME') || '-')}</div>
+      </div>
+      <div class="dash"></div>
+      <div class="legend"><div>No</div><div>Produk</div><div class="right">Awal</div><div class="right">+</div><div class="right">Jual</div><div class="right">Kor</div><div class="right">Akhir</div></div>
+      ${rows.map((r,i)=>`<div class="row">
+        <div class="no">${i+1}</div>
+        <div class="name">${esc(r.nama)}<div class="unit">${esc(r.satuan || '-')}</div></div>
+        <div class="num">${fmt(r.stokKemarin)}</div>
+        <div class="num">${fmt(r.stokMasuk)}</div>
+        <div class="num">${fmt(r.stokTerjual)}</div>
+        <div class="num">${fmt(r.selisihOpname)}</div>
+        <div class="num"><b>${fmt(r.stokSisa)}</b></div>
+      </div>`).join('')}
+      <div class="dash"></div>
+      <div class="footer center">Dicetak : ${esc(now.toLocaleString('id-ID'))}</div>
+    </div></body></html>`;
+    const frame = document.createElement('iframe');
+    frame.style.position = 'fixed'; frame.style.right = '0'; frame.style.bottom = '0'; frame.style.width = '0'; frame.style.height = '0'; frame.style.border = '0';
+    document.body.appendChild(frame);
+    frame.contentDocument.open();
+    frame.contentDocument.write(html);
+    frame.contentDocument.close();
+    setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); setTimeout(()=>frame.remove(), 1000); }, 250);
+  }
+
+  function openModal(id){
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    const overlay = modal.querySelector('.modal-overlay');
+    const content = modal.querySelector('.modal-content');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    void modal.offsetWidth;
+    overlay && overlay.classList.remove('opacity-0');
+    overlay && overlay.classList.add('opacity-100');
+    content && content.classList.remove('opacity-0','scale-95');
+    content && content.classList.add('opacity-100','scale-100');
+  }
+
+  function closeModal(id){
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    const overlay = modal.querySelector('.modal-overlay');
+    const content = modal.querySelector('.modal-content');
+    overlay && overlay.classList.add('opacity-0');
+    overlay && overlay.classList.remove('opacity-100');
+    content && content.classList.add('opacity-0','scale-95');
+    content && content.classList.remove('opacity-100','scale-100');
+    setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
+  }
+
+  function openProdukHelpModal(autoOpen){
+    const modal = document.getElementById('produkHelpModal');
+    if (!modal) return;
+    if (autoOpen) sessionStorage.setItem('APJ_PRODUK_OUTLET_HELP_SEEN_V81','1');
+    openModal('produkHelpModal');
+  }
+
+  function closeProdukHelpModal(){ closeModal('produkHelpModal'); }
+
+  function showToast(message, type){
+    const toast = document.getElementById('customToast');
+    const msg = document.getElementById('toastMessage');
+    if (!toast || !msg) return alert(message);
+    msg.textContent = message || '';
+    const isError = type === 'error' || type === 'warning';
+    toast.className = `toast show flex items-center w-full max-w-md p-4 rounded-2xl shadow-xl border backdrop-blur-xl ${isError ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`;
+    const title = toast.querySelector('p.text-sm.font-extrabold');
+    if (title) title.className = `text-sm font-extrabold ${isError ? 'text-rose-900' : 'text-emerald-900'}`;
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => toast.classList.remove('show'), 4200);
+  }
+
+  function bindSidebar(){
+    document.querySelectorAll('[data-menu-toggle]').forEach(btn => {
+      if (btn.dataset.apjSidebarBound === '1') return;
+      btn.dataset.apjSidebarBound = '1';
+      btn.addEventListener('click', ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const group = btn.closest('.nav-group') || document.querySelector(`[data-menu-group="${btn.getAttribute('data-menu-toggle')}"]`);
+        if (!group) return;
+        const isOpen = group.classList.toggle('open');
+        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    });
+
+    const collapseBtn = document.querySelector('[data-sidebar-collapse]');
+    if (collapseBtn && collapseBtn.dataset.apjSidebarBound !== '1') {
+      collapseBtn.dataset.apjSidebarBound = '1';
+      collapseBtn.addEventListener('click', ev => {
+        ev.preventDefault();
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar || window.innerWidth < 1024) return;
+        const collapsed = !sidebar.classList.contains('sidebar-collapsed');
+        sidebar.classList.toggle('sidebar-collapsed', collapsed);
+        document.body.classList.toggle('sidebar-collapsed-active', collapsed);
+        try { localStorage.setItem('APJ_SIDEBAR_COLLAPSED', collapsed ? '1' : '0'); } catch (err) {}
+      });
+    }
+
+    document.querySelectorAll('.nav-coming-soon').forEach(link => {
+      if (link.dataset.apjSidebarBound === '1') return;
+      link.dataset.apjSidebarBound = '1';
+      link.addEventListener('click', ev => {
+        ev.preventDefault();
+        const name = link.getAttribute('data-coming-soon-menu') || link.textContent.trim() || 'Menu ini';
+        showToast(`${name} segera hadir.`, 'warning');
+      });
+    });
+
+    document.querySelectorAll('#sidebar a[href]:not(.nav-coming-soon)').forEach(link => {
+      if (link.dataset.apjLinkBound === '1') return;
+      link.dataset.apjLinkBound = '1';
+      link.addEventListener('click', event => {
+        const href = String(link.getAttribute('href') || '');
+        if (link.classList.contains('active') || /(^|\/)produk-outlet\.html(?:$|[?#])/i.test(href)) {
+          event.preventDefault();
+          closeMobileSidebar();
+          return;
+        }
+        closeMobileSidebar();
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 1024) {
+        const backdrop = document.getElementById('sidebarBackdrop');
+        if (backdrop) backdrop.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    });
+  }
+
+  function toggleSidebarCollapse(){
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar || window.innerWidth < 1024) return;
+    const collapsed = !sidebar.classList.contains('sidebar-collapsed');
+    sidebar.classList.toggle('sidebar-collapsed', collapsed);
+    document.body.classList.toggle('sidebar-collapsed-active', collapsed);
+    try { localStorage.setItem('APJ_SIDEBAR_COLLAPSED', collapsed ? '1' : '0'); } catch (err) {}
+  }
+  function openMobileSidebar(){ document.getElementById('sidebar')?.classList.remove('-translate-x-full'); document.getElementById('sidebarBackdrop')?.classList.remove('hidden'); }
+  function closeMobileSidebar(){ document.getElementById('sidebar')?.classList.add('-translate-x-full'); document.getElementById('sidebarBackdrop')?.classList.add('hidden'); }
+  function showLogoutModal(){ openModal('logoutModal'); }
+  function closeLogoutModal(){ closeModal('logoutModal'); }
+  function executeLogout(){ ['APJ_SESSION_ACTIVE','APJ_SESSION_TOKEN','APJ_USER_NAME','APJ_USER_LEVEL','APJ_USER_OUTLET','APJ_USER_DATA','APJ_MODULE_ACCESS','APJ_USER_PERMISSIONS'].forEach(k=>localStorage.removeItem(k)); window.location.href='index.html'; }
+
+  function setButtonLoading(btn, text){ if (!btn) return; btn.dataset.oldText = btn.textContent; btn.disabled = true; btn.textContent = text; }
+  function resetButton(btn, text){ if (!btn) return; btn.disabled = false; btn.textContent = text || btn.dataset.oldText || btn.textContent; }
+  function setText(id, value){ const el = document.getElementById(id); if (el) el.textContent = value == null ? '' : String(value); }
+  function setValue(id, value){ const el = document.getElementById(id); if (el) el.value = value == null ? '' : String(value); }
+  function numberOf(v){ if (typeof v === 'number') return Number.isFinite(v) ? v : 0; const raw = String(v ?? '').trim().replace(/\s/g,''); if (!raw) return 0; const comma = raw.lastIndexOf(','); const dot = raw.lastIndexOf('.'); let s = raw; if (comma !== -1 && dot !== -1) s = comma > dot ? raw.replace(/\./g,'').replace(',','.') : raw.replace(/,/g,''); else if (comma !== -1) s = raw.replace(',','.'); else if ((raw.match(/\./g)||[]).length > 1) s = raw.replace(/\./g,''); const n = parseFloat(s); return Number.isFinite(n) ? n : 0; }
+  function fmt(v){ return numberOf(v).toLocaleString('id-ID', { maximumFractionDigits: 2 }); }
+  function esc(v){ return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+  function normalizeKey(v){ return String(v || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
+  function formatDateId(value){ const p = String(value || '').split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : (value || '-'); }
+  function formatLongDateId(value){ if (!value) return ''; const p = String(value).split('-').map(Number); if (p.length !== 3 || !p[0]) return value || ''; const d = new Date(p[0], p[1]-1, p[2]); return d.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }); }
+  function getRupiahNumber(v){
+    const digits = String(v == null ? '' : v).replace(/[^0-9]/g, '');
+    return digits ? Number(digits) : '';
+  }
+  function formatPesananRupiahInput(el){
+    if (!el) return;
+    const digits = String(el.value || '').replace(/[^0-9]/g, '');
+    el.value = digits ? 'Rp. ' + Number(digits).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '';
+  }
+  function formatRupiahPlain(v){ return numberOf(v).toLocaleString('id-ID', { maximumFractionDigits: 0 }); }
+  function getInitial(name){ return String(name || 'U').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase() || 'U'; }
+  function delay(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  window.loadProdukOutlet = loadProdukOutlet;
+  window.renderTable = renderTable;
+  window.openPesananModal = openPesananModal;
+  window.addPesananGroup = addPesananGroup;
+  window.removePesananGroup = removePesananGroup;
+  window.addLaukRow = addLaukRow;
+  window.removeLaukRow = removeLaukRow;
+  window.syncKemasanPesanan = syncKemasanPesanan;
+  window.updatePesananSummary = updatePesananSummary;
+  window.togglePesananBank = togglePesananBank;
+  window.togglePesananAlamat = togglePesananAlamat;
+  window.updateTanggalPesananLabel = updateTanggalPesananLabel;
+  window.syncPesananProducts = syncPesananProducts;
+  window.savePesananOutlet = savePesananOutlet;
+  window.printPesananOutlet = printPesananOutlet;
+  window.formatPesananRupiahInput = formatPesananRupiahInput;
+  window.openTerjualModal = openTerjualModal;
+  window.updateTerjualSummary = updateTerjualSummary;
+  window.saveTerjual = saveTerjual;
+  window.openGorengModal = openGorengModal;
+  window.saveGorengOutlet = saveGorengOutlet;
+  window.openOpnameModal = openOpnameModal;
+  window.updateOpnameRow = updateOpnameRow;
+  window.updateOpnameSummary = updateOpnameSummary;
+  window.saveOpname = saveOpname;
+  window.printProdukOutlet = printProdukOutlet;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.openProdukHelpModal = openProdukHelpModal;
+  window.closeProdukHelpModal = closeProdukHelpModal;
+  window.showToast = showToast;
+  window.toggleSidebarCollapse = toggleSidebarCollapse;
+  window.openMobileSidebar = openMobileSidebar;
+  window.closeMobileSidebar = closeMobileSidebar;
+  window.showLogoutModal = showLogoutModal;
+  window.closeLogoutModal = closeLogoutModal;
+  window.executeLogout = executeLogout;
+})();

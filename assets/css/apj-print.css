@@ -1,0 +1,11 @@
+/* APJ PRINT CSS V18 FOUNDATION - Surat Jalan, laporan A4, thermal 58/80mm */
+.apj-print-only{display:none!important}
+@media print{
+  body{background:#fff!important;color:#000!important;overflow:visible!important}
+  body::before,.apj-sidebar,.sidebar,.topbar,.apj-topbar,.no-print,.apj-no-print,.toast,.apj-toast,.help-fab,.apj-modal:not(.apj-print-modal){display:none!important}
+  .apj-print-only{display:block!important}
+  .apj-main,.page-scroll,.page-wrap,.apj-page{height:auto!important;overflow:visible!important;margin:0!important;padding:0!important;max-width:none!important}
+  table{border-collapse:collapse!important;width:100%!important} th,td{border:1px solid #111!important;color:#000!important;background:#fff!important}
+}
+@page{size:A4;margin:8mm}
+.apj-print-a4{width:180mm;max-width:180mm;margin:0 auto;color:#000;background:#fff;font-family:Arial,sans-serif}.apj-print-thermal-58{width:58mm;max-width:58mm;margin:0 auto;color:#000;background:#fff;font-family:Arial,sans-serif}.apj-print-thermal-80{width:80mm;max-width:80mm;margin:0 auto;color:#000;background:#fff;font-family:Arial,sans-serif}

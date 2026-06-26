@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+
+<html lang="id">
+<head><meta content="transfer-produk-v48-table-loading" name="apj-migration"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Transfer Produk | APJ Inventori</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<script src="assets/js/apj-theme.js"></script><link href="assets/css/apj-core.css" rel="stylesheet"/><link href="assets/css/apj-inventory.css" rel="stylesheet"/><link href="assets/css/apj-legacy-inventory.css" rel="stylesheet"/><link href="assets/css/pages/apj-transfer-produksi.css?v=78" rel="stylesheet"/><link href="assets/css/apj-theme.css" rel="stylesheet"/></head>
+<body class="apj-dashboard-v3 apj-transfer-v43 apj-transfer-v44 apj-transfer-v45 apj-transfer-v46 apj-transfer-v49 apj-transfer-v50 flex h-[100dvh] lg:h-screen antialiased" data-page="transfer-produk">
+<div class="toast border backdrop-blur-xl p-4" id="customToast" role="alert">
+<div class="flex items-start gap-3"><div class="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-300">i</div><div class="min-w-0"><p class="text-sm font-extrabold text-white">Notifikasi</p><p class="mt-1 text-sm leading-relaxed" id="toastMessage"></p></div></div>
+</div>
+<button aria-label="Buka menu" class="fixed top-4 left-4 z-50 lg:hidden icon-button active:scale-95 transition" id="mobileMenuBtn" onclick="openMobileSidebar()" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<div class="fixed inset-0 z-30 hidden bg-slate-950/60 backdrop-blur-sm lg:hidden" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<aside class="apj-sidebar fixed lg:static inset-y-0 left-0 z-40 flex flex-col flex-shrink-0 transform -translate-x-full lg:translate-x-0 transition-all duration-300 ease-out" id="sidebar">
+<div class="sidebar-head relative">
+<div class="sidebar-head-inner flex items-center justify-between gap-3">
+<button aria-label="Buka/tutup sidebar" class="brand-toggle hidden lg:flex" data-sidebar-collapse="" id="sidebarToggle" title="Buka/tutup sidebar" type="button">
+<span class="logo-stack">
+<span class="logo-mark-wrap">
+<span class="logo-mark"><img alt="APJ" class="apj-brand-logo-img apj-brand-logo-img--white" loading="lazy" referrerpolicy="no-referrer" src="https://i.imgur.com/6ili5IW.png"/></span>
+</span>
+<span class="brand-text min-w-0">
+<p class="text-[21px] leading-none font-black tracking-tight text-white">APJ</p>
+<p class="text-xs font-extrabold tracking-[.18em] text-violet-300">INVENTORI</p>
+</span>
+</span>
+</button>
+<div class="lg:hidden flex items-center gap-3 min-w-0">
+<div class="logo-mark"><img alt="APJ" class="apj-brand-logo-img apj-brand-logo-img--white" loading="lazy" referrerpolicy="no-referrer" src="https://i.imgur.com/6ili5IW.png"/></div>
+<div class="brand-text min-w-0">
+<p class="text-[21px] leading-none font-black tracking-tight text-white">APJ</p>
+<p class="text-xs font-extrabold tracking-[.18em] text-violet-300">INVENTORI</p>
+</div>
+</div>
+<button class="lg:hidden w-10 h-10 rounded-2xl flex items-center justify-center bg-white/10 text-white" onclick="closeMobileSidebar()" type="button">×</button>
+</div>
+</div>
+<nav class="sidebar-nav apj-dashboard-menu apj-menu-tree" id="dashboardSidebarMenu">
+<div class="menu-section menu-section-main">
+<p class="menu-label"><span>APJ Central</span></p>
+<a class="nav-item" href="dashboard.html" title="Dashboard Utama">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="nav-text">Dashboard Utama</span>
+</a>
+</div>
+<div class="menu-section">
+<p class="menu-label"><span>Sub Utama</span></p>
+</div>
+<div class="menu-section nav-group nav-module-group nav-module-inventory open" data-menu-group="module-inventory">
+<button aria-expanded="true" class="nav-group-toggle nav-module-toggle" data-menu-toggle="module-inventory" title="Inventori" type="button">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7.2 12 12l8.7-4.8M12 22V12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="nav-text">Inventori</span>
+<span class="nav-module-badge">Aktif</span>
+<span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+</button>
+<div class="nav-submenu nav-module-submenu">
+<div class="nav-second-group nav-group" data-menu-group="inventory-dashboard">
+<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-dashboard" title="Dashboard Inventory" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dashboard</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu">
+<a class="nav-item" data-permission="inventory,lihatStok,inputStok" href="dashboard-inventory.html" title="Dashboard Inventory"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 19V5m4 14v-7m4 7V8m4 11v-4m4 4H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Dashboard Inventory</span></a>
+</div>
+</div>
+<div class="nav-second-group nav-group" data-menu-group="inventory-stock">
+<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-stock" title="Stok Gudang" type="button"><span class="nav-second-dot"></span><span class="nav-text">Stok Gudang</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu">
+<a class="nav-item" data-permission="inputStok" href="input-stok.html" title="Input Stok"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Input Stok</span></a>
+<a class="nav-item" data-permission="outputStok" href="output-stok.html" title="Output Stok"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 21V9m0 0 4 4m-4-4-4 4M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Output Stok</span></a>
+<a class="nav-item" data-permission="stokOpname" href="stok-opname.html" title="Stok Opname"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 11l2 2 4-4M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Stok Opname</span></a>
+<a class="nav-item" data-permission="lihatStok" href="lihat-stok.html" title="Lihat Stok"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Lihat Stok</span></a>
+</div>
+</div>
+<div class="nav-second-group nav-group open" data-menu-group="inventory-production">
+<button aria-expanded="true" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-production" title="Dapur Produksi" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dapur Produksi</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu">
+<a class="nav-item" data-permission="preparasi" href="preparasi.html" title="Preparasi"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 4h14v6H5V4Zm2 9h10M7 17h10M9 21h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Preparasi</span></a>
+<a class="nav-item" data-permission="produksi" href="produksi.html" title="Produksi"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 3v3M8 7l-2-2M16 7l2-2M5 12h14M7 12v7h10v-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Produksi</span></a>
+<a class="nav-item active" data-permission="transferProduksi,transferProduk" href="transfer-produksi.html" title="Transfer Produk"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Transfer Produk</span></a>
+</div>
+</div>
+<div class="nav-second-group nav-group" data-menu-group="inventory-outlet">
+<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-outlet" title="Outlet" type="button"><span class="nav-second-dot"></span><span class="nav-text">Outlet</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu"><a class="nav-item" data-permission="produkOutlet" href="produk-outlet.html" title="Produk Outlet"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 7h16v13H4V7Zm2-3h12l2 3H4l2-3Zm3 8h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Produk Outlet</span></a></div>
+</div>
+<div class="nav-second-group nav-group" data-menu-group="inventory-setup">
+<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-setup" title="Setup &amp; Audit" type="button"><span class="nav-second-dot"></span><span class="nav-text">Setup &amp; Audit</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu">
+<a class="nav-item" data-permission="setupInventory,admin" href="setup-inventory.html" title="Setup Inventory"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.03.03a2 2 0 0 1-2.83 2.83l-.03-.03A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.02.02a2 2 0 0 1-3.96 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.03.03a2 2 0 0 1-2.83-2.83l.03-.03A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.02-.02a2 2 0 0 1 0-3.96L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.03-.03a2 2 0 0 1 2.83-2.83l.03.03A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.02-.02a2 2 0 0 1 3.96 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.03-.03A2 2 0 0 1 22.6 7.1l-.03.03A1.7 1.7 0 0 0 19.4 9c.1.36.3.7.6 1l.02.02a2 2 0 0 1 0 3.96L20 14c-.3.3-.5.64-.6 1Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Setup Inventory</span></a>
+<a class="nav-item" data-permission="riwayatTransaksi" href="riwayat-transaksi.html" title="Jurnal Stok / Audit"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v5l3 2M4 4v5h5M4.6 15A8 8 0 1 0 5.7 6.3L4 9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Jurnal Stok / Audit</span></a>
+</div>
+</div>
+</div>
+</div>
+<div class="menu-section nav-group nav-module-group" data-menu-group="module-finance">
+<button aria-expanded="false" class="nav-group-toggle nav-module-toggle" data-menu-toggle="module-finance" title="Keuangan" type="button">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="nav-text">Keuangan</span><span class="nav-soon">Segera</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+</button>
+<div class="nav-submenu nav-module-submenu">
+<div class="nav-second-group nav-group open" data-menu-group="finance-dashboard"><button aria-expanded="true" class="nav-group-toggle nav-second-toggle" data-menu-toggle="finance-dashboard" title="Dashboard Keuangan" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dashboard</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Dashboard Keuangan" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 19V5m4 14v-7m4 7V8m4 11v-4m4 4H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Dashboard Keuangan</span><span class="nav-soon">Segera</span></a></div></div>
+<div class="nav-second-group nav-group" data-menu-group="finance-report"><button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="finance-report" title="Laporan" type="button"><span class="nav-second-dot"></span><span class="nav-text">Kas &amp; Laporan</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Input Kas / Bank" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M3 10h18M5 10V7l7-4 7 4v3M6 10v8m4-8v8m4-8v8m4-8v8M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Input Kas / Bank</span><span class="nav-soon">Segera</span></a></div></div>
+</div>
+</div>
+<div class="menu-section nav-group nav-module-group" data-menu-group="module-hr">
+<button aria-expanded="false" class="nav-group-toggle nav-module-toggle" data-menu-toggle="module-hr" title="HR / Absensi" type="button">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM4 21a8 8 0 0 1 16 0M17 7h4m-2-2v4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="nav-text">HR / Absensi</span><span class="nav-module-badge">Fondasi</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+</button>
+<div class="nav-submenu nav-module-submenu">
+<div class="nav-second-group nav-group open" data-menu-group="hr-dashboard"><button aria-expanded="true" class="nav-group-toggle nav-second-toggle" data-menu-toggle="hr-dashboard" title="Dashboard Absensi" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dashboard</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a class="nav-item" data-permission="dashboardAbsensi,absensiAdmin,absensiDiri" href="dashboard-absensi.html" title="Dashboard Absensi"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 11l2 2 4-4M5 4h14v16H5V4Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Dashboard Absensi</span></a></div></div>
+<div class="nav-second-group nav-group" data-menu-group="hr-absensi"><button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="hr-absensi" title="Absensi" type="button"><span class="nav-second-dot"></span><span class="nav-text">Absensi</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Check In / Check Out" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v4l3 2M4 12a8 8 0 1 0 16 0 8 8 0 0 0-16 0Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Check In / Out</span><span class="nav-soon">Segera</span></a><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Rekap Absensi" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 19V5m4 14v-7m4 7V8m4 11v-4m4 4H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Rekap Absensi</span><span class="nav-soon">Segera</span></a></div></div>
+<div class="nav-second-group nav-group" data-menu-group="hr-data"><button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="hr-data" title="Karyawan" type="button"><span class="nav-second-dot"></span><span class="nav-text">Karyawan</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Data Karyawan" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM4 21a8 8 0 0 1 16 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Data Karyawan</span><span class="nav-soon">Segera</span></a></div></div>
+</div>
+</div>
+</nav>
+<div class="sidebar-footer"><button aria-label="Buka panduan transfer produk" class="sidebar-help-button" onclick="openTransferHelpModal(false); closeMobileSidebar();" title="Panduan Transfer Produk" type="button">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8.2 9a4 4 0 1 1 6.8 2.8c-.9.6-1.5 1.2-1.5 2.2M12 18h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="help-text">Panduan Transfer</span>
+</button>
+<button class="logout-button" onclick="showLogoutModal()" title="Logout Sistem">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M16 17l5-5-5-5M21 12H9M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="logout-text">Logout Sistem</span>
+</button>
+</div>
+</aside>
+<main class="apj-main flex-1 flex flex-col">
+<header class="topbar">
+<div class="topbar-title">
+<div class="topbar-title-mark"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div>
+<div class="min-w-0">
+<h2>Transfer Produk</h2>
+<p>Kirim produk produksi dan preparasi ke outlet.</p>
+</div>
+</div>
+<div class="flex items-center gap-3 ml-auto">
+<button aria-label="Ganti mode tema" class="icon-button apj-theme-toggle hide-xs" data-apj-theme-toggle="" title="Ganti mode terang/gelap" type="button"><span class="apj-theme-toggle-icon" data-apj-theme-icon="">☾</span></button>
+<button class="icon-button hide-xs" title="Notifikasi" type="button"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 0 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+<div class="user-chip">
+<div class="user-meta hidden sm:block text-right"><p class="text-sm font-extrabold clamp-1" id="displayNama">Memuat...</p><p class="text-xs font-bold uppercase tracking-wide" id="displayLevel">--</p></div>
+<div class="user-avatar"><span id="displayInisial">U</span></div>
+</div>
+</div></header>
+<section class="page-scroll">
+<div class="page-wrap">
+<div class="hero-card">
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+<div>
+<div class="soft-badge mb-4"><span class="h-2 w-2 rounded-full bg-cyan-300"></span><span>Transfer Produk</span></div>
+<h1 class="hero-title">Transfer Produk ke Outlet</h1>
+<p class="hero-desc">Gunakan halaman ini untuk mencatat pengiriman produk produksi atau preparasi ke outlet. Produk yang dikirim akan menjadi persediaan outlet dan dapat dicetak sebagai surat jalan.</p>
+</div>
+<div class="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
+              Petugas: <span class="font-extrabold text-white" id="namaPetugas">Memuat...</span>
+</div>
+</div>
+</div>
+<div class="hidden rounded-2xl border border-rose-800 bg-rose-950/30 p-5 text-rose-300" id="accessDeniedBox">
+<h3 class="font-bold text-white mb-1">Akses Ditolak</h3>
+<p class="text-sm">Menu ini hanya tersedia untuk pengguna yang memiliki izin transfer produk.</p>
+</div>
+<div class="transfer-kpi-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+<div class="mini-stat"><p>Produk Tersedia</p><strong id="kpiProduk">0</strong></div>
+<div class="mini-stat"><p>Stok Pusat</p><strong class="text-emerald-300" id="kpiQty">0</strong></div>
+<div class="mini-stat"><p>Stok Outlet Saat Ini</p><strong class="text-cyan-300" id="kpiOutletStock">-</strong></div>
+<div class="mini-stat"><p>Status</p><strong class="text-amber-300" id="kpiStatus">Pilih Outlet</strong></div>
+<div class="mini-stat border-blue-500/25 bg-blue-500/10">
+<p>Surat Jalan</p>
+<button class="mt-3 w-full btn-primary px-4 py-3 text-sm inline-flex items-center justify-center gap-2" onclick="openSuratJalanModal()" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 8h10M7 12h10M7 16h6M6 3h9l3 3v15H6V3Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+              Cetak Surat Jalan
+            </button>
+</div>
+</div>
+<div class="panel">
+<div class="transfer-form-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-5">
+<div>
+<label class="form-label">Tanggal Transfer</label>
+<input class="form-control" id="tanggalInput" type="date"/>
+</div>
+<div>
+<label class="form-label">Outlet Tujuan</label>
+<select class="form-control" id="outletSelect" onchange="handleOutletChange()"><option disabled="" selected="" value="">Memuat outlet...</option></select>
+</div>
+<div>
+<label class="form-label">Penanggung Jawab Penerima</label>
+<select class="form-control" id="picSelect"><option disabled="" selected="" value="">Memuat penanggung jawab...</option></select>
+</div>
+<div>
+<label class="form-label">Cari Produk</label>
+<input class="form-control" id="searchProduk" oninput="renderProductRows()" placeholder="Cari nama produk..." type="text"/>
+</div>
+<div>
+<label class="form-label">Catatan</label>
+<input class="form-control" id="catatanUmum" placeholder="Opsional..." type="text"/>
+</div>
+</div>
+<div class="info-card mb-5">
+            Pilih outlet tujuan untuk menampilkan daftar produk yang dapat dikirim. Isi jumlah pada barang yang benar-benar dikirim; baris kosong tidak akan ikut disimpan.
+          </div>
+<div class="table-shell table-scroll transfer-table-shell mb-5">
+<table class="transfer-products-table w-full text-left border-collapse">
+<colgroup>
+<col class="col-nama"/>
+<col class="col-stok-pusat"/>
+<col class="col-stok-outlet"/>
+<col class="col-satuan"/>
+<col class="col-jumlah"/>
+<col class="col-estimasi"/>
+<col class="col-catatan"/>
+</colgroup>
+<thead>
+<tr class="thead-row text-xs uppercase tracking-wider">
+<th class="p-4 w-3/12">Nama Produk</th>
+<th class="p-4 w-1/12 text-center">Stok Pusat</th>
+<th class="p-4 w-1/12 text-center">Stok Outlet</th>
+<th class="p-4 w-1/12 text-center">Satuan</th>
+<th class="p-4 w-2/12 text-center">Jumlah Dikirim</th>
+<th class="p-4 w-1/12 text-center">Estimasi Stok Outlet</th>
+<th class="p-4 w-3/12">Catatan</th>
+</tr>
+</thead>
+<tbody id="itemTableBody">
+<tr><td class="p-8 text-center text-slate-500" colspan="7">Pilih outlet tujuan terlebih dahulu.</td></tr>
+</tbody>
+</table>
+</div>
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+<p class="text-xs text-slate-500" id="ringkasanTransfer">Belum ada jumlah kirim.</p>
+<button class="btn-primary px-8 py-3 text-sm disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto" id="btnSimpan" onclick="simpanTransfer()" type="button">Simpan Transfer</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<div class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none p-4" id="transferHelpModal">
+<div class="absolute inset-0 bg-slate-950/78 backdrop-blur-sm opacity-0 modal-overlay pointer-events-auto" onclick="closeTransferHelpModal()"></div>
+<div class="help-modal-card modal-content apj-guide-fit pointer-events-auto w-full max-w-4xl transform scale-95 opacity-0">
+<div class="relative z-10">
+<div class="flex items-start justify-between gap-4 mb-5">
+<div>
+<p class="inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-blue-200">
+<span class="h-1.5 w-1.5 rounded-full bg-cyan-300"></span> Panduan Modul
+            </p>
+<h3 class="mt-4 text-2xl sm:text-3xl font-black tracking-tight text-white">Cara pakai Transfer Produk</h3>
+<p class="mt-2 text-sm leading-6 text-slate-400">Panduan ini membantu petugas mencatat pengiriman produk dari pusat ke outlet supaya stok pusat dan stok outlet tetap rapi.</p>
+</div>
+<button aria-label="Tutup panduan" class="w-11 h-11 rounded-2xl border border-slate-700 bg-slate-950/70 text-slate-300 hover:text-white hover:bg-slate-800 transition" onclick="closeTransferHelpModal()" type="button">×</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+<div class="help-step flex gap-3">
+<div class="help-step-number">1</div>
+<div>
+<p class="text-sm font-black text-white">Pilih tanggal &amp; outlet</p>
+<p class="mt-1 text-xs leading-5 text-slate-400">Tanggal diisi sesuai hari pengiriman. Setelah outlet dipilih, daftar produk yang dapat dikirim akan muncul otomatis.</p>
+</div>
+</div>
+<div class="help-step flex gap-3">
+<div class="help-step-number">2</div>
+<div>
+<p class="text-sm font-black text-white">Pilih penanggung jawab penerima</p>
+<p class="mt-1 text-xs leading-5 text-slate-400">Penanggung jawab penerima wajib dipilih agar dokumen pengiriman dan surat jalan jelas diterima oleh siapa.</p>
+</div>
+</div>
+<div class="help-step flex gap-3">
+<div class="help-step-number">3</div>
+<div>
+<p class="text-sm font-black text-white">Isi Jumlah Dikirim</p>
+<p class="mt-1 text-xs leading-5 text-slate-400">Isi hanya produk yang benar-benar dikirim. Baris kosong atau jumlah 0 akan dilewati saat disimpan.</p>
+</div>
+</div>
+<div class="help-step flex gap-3">
+<div class="help-step-number">4</div>
+<div>
+<p class="text-sm font-black text-white">Cek estimasi outlet</p>
+<p class="mt-1 text-xs leading-5 text-slate-400">Kolom estimasi outlet membantu melihat perkiraan stok outlet setelah transfer masuk.</p>
+</div>
+</div>
+</div>
+<div class="rounded-2xl border border-cyan-500/22 bg-cyan-500/10 p-4 mb-5">
+<p class="text-sm font-black text-cyan-100">Surat Jalan</p>
+<p class="mt-1 text-xs sm:text-sm leading-6 text-cyan-100/75">Setelah transfer tersimpan, gunakan tombol <b>Cetak Surat Jalan</b>. Pilih tanggal, outlet, dan dokumen pengiriman, lalu cetak sesuai kebutuhan operasional.</p>
+</div>
+<div class="rounded-2xl border border-amber-500/22 bg-amber-500/10 p-4 mb-5">
+<p class="text-sm font-black text-amber-100">Catatan penting</p>
+<p class="mt-1 text-xs sm:text-sm leading-6 text-amber-100/75">Pastikan outlet tujuan, penerima, dan jumlah kirim sudah benar sebelum menekan <b>Simpan Transfer</b>. Data yang tersimpan menjadi dasar surat jalan dan persediaan outlet.</p>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+<p class="text-xs text-slate-500">Panduan bisa dibuka kembali dari sidebar, tepat di atas tombol Logout Sistem.</p>
+<button class="btn-primary px-5 py-3 text-sm" onclick="closeTransferHelpModal()" type="button">Mengerti, lanjut transfer</button>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed inset-0 z-50 hidden items-center justify-center p-4" id="suratJalanModal">
+<div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onclick="closeSuratJalanModal()"></div>
+<div class="surat-modal-card relative w-full max-w-3xl max-h-[92dvh] overflow-y-auto">
+<div class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-800 bg-slate-900/95 px-5 py-4 backdrop-blur">
+<div>
+<p class="text-xs font-bold uppercase tracking-wider text-violet-300">Surat Jalan</p>
+<h3 class="text-xl font-extrabold text-white">Cetak surat jalan tersimpan</h3>
+<p class="mt-1 text-xs text-slate-400">Pilih tanggal dan outlet. Dokumen otomatis dimuat tanpa tombol muat data.</p>
+</div>
+<button class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-bold text-white hover:bg-slate-800" onclick="closeSuratJalanModal()" type="button">Tutup</button>
+</div>
+<div class="space-y-4 p-5">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<div>
+<label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tanggal SJ</label>
+<input class="form-control" id="printTanggalInput" onchange="handlePrintFilterChange()" type="date"/>
+</div>
+<div>
+<label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Outlet</label>
+<select class="form-control" id="printOutletSelect" onchange="handlePrintFilterChange()"><option value="">Memuat outlet...</option></select>
+</div>
+<div>
+<label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Dokumen Pengiriman</label>
+<select class="form-control" id="printTxSelect"><option value="">Pilih outlet dulu...</option></select>
+</div>
+</div>
+<div class="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-xs text-slate-400" id="printLoadStatus">Pilih tanggal dan outlet untuk memuat dokumen.</div>
+<div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+<button class="h-11 inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 text-sm font-bold text-white transition-colors" onclick="addSelectedPrintGroupToQueue()" type="button">+ Tambah Outlet</button>
+<button class="h-11 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 px-4 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition-colors" onclick="printSavedSuratJalan('a4')" type="button">Cetak A4</button>
+<button class="h-11 inline-flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 px-4 text-sm font-bold text-white border border-slate-700 transition-colors" onclick="printSavedSuratJalan('58')" type="button">Cetak 58mm</button>
+<button class="h-11 inline-flex items-center justify-center rounded-xl bg-slate-950 hover:bg-slate-800 px-4 text-sm font-bold text-slate-200 border border-slate-700 transition-colors" onclick="clearPrintQueue()" type="button">Kosongkan</button>
+</div>
+<div>
+<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Daftar surat jalan yang akan dicetak</p>
+<div class="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-400" id="printQueueList">
+            Belum ada outlet ditambahkan. Jika langsung mencetak tanpa tambah outlet, sistem mencetak dokumen yang sedang dipilih.
+          </div>
+</div>
+</div>
+</div>
+</div>
+<div id="printAreaTransfer" style="display:none;">
+<div class="sj-kop">
+<div class="sj-title">AMPERA PAK JENGGOT</div>
+<div class="sj-subtitle">SURAT JALAN TRANSFER PRODUK OUTLET</div>
+</div>
+<div class="sj-meta">
+<div>No. Surat Jalan <b id="printSjNo">-</b></div>
+<div>Tanggal <b id="printSjTanggal">-</b></div>
+<div>Outlet Tujuan <b id="printSjOutlet">-</b></div>
+<div>Penanggung Jawab Penerima <b id="printSjPic">-</b></div>
+<div>Petugas Kirim <b id="printSjPetugas">-</b></div>
+<div>Dicetak <b id="printSjWaktu">-</b></div>
+</div>
+<table class="sj-table">
+<thead>
+<tr id="printSjHead"><th style="width:32px;">No</th><th>Nama Produk</th><th style="width:70px;">Jumlah</th><th style="width:70px;">Satuan</th><th>Catatan</th></tr>
+</thead>
+<tbody id="printSjBody"></tbody>
+</table>
+<div class="sj-note" id="printSjCatatan">Catatan: -</div>
+<div class="sj-sign">
+<div class="sj-sign-box"><div>Mengetahui</div><div class="sj-sign-name">Supervisor</div></div>
+<div class="sj-sign-box"><div>Pengirim</div><div class="sj-sign-name" id="printSjPengirim">Petugas</div></div>
+<div class="sj-sign-box"><div>Penerima</div><div class="sj-sign-name" id="printSjPenerima">Penerima</div></div>
+</div>
+</div>
+<div class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none" id="logoutModal">
+<div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm opacity-0 modal-overlay pointer-events-auto" onclick="closeLogoutModal()"></div>
+<div class="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 sm:p-6 w-[calc(100%-2rem)] max-w-sm transform scale-95 opacity-0 modal-content pointer-events-auto">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 mb-4 mx-auto border border-rose-500/20">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<h3 class="text-lg font-bold text-white text-center mb-2">Konfirmasi Keluar</h3>
+<p class="text-sm text-slate-400 text-center mb-6">Apakah Anda yakin ingin keluar dari Sistem Inventori APJ? Sesi Anda akan diakhiri.</p>
+<div class="flex gap-3">
+<button class="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors border border-slate-600" onclick="closeLogoutModal()" type="button">Batal</button>
+<button class="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-rose-600/20" onclick="executeLogout()" type="button">Ya, Keluar</button>
+</div>
+</div>
+</div>
+<!-- APJ V42 - config + transfer produk logic -->
+<script src="assets/js/apj-config.js"></script>
+<script src="assets/js/pages/apj-transfer-produksi.js?v=78"></script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="id">
+<head><meta content="stok-opname-v30-v3-layout" name="apj-migration"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stok Opname | APJ Inventori</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<script src="assets/js/apj-theme.js"></script><link href="assets/css/apj-core.css" rel="stylesheet"/><link href="assets/css/apj-inventory.css" rel="stylesheet"/><link href="assets/css/apj-legacy-inventory.css" rel="stylesheet"/><link href="assets/css/pages/apj-stok-opname.css?v=50" rel="stylesheet"/><link href="assets/css/apj-theme.css" rel="stylesheet"/></head>
+<body class="apj-dashboard-v3 apj-stok-opname-v30 apj-stok-opname-v50 flex h-[100dvh] lg:h-screen antialiased" data-page="stok-opname">
+<div class="toast border backdrop-blur-xl p-4" id="customToast" role="alert">
+<div class="flex items-start gap-3"><div class="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-300">i</div><div class="min-w-0"><p class="text-sm font-extrabold text-white">Notifikasi</p><p class="mt-1 text-sm leading-relaxed" id="toastMessage"></p></div></div>
+</div>
+<button aria-label="Buka menu" class="fixed top-4 left-4 z-50 lg:hidden icon-button active:scale-95 transition" id="mobileMenuBtn" onclick="openMobileSidebar()" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<div class="fixed inset-0 z-30 hidden bg-slate-950/60 backdrop-blur-sm lg:hidden" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<aside class="apj-sidebar fixed lg:static inset-y-0 left-0 z-40 flex flex-col flex-shrink-0 transform -translate-x-full lg:translate-x-0 transition-all duration-300 ease-out" id="sidebar">
+<div class="sidebar-head relative">
+<div class="sidebar-head-inner flex items-center justify-between gap-3">
+<button aria-label="Buka/tutup sidebar" class="brand-toggle hidden lg:flex" data-sidebar-collapse="" id="sidebarToggle" title="Buka/tutup sidebar" type="button">
+<span class="logo-stack">
+<span class="logo-mark-wrap">
+<span class="logo-mark"><img alt="APJ" class="apj-brand-logo-img apj-brand-logo-img--white" loading="lazy" referrerpolicy="no-referrer" src="https://i.imgur.com/6ili5IW.png"/></span>
+</span>
+<span class="brand-text min-w-0">
+<p class="text-[21px] leading-none font-black tracking-tight text-white">APJ</p>
+<p class="text-xs font-extrabold tracking-[.18em] text-violet-300">INVENTORI</p>
+</span>
+</span>
+</button>
+<div class="lg:hidden flex items-center gap-3 min-w-0">
+<div class="logo-mark"><img alt="APJ" class="apj-brand-logo-img apj-brand-logo-img--white" loading="lazy" referrerpolicy="no-referrer" src="https://i.imgur.com/6ili5IW.png"/></div>
+<div class="brand-text min-w-0">
+<p class="text-[21px] leading-none font-black tracking-tight text-white">APJ</p>
+<p class="text-xs font-extrabold tracking-[.18em] text-violet-300">INVENTORI</p>
+</div>
+</div>
+<button class="lg:hidden w-10 h-10 rounded-2xl flex items-center justify-center bg-white/10 text-white" onclick="closeMobileSidebar()" type="button">×</button>
+</div>
+</div>
+<nav class="sidebar-nav apj-dashboard-menu apj-menu-tree" id="dashboardSidebarMenu">
+<div class="menu-section menu-section-main">
+<p class="menu-label"><span>APJ Central</span></p>
+<a class="nav-item" href="dashboard.html" title="Dashboard Utama">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="nav-text">Dashboard Utama</span>
+</a>
+</div>
+<div class="menu-section">
+<p class="menu-label"><span>Sub Utama</span></p>
+</div>
+<div class="menu-section nav-group nav-module-group nav-module-inventory open" data-menu-group="module-inventory">
+<button aria-expanded="true" class="nav-group-toggle nav-module-toggle" data-menu-toggle="module-inventory" title="Inventori" type="button">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7.2 12 12l8.7-4.8M12 22V12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="nav-text">Inventori</span>
+<span class="nav-module-badge">Aktif</span>
+<span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+</button>
+<div class="nav-submenu nav-module-submenu">
+<div class="nav-second-group nav-group" data-menu-group="inventory-dashboard">
+<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-dashboard" title="Dashboard Inventory" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dashboard</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu">
+<a class="nav-item" data-permission="inventory,lihatStok,inputStok" href="dashboard-inventory.html" title="Dashboard Inventory"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 19V5m4 14v-7m4 7V8m4 11v-4m4 4H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Dashboard Inventory</span></a>
+</div>
+</div>
+<div class="nav-second-group nav-group open" data-menu-group="inventory-stock">
+<button aria-expanded="true" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-stock" title="Stok Gudang" type="button"><span class="nav-second-dot"></span><span class="nav-text">Stok Gudang</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu">
+<a class="nav-item" data-permission="inputStok" href="input-stok.html" title="Input Stok"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Input Stok</span></a>
+<a class="nav-item" data-permission="outputStok" href="output-stok.html" title="Output Stok"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 21V9m0 0 4 4m-4-4-4 4M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Output Stok</span></a>
+<a class="nav-item active" data-permission="stokOpname" href="stok-opname.html" title="Stok Opname"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 11l2 2 4-4M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Stok Opname</span></a>
+<a class="nav-item" data-permission="lihatStok" href="lihat-stok.html" title="Lihat Stok"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Lihat Stok</span></a>
+</div>
+</div>
+<div class="nav-second-group nav-group" data-menu-group="inventory-production">
+<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-production" title="Dapur Produksi" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dapur Produksi</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu">
+<a class="nav-item" data-permission="preparasi" href="preparasi.html" title="Preparasi"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 4h14v6H5V4Zm2 9h10M7 17h10M9 21h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Preparasi</span></a>
+<a class="nav-item" data-permission="produksi" href="produksi.html" title="Produksi"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 3v3M8 7l-2-2M16 7l2-2M5 12h14M7 12v7h10v-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Produksi</span></a>
+<a class="nav-item" data-permission="transferProduksi,transferProduk" href="transfer-produksi.html" title="Transfer Produk"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Transfer Produk</span></a>
+</div>
+</div>
+<div class="nav-second-group nav-group" data-menu-group="inventory-outlet">
+<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-outlet" title="Outlet" type="button"><span class="nav-second-dot"></span><span class="nav-text">Outlet</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu"><a class="nav-item" data-permission="produkOutlet" href="produk-outlet.html" title="Produk Outlet"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 7h16v13H4V7Zm2-3h12l2 3H4l2-3Zm3 8h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Produk Outlet</span></a></div>
+</div>
+<div class="nav-second-group nav-group" data-menu-group="inventory-setup">
+<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-setup" title="Setup &amp; Audit" type="button"><span class="nav-second-dot"></span><span class="nav-text">Setup &amp; Audit</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-submenu nav-leaf-submenu">
+<a class="nav-item" data-permission="setupInventory,admin" href="setup-inventory.html" title="Setup Inventory"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.03.03a2 2 0 0 1-2.83 2.83l-.03-.03A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.02.02a2 2 0 0 1-3.96 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.03.03a2 2 0 0 1-2.83-2.83l.03-.03A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.02-.02a2 2 0 0 1 0-3.96L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.03-.03a2 2 0 0 1 2.83-2.83l.03.03A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.02-.02a2 2 0 0 1 3.96 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.03-.03A2 2 0 0 1 22.6 7.1l-.03.03A1.7 1.7 0 0 0 19.4 9c.1.36.3.7.6 1l.02.02a2 2 0 0 1 0 3.96L20 14c-.3.3-.5.64-.6 1Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Setup Inventory</span></a>
+<a class="nav-item" data-permission="riwayatTransaksi" href="riwayat-transaksi.html" title="Jurnal Stok / Audit"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v5l3 2M4 4v5h5M4.6 15A8 8 0 1 0 5.7 6.3L4 9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Jurnal Stok / Audit</span></a>
+</div>
+</div>
+</div>
+</div>
+<div class="menu-section nav-group nav-module-group" data-menu-group="module-finance">
+<button aria-expanded="false" class="nav-group-toggle nav-module-toggle" data-menu-toggle="module-finance" title="Keuangan" type="button">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="nav-text">Keuangan</span><span class="nav-soon">Segera</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+</button>
+<div class="nav-submenu nav-module-submenu">
+<div class="nav-second-group nav-group open" data-menu-group="finance-dashboard"><button aria-expanded="true" class="nav-group-toggle nav-second-toggle" data-menu-toggle="finance-dashboard" title="Dashboard Keuangan" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dashboard</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Dashboard Keuangan" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 19V5m4 14v-7m4 7V8m4 11v-4m4 4H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Dashboard Keuangan</span><span class="nav-soon">Segera</span></a></div></div>
+<div class="nav-second-group nav-group" data-menu-group="finance-report"><button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="finance-report" title="Laporan" type="button"><span class="nav-second-dot"></span><span class="nav-text">Kas &amp; Laporan</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Input Kas / Bank" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M3 10h18M5 10V7l7-4 7 4v3M6 10v8m4-8v8m4-8v8m4-8v8M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Input Kas / Bank</span><span class="nav-soon">Segera</span></a></div></div>
+</div>
+</div>
+<div class="menu-section nav-group nav-module-group" data-menu-group="module-hr">
+<button aria-expanded="false" class="nav-group-toggle nav-module-toggle" data-menu-toggle="module-hr" title="HR / Absensi" type="button">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM4 21a8 8 0 0 1 16 0M17 7h4m-2-2v4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="nav-text">HR / Absensi</span><span class="nav-module-badge">Fondasi</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+</button>
+<div class="nav-submenu nav-module-submenu">
+<div class="nav-second-group nav-group open" data-menu-group="hr-dashboard"><button aria-expanded="true" class="nav-group-toggle nav-second-toggle" data-menu-toggle="hr-dashboard" title="Dashboard Absensi" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dashboard</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a class="nav-item" data-permission="dashboardAbsensi,absensiAdmin,absensiDiri" href="dashboard-absensi.html" title="Dashboard Absensi"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 11l2 2 4-4M5 4h14v16H5V4Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Dashboard Absensi</span></a></div></div>
+<div class="nav-second-group nav-group" data-menu-group="hr-absensi"><button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="hr-absensi" title="Absensi" type="button"><span class="nav-second-dot"></span><span class="nav-text">Absensi</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Check In / Check Out" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v4l3 2M4 12a8 8 0 1 0 16 0 8 8 0 0 0-16 0Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Check In / Out</span><span class="nav-soon">Segera</span></a><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Rekap Absensi" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 19V5m4 14v-7m4 7V8m4 11v-4m4 4H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Rekap Absensi</span><span class="nav-soon">Segera</span></a></div></div>
+<div class="nav-second-group nav-group" data-menu-group="hr-data"><button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="hr-data" title="Karyawan" type="button"><span class="nav-second-dot"></span><span class="nav-text">Karyawan</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button><div class="nav-submenu nav-leaf-submenu"><a aria-disabled="true" class="nav-item nav-coming-soon" data-coming-soon-menu="Data Karyawan" href="#"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM4 21a8 8 0 0 1 16 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Data Karyawan</span><span class="nav-soon">Segera</span></a></div></div>
+</div>
+</div>
+</nav>
+<div class="sidebar-footer"><button aria-label="Buka panduan stok opname" class="sidebar-help-button" onclick="openOpnameHelpModal(false)" title="Panduan Stok Opname" type="button">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8.2 9a4 4 0 1 1 6.8 2.8c-.9.6-1.5 1.2-1.5 2.2M12 18h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="help-text">Panduan Opname</span>
+</button>
+<button class="logout-button" onclick="showLogoutModal()" title="Logout Sistem">
+<span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M16 17l5-5-5-5M21 12H9M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="logout-text">Logout Sistem</span>
+</button>
+</div>
+</aside>
+<main class="apj-main flex-1 flex flex-col">
+<header class="topbar">
+<div class="topbar-title">
+<div class="topbar-title-mark"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 11l2 2 4-4M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div>
+<div class="min-w-0">
+<h2>Stok Opname</h2>
+<p>Cocokkan stok fisik dengan stok sistem secara tertib dan akurat.</p>
+</div>
+</div>
+<div class="flex items-center gap-3 ml-auto">
+<button aria-label="Ganti mode tema" class="icon-button apj-theme-toggle hide-xs" data-apj-theme-toggle="" title="Ganti mode terang/gelap" type="button"><span class="apj-theme-toggle-icon" data-apj-theme-icon="">☾</span></button>
+<button class="icon-button hide-xs" title="Notifikasi" type="button"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 0 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+<div class="user-chip">
+<div class="user-meta hidden sm:block text-right">
+<p class="text-sm font-extrabold clamp-1" id="displayNama">Memuat...</p>
+<p class="text-xs font-bold uppercase tracking-wide" id="displayLevel">--</p>
+</div>
+<div class="user-avatar"><span id="displayInisial">U</span></div>
+</div>
+</div>
+</header>
+
+<section class="page-scroll">
+<div class="page-wrap">
+<div class="hero-card no-print">
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+<div>
+<div class="soft-badge mb-4"><span class="h-2 w-2 rounded-full bg-amber-300"></span><span>Koreksi Fisik</span></div>
+<h1 class="hero-title">Form Stok Opname APJ</h1>
+<p class="hero-desc">Gunakan halaman ini untuk mencatat hasil hitung fisik barang. Sistem akan menghitung selisih antara stok sistem dan stok fisik agar laporan stok tetap akurat.</p>
+</div>
+<div class="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+          Petugas: <span class="font-extrabold" id="namaPetugas">Memuat...</span>
+</div>
+</div>
+</div>
+<div class="panel">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5 no-print">
+<div>
+<label class="form-label">Tanggal Opname</label>
+<input class="form-control" id="tanggalInput" type="date"/>
+</div>
+<div>
+<label class="form-label">Kategori Barang</label>
+<select class="form-control" id="kategoriSelect">
+<option disabled="" selected="" value="">-- Pilih Kategori --</option>
+</select>
+</div>
+<div class="opname-status-card">
+<p>Status Form</p>
+<strong id="statusInfo">Pilih kategori untuk mulai opname.</strong>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5 no-print">
+<div class="mini-stat"><p>Mode</p><strong class="text-amber-700 dark:text-amber-300">Koreksi Fisik</strong></div>
+<div class="mini-stat"><p>Item Dipilih</p><strong id="countItem">0 item</strong></div>
+<div class="mini-stat"><p>Selisih Plus</p><strong class="text-emerald-600 dark:text-emerald-300" id="countPlus">0</strong></div>
+<div class="mini-stat"><p>Selisih Minus</p><strong class="text-rose-600 dark:text-rose-300" id="countMinus">0</strong></div>
+</div>
+<div class="info-card mb-5 no-print">
+        Stok opname digunakan untuk menyesuaikan stok sistem dengan jumlah barang fisik yang dihitung di lapangan. Isi <b>Stok Fisik</b> sesuai hasil hitung sebenarnya, lalu tulis alasan apabila terdapat selisih.
+      </div>
+<div class="table-shell table-scroll mb-5 opname-table-shell">
+<table class="w-full text-left border-collapse opname-table">
+<thead>
+<tr class="thead-row text-xs uppercase tracking-wider">
+<th class="p-4">Nama Barang</th>
+<th class="p-4 text-center">Stok Sistem</th>
+<th class="p-4 text-center">Stok Fisik</th>
+<th class="p-4 text-center">Selisih</th>
+<th class="p-4">Alasan Koreksi</th>
+<th class="p-4 text-center">Aksi</th>
+</tr>
+</thead>
+<tbody id="itemTableBody">
+<tr><td class="empty-cell p-8 text-center" colspan="6">Pilih kategori untuk mulai stok opname.</td></tr>
+</tbody>
+</table>
+<div class="table-action-bar no-print">
+<button class="add-row-button" disabled="" id="btnTambahBaris" onclick="tambahBarisOpname()" type="button">+ Tambah Baris Opname</button>
+</div>
+</div>
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 no-print">
+<p class="text-xs" id="saveHint" style="color:var(--muted)">Selisih plus berarti stok fisik lebih besar dari sistem. Selisih minus berarti stok fisik lebih kecil dari sistem.</p>
+<button class="btn-opname px-8 py-3 text-sm disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto" id="btnSimpan" type="button">Simpan Stok Opname</button>
+</div>
+</div>
+</div>
+</section>
+
+</main>
+
+<div class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none p-4 no-print" id="opnameHelpModal">
+<div class="absolute inset-0 bg-slate-950/78 backdrop-blur-sm opacity-0 modal-overlay pointer-events-auto" onclick="closeOpnameHelpModal()"></div>
+<div class="help-modal-card modal-content apj-guide-fit pointer-events-auto w-full max-w-4xl transform scale-95 opacity-0 p-5 sm:p-6">
+<div class="relative z-10">
+<div class="flex items-start justify-between gap-4 mb-5">
+<div>
+<p class="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-200"><span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span> Panduan Modul</p>
+<h3 class="mt-4 text-2xl sm:text-3xl font-black tracking-tight" style="color:var(--text)">Cara pakai Stok Opname</h3>
+<p class="mt-2 text-sm leading-6" style="color:var(--muted)">Gunakan modul ini saat dilakukan pengecekan fisik barang di gudang atau area penyimpanan.</p>
+</div>
+<button aria-label="Tutup panduan" class="w-11 h-11 rounded-2xl border transition" onclick="closeOpnameHelpModal()" style="border-color:var(--border);background:var(--surface-soft);color:var(--text)" type="button">×</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+<div class="help-step flex gap-3"><div class="help-step-number">1</div><div><p class="text-sm font-black" style="color:var(--text)">Pilih tanggal dan kategori</p><p class="mt-1 text-xs leading-5" style="color:var(--muted)">Tanggal adalah tanggal pengecekan fisik. Kategori menentukan daftar barang yang akan dihitung.</p></div></div>
+<div class="help-step flex gap-3"><div class="help-step-number">2</div><div><p class="text-sm font-black" style="color:var(--text)">Tambahkan barang</p><p class="mt-1 text-xs leading-5" style="color:var(--muted)">Klik tombol tambah baris, lalu pilih nama barang yang sedang dicek.</p></div></div>
+<div class="help-step flex gap-3"><div class="help-step-number">3</div><div><p class="text-sm font-black" style="color:var(--text)">Isi stok fisik</p><p class="mt-1 text-xs leading-5" style="color:var(--muted)">Masukkan jumlah barang berdasarkan hasil hitung fisik. Sistem akan menghitung selisih secara otomatis.</p></div></div>
+<div class="help-step flex gap-3"><div class="help-step-number">4</div><div><p class="text-sm font-black" style="color:var(--text)">Periksa dan simpan</p><p class="mt-1 text-xs leading-5" style="color:var(--muted)">Pastikan nama barang, stok fisik, dan alasan koreksi sudah benar sebelum menyimpan.</p></div></div>
+</div>
+<div class="rounded-2xl border border-amber-500/22 bg-amber-500/10 p-4 mb-5">
+<p class="text-sm font-black text-amber-800 dark:text-amber-100">Catatan penting</p>
+<p class="mt-1 text-xs sm:text-sm leading-6 text-amber-900/80 dark:text-amber-100/75">Gunakan stok opname hanya untuk koreksi hasil hitung fisik. Barang masuk dicatat di Input Stok, dan barang keluar dicatat di Output Stok.</p>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+<p class="text-xs" style="color:var(--muted)">Panduan bisa dibuka lagi dari tombol Panduan Opname di sidebar.</p>
+<button class="btn-opname px-5 py-3 text-sm" onclick="closeOpnameHelpModal()" type="button">Mengerti, lanjut opname</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Modal konfirmasi logout, dibuat konsisten dengan dashboard -->
+<div class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none" id="logoutModal">
+<div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm opacity-0 modal-overlay pointer-events-auto" onclick="closeLogoutModal()"></div>
+<div class="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 sm:p-6 w-[calc(100%-2rem)] max-w-sm transform scale-95 opacity-0 modal-content pointer-events-auto">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 mb-4 mx-auto border border-rose-500/20">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<h3 class="text-lg font-bold text-white text-center mb-2">Konfirmasi Keluar</h3>
+<p class="text-sm text-slate-400 text-center mb-6">Apakah Anda yakin ingin keluar dari Sistem Inventori APJ? Sesi Anda akan diakhiri.</p>
+<div class="flex gap-3">
+<button class="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors border border-slate-600" onclick="closeLogoutModal()" type="button">Batal</button>
+<button class="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-rose-600/20" onclick="executeLogout()" type="button">Ya, Keluar</button>
+</div>
+</div>
+</div>
+<!-- APJ V26 - config + output stok logic -->
+<script src="assets/js/apj-config.js"></script>
+<script src="assets/js/pages/apj-stok-opname.js?v=50"></script>
+</body>
+</html>

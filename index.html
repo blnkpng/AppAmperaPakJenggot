@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Login | APJ Central</title>
+<meta content="index-v19-core-user-inventory-v3-ready" name="apj-migration"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<script src="assets/js/apj-theme.js"></script>
+<link href="assets/css/apj-core.css" rel="stylesheet"/>
+<link href="assets/css/apj-theme.css" rel="stylesheet"/>
+</head>
+<body>
+<button aria-label="Ganti mode tema" class="apj-theme-toggle apj-login-theme-toggle" data-apj-theme-toggle="" title="Ganti mode terang/gelap" type="button">
+<span class="apj-theme-toggle-icon" data-apj-theme-icon="">☾</span>
+<span class="apj-theme-toggle-text" data-apj-theme-label="">Dark</span>
+</button>
+<div aria-labelledby="mobileIntroTitle" aria-modal="true" class="apj-modal" id="mobileIntroModal" role="dialog">
+<div class="apj-modal-card">
+<div class="apj-mobile-intro-copy">
+<div class="apj-mobile-intro-icon">☰</div>
+<h2 id="mobileIntroTitle">Selamat datang di APJ Central</h2>
+<p>Satu pintu untuk login operasional APJ. Inventory V3 aktif dulu, Absensi, Keuangan, dan modul lain menyusul bertahap.</p>
+<button class="apj-btn apj-btn-primary apj-btn-block apj-mt-4" id="mobileIntroClose" type="button">Lanjut ke Login</button>
+</div>
+</div>
+</div>
+<div aria-labelledby="profileTitle" aria-modal="true" class="apj-modal" id="profileModal" role="dialog">
+<div class="apj-modal-card">
+<div class="apj-modal-header">
+<div>
+<h2 class="apj-modal-title" id="profileTitle">Lengkapi Data Profil</h2>
+<p class="apj-modal-subtitle">Data ini dipakai untuk kontak karyawan, fitur ulang tahun, dan keamanan lupa password.</p>
+<p class="apj-hidden apj-help-text" id="profileAccountLabel">Melengkapi untuk akun: <b id="profileAccountName">-</b></p>
+</div>
+</div>
+<form class="apj-form-grid" id="profileForm">
+<div class="apj-form-grid apj-form-grid-2">
+<div class="apj-field">
+<label for="profileNoHp">No. HP</label>
+<input class="apj-input" id="profileNoHp" inputmode="tel" placeholder="08xxxxxxxxxx" required="" type="tel"/>
+</div>
+<div class="apj-field">
+<label for="profileEmail">Email</label>
+<input class="apj-input" id="profileEmail" placeholder="nama@email.com" required="" type="email"/>
+</div>
+</div>
+<div class="apj-field">
+<label>Tanggal Lahir</label>
+<div class="apj-date-grid">
+<select class="apj-select" id="profileBirthDay" required=""></select>
+<select class="apj-select" id="profileBirthMonth" required=""></select>
+<select class="apj-select" id="profileBirthYear" required=""></select>
+</div>
+</div>
+<button class="apj-btn apj-btn-primary apj-btn-block" id="profileBtn" type="submit">
+<span id="profileBtnText">Simpan &amp; Lanjut</span>
+<span class="apj-spinner apj-hidden" id="profileSpinner"></span>
+</button>
+</form>
+</div>
+</div>
+<div aria-labelledby="forgotTitle" aria-modal="true" class="apj-modal" id="forgotModal" role="dialog">
+<div class="apj-modal-card">
+<div class="apj-modal-header">
+<div>
+<h2 class="apj-modal-title" id="forgotTitle">Lupa Password</h2>
+<p class="apj-modal-subtitle">Reset mandiri memakai username, No. HP, dan tanggal lahir yang sudah tersimpan.</p>
+</div>
+<button aria-label="Tutup" class="apj-modal-close" id="forgotCloseBtn" type="button">×</button>
+</div>
+<form class="apj-form-grid" id="forgotUsernameForm">
+<div class="apj-auth-note">Langkah 1: masukkan username untuk cek apakah akun bisa reset mandiri.</div>
+<div class="apj-field">
+<label for="forgotUsername">Username</label>
+<input autocomplete="username" class="apj-input" id="forgotUsername" placeholder="Masukkan username" required="" type="text"/>
+</div>
+<button class="apj-btn apj-btn-primary apj-btn-block" id="forgotCheckBtn" type="submit">
+<span id="forgotCheckBtnText">Lanjut</span>
+<span class="apj-spinner apj-hidden" id="forgotCheckSpinner"></span>
+</button>
+</form>
+<form class="apj-form-grid apj-hidden" id="forgotResetForm">
+<div class="apj-auth-note" id="forgotAccountLabel">Akun ditemukan. Isi data verifikasi lalu buat password baru.</div>
+<input id="forgotVerifiedUsername" type="hidden"/>
+<div class="apj-field">
+<label for="forgotNoHp">No. HP Terdaftar</label>
+<input class="apj-input" id="forgotNoHp" inputmode="tel" placeholder="08xxxxxxxxxx" required="" type="tel"/>
+</div>
+<div class="apj-field">
+<label>Tanggal Lahir</label>
+<div class="apj-date-grid">
+<select class="apj-select" id="forgotBirthDay" required=""></select>
+<select class="apj-select" id="forgotBirthMonth" required=""></select>
+<select class="apj-select" id="forgotBirthYear" required=""></select>
+</div>
+</div>
+<div class="apj-form-grid apj-form-grid-2">
+<div class="apj-field">
+<label for="forgotNewPassword">Password Baru</label>
+<input autocomplete="new-password" class="apj-input" id="forgotNewPassword" minlength="6" placeholder="Minimal 6 karakter" required="" type="password"/>
+</div>
+<div class="apj-field">
+<label for="forgotConfirmPassword">Konfirmasi</label>
+<input autocomplete="new-password" class="apj-input" id="forgotConfirmPassword" minlength="6" placeholder="Ulangi password" required="" type="password"/>
+</div>
+</div>
+<div class="apj-form-grid apj-form-grid-2">
+<button class="apj-btn apj-btn-ghost apj-btn-block" id="forgotBackBtn" type="button">Kembali</button>
+<button class="apj-btn apj-btn-primary apj-btn-block" id="forgotResetBtn" type="submit">
+<span id="forgotResetBtnText">Simpan Password Baru</span>
+<span class="apj-spinner apj-hidden" id="forgotResetSpinner"></span>
+</button>
+</div>
+</form>
+</div>
+</div>
+<main class="apj-login-shell">
+<div class="apj-login-grid">
+<section class="apj-login-left">
+<div class="apj-kicker"><span class="apj-kicker-dot"></span>Sistem pusat operasional APJ</div>
+<h2 class="apj-login-title">Satu pintu APJ,<br/>kerja rapi,<br/>tim kompak.</h2>
+<p class="apj-login-text">Login pusat untuk Inventory V3, Absensi, Keuangan, dan operasional APJ. Data user cukup satu sumber, akses lebih aman, dan pengembangan modul baru jadi lebih ringan.</p>
+<div class="apj-feature-grid">
+<div class="apj-feature-card">
+<div class="apj-feature-icon">📦</div>
+<div class="apj-feature-label">Inventory</div>
+<div class="apj-feature-value">Terpantau</div>
+</div>
+<div class="apj-feature-card">
+<div class="apj-feature-icon">🗓️</div>
+<div class="apj-feature-label">Absensi</div>
+<div class="apj-feature-value">Terpusat</div>
+</div>
+<div class="apj-feature-card">
+<div class="apj-feature-icon">📊</div>
+<div class="apj-feature-label">Dashboard</div>
+<div class="apj-feature-value">Siap Tumbuh</div>
+</div>
+</div>
+</section>
+<section class="apj-login-mobile-hero">
+<div class="apj-kicker"><span class="apj-kicker-dot"></span>APJ Central</div>
+<h2>Satu pintu APJ, kerja rapi.</h2>
+<p>Login pusat untuk Inventory V3, Absensi, Keuangan, dan operasional APJ.</p>
+</section>
+<section aria-labelledby="loginTitle" class="apj-card apj-login-card">
+<div class="apj-login-heading">
+<div class="apj-login-logo apj-logo-box">
+<img alt="APJ" class="apj-logo-img apj-logo-img--black" loading="lazy" referrerpolicy="no-referrer" src="https://i.imgur.com/o7DoKSz.png"/>
+<img alt="APJ" class="apj-logo-img apj-logo-img--white" loading="lazy" referrerpolicy="no-referrer" src="https://i.imgur.com/6ili5IW.png"/>
+</div>
+<h1 id="loginTitle">APJ Central</h1>
+<p>Login Pusat Operasional Ampera Pak Jenggot</p>
+<span class="apj-version-pill">Core Login v18 Ready</span>
+</div>
+<div aria-label="Mode login" class="apj-tab-grid" role="tablist">
+<button class="apj-tab-btn apj-active" id="loginTabBtn" type="button">Masuk</button>
+<button class="apj-tab-btn" id="registerTabBtn" type="button">Daftar</button>
+</div>
+<form class="apj-form-grid" id="loginForm">
+<div class="apj-field">
+<label for="username">Username</label>
+<input autocomplete="username" class="apj-input" id="username" placeholder="Masukkan username Anda" required="" type="text"/>
+</div>
+<div class="apj-field">
+<label for="password">Password</label>
+<div class="apj-password-row">
+<input autocomplete="current-password" class="apj-input" id="password" placeholder="••••••••" required="" type="password"/>
+<button class="apj-btn apj-btn-ghost apj-btn-sm" data-toggle-password="password" type="button">LIHAT</button>
+</div>
+</div>
+<div class="apj-text-right">
+<button class="apj-inline-link" id="forgotOpenBtn" type="button">Lupa password?</button>
+</div>
+<button class="apj-btn apj-btn-primary apj-btn-block" id="submitBtn" type="submit">
+<span id="btnText">Masuk ke APJ Central</span>
+<span class="apj-spinner apj-hidden" id="btnSpinner"></span>
+</button>
+</form>
+<form class="apj-form-grid apj-hidden" id="registerForm">
+<div class="apj-auth-note">Akun baru akan masuk dengan status <b>NONAKTIF</b>. Owner/Admin harus mengaktifkan akun sebelum bisa login.</div>
+<div class="apj-form-grid apj-form-grid-2">
+<div class="apj-field">
+<label for="regUsername">Username</label>
+<input autocomplete="username" class="apj-input" id="regUsername" placeholder="tanpa spasi" required="" type="text"/>
+</div>
+<div class="apj-field">
+<label for="regNama">Nama Lengkap</label>
+<input class="apj-input" id="regNama" placeholder="Nama karyawan" required="" type="text"/>
+</div>
+</div>
+<div class="apj-form-grid apj-form-grid-2">
+<div class="apj-field">
+<label for="regPassword">Password</label>
+<div class="apj-password-row">
+<input autocomplete="new-password" class="apj-input" id="regPassword" minlength="6" placeholder="Minimal 6 karakter" required="" type="password"/>
+<button class="apj-btn apj-btn-ghost apj-btn-sm" data-toggle-password="regPassword" type="button">LIHAT</button>
+</div>
+</div>
+<div class="apj-field">
+<label for="regOutlet">Outlet Utama</label>
+<select class="apj-select" id="regOutlet" required="">
+<option value="">Pilih outlet</option>
+</select>
+</div>
+</div>
+<div class="apj-form-grid apj-form-grid-2">
+<div class="apj-field">
+<label for="regNoHp">No. HP</label>
+<input class="apj-input" id="regNoHp" inputmode="tel" placeholder="08xxxxxxxxxx" required="" type="tel"/>
+</div>
+<div class="apj-field">
+<label for="regEmail">Email</label>
+<input class="apj-input" id="regEmail" placeholder="nama@email.com" required="" type="email"/>
+</div>
+</div>
+<div class="apj-field">
+<label>Tanggal Lahir</label>
+<div class="apj-date-grid">
+<select class="apj-select" id="regBirthDay" required=""></select>
+<select class="apj-select" id="regBirthMonth" required=""></select>
+<select class="apj-select" id="regBirthYear" required=""></select>
+</div>
+</div>
+<button class="apj-btn apj-btn-primary apj-btn-block" id="registerBtn" type="submit">
+<span id="registerBtnText">Kirim Pendaftaran</span>
+<span class="apj-spinner apj-hidden" id="registerSpinner"></span>
+</button>
+</form>
+<div class="apj-login-footer">
+<p>Hak akses hanya untuk personel resmi APJ</p>
+<p>Gunakan akun masing-masing. Jangan pinjam akun, nanti auditnya ikut pinjam juga.</p>
+</div>
+</section>
+</div>
+</main>
+<script defer="" src="assets/js/apj-config.js"></script>
+<script defer="" src="assets/js/apj-api.js"></script>
+<script defer="" src="assets/js/apj-toast.js"></script>
+<script defer="" src="assets/js/apj-auth.js"></script>
+<script defer="" src="assets/js/apj-date.js"></script>
+<script defer="" src="assets/js/apj-login.js"></script>
+</body>
+</html>
