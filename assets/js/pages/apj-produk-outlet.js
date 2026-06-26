@@ -1,4 +1,4 @@
-/* APJ Produk Outlet V93 - Print Popup Fix + Master Files */
+/* APJ Produk Outlet V94 - Print Font + Nama Pemesan Fix */
 (function(){
   'use strict';
 
@@ -489,7 +489,7 @@
   function buildPesananPrintHtml(payload, noPesanan){
     payload = payload || {};
     const nomor = noPesanan || payload.noPesanan || payload['No Pesanan'] || 'DRAFT';
-    const namaPemesan = payload.namaPemesan || payload.pemesan || payload.namaCustomer || payload.customer || payload['Nama Pemesan'] || payload['Pemesan'] || '';
+    const namaPemesan = payload.namaPemesan || payload.pemesan || payload.namaCustomer || payload.customer || payload['Nama Pemesan'] || payload['Pemesan'] || document.getElementById('pesananNamaPemesan')?.value || '';
     const nomorHp = payload.nomorHp || payload.noHp || payload.hp || payload['Nomor HP'] || payload['No HP'] || '';
     const now = new Date();
     const rowsHtml = (payload.groups || []).map((g, i) => `<div class="order-block">
@@ -501,7 +501,7 @@
     </div>`).join('');
     const bayar = `${payload.statusPembayaran || '-'} - ${payload.metodePembayaran || '-'}${payload.metodePembayaran === 'Transfer' && payload.bank ? ' ' + payload.bank : ''}`;
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pesanan Outlet 58mm</title><style>
-      @page{size:58mm auto;margin:0!important}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-height:auto!important;height:auto!important;overflow:visible!important}body{font-family:Arial,Helvetica,sans-serif;font-size:8px;line-height:1.22;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{width:54mm;max-width:54mm;margin:0 auto;padding:2mm 0 1.5mm 0;break-inside:auto;page-break-inside:auto}.center{text-align:center}.brand{font-size:11px;font-weight:800;text-transform:uppercase}.title{font-size:9px;font-weight:800;text-transform:uppercase;margin-top:.7mm}.dash{border-top:1px dashed #000;margin:1.3mm 0}.meta{display:grid;grid-template-columns:17mm 1fr;gap:.35mm .8mm;font-size:7.4px}.order-block{border-bottom:1px dashed #888;padding:1.1mm 0;break-inside:avoid;page-break-inside:avoid}.order-title{font-size:8.6px;font-weight:800}.order-sub{font-weight:700;margin-top:.7mm}.lauk{padding-left:1.5mm}.note{margin-top:.7mm}.footer{margin-top:1.5mm;font-size:7px;text-align:center}@media print{@page{size:58mm auto;margin:0!important}html,body{width:58mm!important;height:auto!important;overflow:visible!important}.wrap{width:54mm!important;max-width:54mm!important}.order-block{break-inside:avoid;page-break-inside:avoid}body:after{content:"";display:block;height:1mm}}
+      @page{size:58mm auto;margin:0!important}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-height:auto!important;height:auto!important;overflow:visible!important}body{font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.28;font-weight:500;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{width:54mm;max-width:54mm;margin:0 auto;padding:2mm 0 2mm 0;break-inside:auto;page-break-inside:auto}.center{text-align:center}.brand{font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:.1px}.title{font-size:11px;font-weight:900;text-transform:uppercase;margin-top:.8mm}.dash{border-top:1.5px dashed #000;margin:1.7mm 0}.meta{display:grid;grid-template-columns:18mm 1fr;gap:.55mm 1mm;font-size:9.8px;line-height:1.25}.order-block{border-bottom:1.2px dashed #777;padding:1.8mm 0;break-inside:avoid;page-break-inside:avoid}.order-title{font-size:11px;font-weight:900}.order-sub{font-weight:800;margin-top:1mm}.lauk{padding-left:2.2mm}.note{margin-top:1mm}.footer{margin-top:2mm;font-size:9px;text-align:center}@media print{@page{size:58mm auto;margin:0!important}html,body{width:58mm!important;height:auto!important;overflow:visible!important}.wrap{width:54mm!important;max-width:54mm!important}.order-block{break-inside:avoid;page-break-inside:avoid}body:after{content:"";display:block;height:1mm}}
     </style></head><body><div class="wrap">
       <div class="center"><div class="brand">AMPERA PAK JENGGOT</div><div class="title">Form Pesanan Outlet</div></div><div class="dash"></div>
       <div class="meta"><div>No</div><div>: ${esc(nomor)}</div><div>Outlet</div><div>: ${esc(payload.outlet || '-')}</div><div>Tgl Pesanan</div><div>: ${esc(formatLongDateId(payload.tanggalPesanan || ''))}</div><div>Jam</div><div>: ${esc(payload.jam || '-')}</div><div>Penerima</div><div>: ${esc(payload.penerima || '-')}</div><div>Pemesan</div><div>: ${esc(namaPemesan || '-')}</div><div>HP</div><div>: ${esc(nomorHp || '-')}</div></div>
@@ -544,7 +544,7 @@
           showToast(err.message || 'Gagal membuka dialog cetak.', 'error');
         }
       };
-      setTimeout(runPrint, 450);
+      setTimeout(runPrint, 650);
     } catch (err) {
       showToast(err.message || 'Gagal menyiapkan dokumen cetak.', 'error');
     }
