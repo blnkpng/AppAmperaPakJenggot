@@ -1074,3 +1074,29 @@ body.apj-produk-outlet-v90 #pesananJumlahRp{
   body.apj-produk-outlet-v90 .modal-actions{display:grid;grid-template-columns:1fr;gap:10px;}
   body.apj-produk-outlet-v90 .modal-actions button{width:100%;}
 }
+
+
+/* APJ Produk Outlet V91 - Print Pesanan Reprint + 58mm Roll */
+body.apj-produk-outlet-v91 .btn-pesanan-print{
+  min-height:56px;display:inline-flex;align-items:center;justify-content:center;border-radius:18px;
+  padding:0 22px;font-weight:950;color:#fff;white-space:nowrap;
+  background:linear-gradient(135deg,#7c3aed,#2563eb);box-shadow:0 16px 34px rgba(37,99,235,.18);
+  transition:.16s;
+}
+body.apj-produk-outlet-v91 .btn-pesanan-print:hover{filter:brightness(1.05);transform:translateY(-1px);}
+body.apj-produk-outlet-v91 .modal-print-pesanan-card{max-width:900px;width:min(900px,calc(100vw - 24px));}
+body.apj-produk-outlet-v91 .print-pesanan-body{display:flex;flex-direction:column;gap:14px;}
+body.apj-produk-outlet-v91 .print-pesanan-filter{display:grid;grid-template-columns:1fr 1fr 180px;gap:14px;align-items:end;}
+body.apj-produk-outlet-v91 .print-pesanan-list{display:flex;flex-direction:column;gap:10px;}
+body.apj-produk-outlet-v91 .print-pesanan-card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border:1px solid rgba(148,163,184,.18);border-radius:18px;padding:14px;background:rgba(255,255,255,.04);}
+body.apj-produk-outlet-v91 .print-pesanan-title{font-weight:950;color:var(--text,#f8fafc);letter-spacing:-.02em;}
+body.apj-produk-outlet-v91 .print-pesanan-meta{margin-top:4px;color:var(--muted,#94a3b8);font-weight:700;font-size:13px;line-height:1.45;}
+body.apj-produk-outlet-v91 .print-pesanan-card .btn-print{min-height:42px;border-radius:14px;padding:0 16px;}
+body.apj-produk-outlet-v91 .empty-box{border:1px dashed rgba(148,163,184,.28);border-radius:18px;padding:20px;text-align:center;color:var(--muted,#94a3b8);font-weight:800;}
+html[data-theme="light"] body.apj-produk-outlet-v91 .print-pesanan-card{background:rgba(255,255,255,.78);border-color:rgba(148,163,184,.28);}
+html[data-theme="light"] body.apj-produk-outlet-v91 .print-pesanan-title{color:#0f172a;}
+@media(max-width:760px){
+  body.apj-produk-outlet-v91 .print-pesanan-filter{grid-template-columns:1fr;}
+  body.apj-produk-outlet-v91 .print-pesanan-card{grid-template-columns:1fr;}
+  body.apj-produk-outlet-v91 .print-pesanan-card .btn-print{width:100%;}
+}

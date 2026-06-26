@@ -1,4 +1,4 @@
-/* APJ Produk Outlet V90 - Pesanan Outlet UX Fix */
+/* APJ Produk Outlet V91 - Print Pesanan Reprint + 58mm Roll Fix */
 (function(){
   'use strict';
 
@@ -14,7 +14,8 @@
     loading: false,
     gorengSourceIndex: null,
     pesananProducts: [],
-    lastPesananNo: ''
+    lastPesananNo: '',
+    savedPesanan: []
   };
 
   document.addEventListener('DOMContentLoaded', initProdukOutletPage);
@@ -458,8 +459,9 @@
       const result = await callInventory('simpanPesananOutlet', payload);
       if (!result.success) throw new Error(result.message || 'Gagal menyimpan pesanan.');
       state.lastPesananNo = result.noPesanan || '';
+      payload.noPesanan = state.lastPesananNo;
       showToast(result.message || 'Pesanan berhasil disimpan.', 'success');
-      if (printAfter) printPesananOutlet(result.noPesanan || '');
+      if (printAfter) printPesananPayload(payload, state.lastPesananNo || 'DRAFT');
       closeModal('modalPesanan');
     } catch (err) {
       showToast(err.message || 'Data pesanan belum valid.', 'error');
@@ -471,32 +473,105 @@
   function printPesananOutlet(noPesanan){
     let payload;
     try { payload = collectPesananPayload(true); } catch (err) { showToast(err.message || 'Data pesanan belum valid.', 'error'); return; }
-    const nomor = noPesanan || state.lastPesananNo || 'DRAFT';
+    printPesananPayload(payload, noPesanan || state.lastPesananNo || 'DRAFT');
+  }
+
+  function printPesananPayload(payload, noPesanan){
+    const html = buildPesananPrintHtml(payload, noPesanan || payload.noPesanan || 'DRAFT');
+    printHtml58Roll(html);
+  }
+
+  function buildPesananPrintHtml(payload, noPesanan){
+    const nomor = noPesanan || payload.noPesanan || 'DRAFT';
     const now = new Date();
-    const rowsHtml = payload.groups.map((g, i) => `<div class="order-block">
+    const rowsHtml = (payload.groups || []).map((g, i) => `<div class="order-block">
       <div class="order-title">${i+1}. ${esc(g.jenisPesanan || '-')}</div>
       <div>Qty: <b>${esc(fmt(g.qtyPesanan))} ${esc(g.kemasan || '')}</b></div>
       <div class="order-sub">Isi:</div>
-      ${(g.lauk || []).map(l => `<div class="lauk">- ${esc(l.nama || '')}</div>`).join('')}
+      ${(g.lauk || []).map(l => `<div class="lauk">- ${esc(l.nama || l.namaProduk || l.namaLauk || '')}</div>`).join('')}
       ${g.catatanGrup ? `<div class="note">Catatan: ${esc(g.catatanGrup)}</div>` : ''}
     </div>`).join('');
     const bayar = `${payload.statusPembayaran || '-'} - ${payload.metodePembayaran || '-'}${payload.metodePembayaran === 'Transfer' && payload.bank ? ' ' + payload.bank : ''}`;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pesanan Outlet 58mm</title><style>
-      @page{size:58mm auto;margin:2mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#000}body{width:54mm;font-family:Arial,Helvetica,sans-serif;font-size:8px;line-height:1.22}.wrap{width:54mm;margin:0 auto}.center{text-align:center}.brand{font-size:11px;font-weight:800;text-transform:uppercase}.title{font-size:9px;font-weight:800;text-transform:uppercase;margin-top:.7mm}.dash{border-top:1px dashed #000;margin:1.5mm 0}.meta{display:grid;grid-template-columns:17mm 1fr;gap:.4mm .8mm;font-size:7.4px}.order-block{border-bottom:1px dashed #888;padding:1.2mm 0;break-inside:avoid}.order-title{font-size:8.6px;font-weight:800}.order-sub{font-weight:700;margin-top:.8mm}.lauk{padding-left:1.5mm}.note{margin-top:.8mm}.footer{margin-top:1.5mm;font-size:7px;text-align:center}@media print{body{width:54mm}.wrap{width:54mm}}
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pesanan Outlet 58mm</title><style>
+      @page{size:58mm auto;margin:0}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-height:auto!important;height:auto!important;overflow:visible!important}body{font-family:Arial,Helvetica,sans-serif;font-size:8px;line-height:1.22;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{width:54mm;max-width:54mm;margin:0 auto;padding:2mm 0 1.5mm 0;break-inside:auto;page-break-inside:auto}.center{text-align:center}.brand{font-size:11px;font-weight:800;text-transform:uppercase}.title{font-size:9px;font-weight:800;text-transform:uppercase;margin-top:.7mm}.dash{border-top:1px dashed #000;margin:1.3mm 0}.meta{display:grid;grid-template-columns:17mm 1fr;gap:.35mm .8mm;font-size:7.4px}.order-block{border-bottom:1px dashed #888;padding:1.1mm 0;break-inside:avoid;page-break-inside:avoid}.order-title{font-size:8.6px;font-weight:800}.order-sub{font-weight:700;margin-top:.7mm}.lauk{padding-left:1.5mm}.note{margin-top:.7mm}.footer{margin-top:1.5mm;font-size:7px;text-align:center}@media print{@page{size:58mm auto;margin:0}html,body{width:58mm!important;height:auto!important;overflow:visible!important}.wrap{width:54mm!important;max-width:54mm!important}.order-block{break-inside:avoid;page-break-inside:avoid}body:after{content:"";display:block;height:1mm}}
     </style></head><body><div class="wrap">
       <div class="center"><div class="brand">AMPERA PAK JENGGOT</div><div class="title">Form Pesanan Outlet</div></div><div class="dash"></div>
-      <div class="meta"><div>No</div><div>: ${esc(nomor)}</div><div>Outlet</div><div>: ${esc(payload.outlet)}</div><div>Tgl Pesanan</div><div>: ${esc(formatLongDateId(payload.tanggalPesanan))}</div><div>Jam</div><div>: ${esc(payload.jam || '-')}</div><div>Penerima</div><div>: ${esc(payload.penerima || '-')}</div><div>Pemesan</div><div>: ${esc(payload.namaPemesan || '-')}</div><div>HP</div><div>: ${esc(payload.nomorHp || '-')}</div></div>
+      <div class="meta"><div>No</div><div>: ${esc(nomor)}</div><div>Outlet</div><div>: ${esc(payload.outlet || '-')}</div><div>Tgl Pesanan</div><div>: ${esc(formatLongDateId(payload.tanggalPesanan || ''))}</div><div>Jam</div><div>: ${esc(payload.jam || '-')}</div><div>Penerima</div><div>: ${esc(payload.penerima || '-')}</div><div>Pemesan</div><div>: ${esc(payload.namaPemesan || '-')}</div><div>HP</div><div>: ${esc(payload.nomorHp || '-')}</div></div>
       <div class="dash"></div>${rowsHtml}<div class="dash"></div>
-      <div class="meta"><div>Bayar</div><div>: ${esc(bayar)}</div><div>Jumlah</div><div>: Rp ${esc(formatRupiahPlain(payload.jumlahRp))}</div><div>Pesanan</div><div>: ${esc(payload.jenisPengambilan || '-')}</div></div>
+      <div class="meta"><div>Bayar</div><div>: ${esc(bayar)}</div><div>Jumlah</div><div>: Rp ${esc(formatRupiahPlain(payload.jumlahRp || 0))}</div><div>Pesanan</div><div>: ${esc(payload.jenisPengambilan || '-')}</div></div>
       ${payload.jenisPengambilan === 'DIANTAR' ? `<div class="dash"></div><div><b>Alamat:</b><br>${esc(payload.alamat || '-')}</div>` : ''}
       ${payload.catatanTambahan ? `<div class="dash"></div><div><b>Catatan:</b><br>${esc(payload.catatanTambahan)}</div>` : ''}
       <div class="dash"></div><div class="footer">Dicetak : ${esc(now.toLocaleString('id-ID'))}</div>
     </div></body></html>`;
+  }
+
+  function printHtml58Roll(html){
     const frame = document.createElement('iframe');
     frame.style.position = 'fixed'; frame.style.right = '0'; frame.style.bottom = '0'; frame.style.width = '0'; frame.style.height = '0'; frame.style.border = '0';
     document.body.appendChild(frame);
     frame.contentDocument.open(); frame.contentDocument.write(html); frame.contentDocument.close();
-    setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); setTimeout(()=>frame.remove(), 1000); }, 250);
+    setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); setTimeout(()=>frame.remove(), 1500); }, 350);
+  }
+
+  function openPrintPesananModal(){
+    renderPrintPesananOutletSelect();
+    const tgl = document.getElementById('printPesananTanggal');
+    if (tgl) tgl.value = '';
+    const list = document.getElementById('printPesananList');
+    if (list) list.innerHTML = '<div class="empty-box">Memuat daftar pesanan...</div>';
+    openModal('modalPrintPesanan');
+    loadPesananPrintList();
+  }
+
+  function renderPrintPesananOutletSelect(){
+    const select = document.getElementById('printPesananOutlet');
+    if (!select) return;
+    const outlets = state.outlets.length ? state.outlets : [state.currentOutlet || 'LAHOR'];
+    select.innerHTML = outlets.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    select.value = state.currentOutlet || outlets[0] || '';
+  }
+
+  async function loadPesananPrintList(){
+    const list = document.getElementById('printPesananList');
+    if (list) list.innerHTML = '<div class="empty-box">Memuat daftar pesanan...</div>';
+    try {
+      const payload = { outlet: document.getElementById('printPesananOutlet')?.value || state.currentOutlet || '', tanggalPesanan: document.getElementById('printPesananTanggal')?.value || '', limit: 50 };
+      const result = await callInventory('getPesananOutletList', payload);
+      if (!result.success) throw new Error(result.message || 'Gagal memuat pesanan.');
+      state.savedPesanan = Array.isArray(result.data) ? result.data : [];
+      renderPesananPrintList();
+    } catch (err) {
+      if (list) list.innerHTML = `<div class="empty-box text-rose-500">${esc(err.message || 'Gagal memuat daftar pesanan.')}</div>`;
+      showToast(err.message || 'Gagal memuat daftar pesanan.', 'error');
+    }
+  }
+
+  function renderPesananPrintList(){
+    const list = document.getElementById('printPesananList');
+    if (!list) return;
+    const rows = state.savedPesanan || [];
+    if (!rows.length) {
+      list.innerHTML = '<div class="empty-box">Belum ada pesanan tersimpan pada filter ini.</div>';
+      return;
+    }
+    list.innerHTML = rows.map((r, i) => `<div class="print-pesanan-card">
+      <div>
+        <div class="print-pesanan-title">${esc(r.noPesanan || '-')} · ${esc(r.namaPemesan || '-')}</div>
+        <div class="print-pesanan-meta">${esc(r.outlet || '-')} · ${esc(formatLongDateId(r.tanggalPesanan || ''))} · ${esc(r.jam || '-')} · ${esc(r.jenisPengambilan || '-')}<br>${esc(r.statusPembayaran || '-')} ${r.jumlahRp ? '· Rp ' + esc(formatRupiahPlain(r.jumlahRp)) : ''}</div>
+      </div>
+      <button class="btn-print" onclick="printSavedPesanan('${escAttr(r.noPesanan || '')}')" type="button">Cetak 58mm</button>
+    </div>`).join('');
+  }
+
+  async function printSavedPesanan(noPesanan){
+    if (!noPesanan) return showToast('Nomor pesanan tidak valid.', 'error');
+    try {
+      const result = await callInventory('getPesananOutletPrintData', { noPesanan });
+      if (!result.success) throw new Error(result.message || 'Pesanan tidak ditemukan.');
+      printPesananPayload(result.data || {}, noPesanan);
+    } catch (err) {
+      showToast(err.message || 'Gagal mencetak pesanan.', 'error');
+    }
   }
 
   function openTerjualModal(){
@@ -904,6 +979,8 @@
   function setValue(id, value){ const el = document.getElementById(id); if (el) el.value = value == null ? '' : String(value); }
   function numberOf(v){ if (typeof v === 'number') return Number.isFinite(v) ? v : 0; const raw = String(v ?? '').trim().replace(/\s/g,''); if (!raw) return 0; const comma = raw.lastIndexOf(','); const dot = raw.lastIndexOf('.'); let s = raw; if (comma !== -1 && dot !== -1) s = comma > dot ? raw.replace(/\./g,'').replace(',','.') : raw.replace(/,/g,''); else if (comma !== -1) s = raw.replace(',','.'); else if ((raw.match(/\./g)||[]).length > 1) s = raw.replace(/\./g,''); const n = parseFloat(s); return Number.isFinite(n) ? n : 0; }
   function fmt(v){ return numberOf(v).toLocaleString('id-ID', { maximumFractionDigits: 2 }); }
+  function escAttr(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
   function esc(v){ return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function normalizeKey(v){ return String(v || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
   function formatDateId(value){ const p = String(value || '').split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : (value || '-'); }
@@ -924,6 +1001,9 @@
   window.loadProdukOutlet = loadProdukOutlet;
   window.renderTable = renderTable;
   window.openPesananModal = openPesananModal;
+  window.openPrintPesananModal = openPrintPesananModal;
+  window.loadPesananPrintList = loadPesananPrintList;
+  window.printSavedPesanan = printSavedPesanan;
   window.addPesananGroup = addPesananGroup;
   window.removePesananGroup = removePesananGroup;
   window.addLaukRow = addLaukRow;
