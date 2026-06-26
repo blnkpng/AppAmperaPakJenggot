@@ -1,0 +1,2588 @@
+/**
+ * ================================================================
+ * APJ INVENTORY V3 - OPTIMAL BACKEND / CODE.GS - V95 PRINT PESANAN SHEET ALIGN FIX
+ * ================================================================
+ * Target Spreadsheet:
+ * APJ_INVENTORY V.3. Jika script bound ke spreadsheet, SPREADSHEET_ID boleh dikosongkan.
+ *
+ * Prinsip V3:
+ * - MASTER_ITEM adalah pusat item stok.
+ * - STOK_AKHIR dan VIEW_* dihitung otomatis oleh rumus sheet.
+ * - Semua transaksi masuk ke JURNAL_STOK.
+ * - Setup Inventory mendukung tambah/edit/nonaktif kategori, item, produk, resep,
+ *   detail resep, dan resep preparasi.
+ * - Kompatibel dengan payload APP-APJ V2.6 agar migrasi tidak brutal.
+ * - USER/Login/Permission tetap milik APJ_CORE_USER, bukan milik sheet Inventory.
+ *
+ * Catatan penting:
+ * - Jangan hapus baris master secara fisik. Delete di backend = soft delete (Aktif = N)
+ *   supaya ID otomatis berbasis row tidak berubah.
+ * - Kolom formula seperti ID otomatis, Nama lookup, Kategori lookup, Satuan lookup
+ *   tidak ditulis langsung oleh backend. Backend hanya mengisi kolom input/manual.
+ */
+
+const APJ_INV_V3 = {
+  SPREADSHEET_ID: '1F02isprz0K-sPO0GfoA73ZICqZD-Swzt9xXkOsz7lPI', // V62: sheet APJ_INVENTORY V.3. Kosongkan hanya jika script benar-benar bound ke spreadsheet ini
+  TZ: 'Asia/Jakarta',
+  CACHE_SECONDS: 60,
+  /**
+   * APJ_CORE_USER dipisah dari Inventory.
+   * Isi API_URL dengan URL deploy APJ_CORE_USER kalau frontend sudah mengirim sessionToken.
+   * Selama API_URL kosong / REQUIRE_SESSION false, backend tetap kompatibel dengan APP V2.6
+   * dan memakai payload petugas/level/outlet dari frontend sebagai fallback.
+   */
+  CORE_USER: {
+    API_URL: '',
+    REQUIRE_SESSION: false,
+    CACHE_SECONDS: 300,
+    ADMIN_LEVELS: ['OWNER', 'SUPERADMIN', 'SUPERVISOR'],
+    FULL_ACCESS_LEVELS: ['OWNER', 'SUPERADMIN']
+  },
+  DEFAULT_OUTLETS: ['LAHOR', 'SENISONO', 'PUJON', 'NGUJUNG', 'POKOPEK'],
+  SHEETS: {
+    KATEGORI: 'MASTER_KATEGORI',
+    ITEM: 'MASTER_ITEM',
+    PRODUK: 'MASTER_PRODUK',
+    RESEP: 'MASTER_RESEP',
+    RESEP_DETAIL: 'MASTER_RESEP_DETAIL',
+    RESEP_PRODUKSI: 'RESEP_PRODUKSI',
+    PREP_RESEP: 'RESEP_PREPARASI',
+    JURNAL: 'JURNAL_STOK',
+    STOK: 'STOK_AKHIR',
+    SALDO: 'SALDO_AWAL_STOK'
+  },
+  OLD_CATEGORY_MAP: {
+    MASTER_BAHAN_MENTAH: 'Bahan Utama',
+    MASTER_BAHAN_BAKU: 'Bahan Baku/Bumbu',
+    MASTER_KEMASAN: 'Kemasan',
+    MASTER_MINUMAN: 'Minuman & Barang Dagang',
+    MASTER_KEBERSIHAN: 'Kebersihan/Operasional',
+    MASTER_BARANG_PRODUKSI: 'Produk Jadi',
+    PRODUKSI: 'Produk Jadi'
+  },
+  ID_PREFIX_BY_SHEET: {
+    MASTER_KATEGORI: 'KAT',
+    MASTER_ITEM: 'ITM',
+    MASTER_PRODUK: 'PRD',
+    MASTER_RESEP: 'RSP',
+    MASTER_RESEP_DETAIL: 'RSD',
+    RESEP_PREPARASI: 'PRP'
+  },
+  ID_DIGITS_BY_SHEET: {
+    MASTER_KATEGORI: 3,
+    MASTER_ITEM: 4,
+    MASTER_PRODUK: 4,
+    MASTER_RESEP: 4,
+    MASTER_RESEP_DETAIL: 4,
+    RESEP_PREPARASI: 4
+  },
+  WRITABLE_HEADERS: {
+    MASTER_KATEGORI: ['Nama Kategori', 'Tipe Stok', 'Prefix', 'Urutan', 'Aktif', 'Keterangan'],
+    MASTER_ITEM: ['Kategori', 'Kode Lama', 'Nama Item', 'Satuan Beli', 'Satuan Stok', 'Satuan Produksi', 'Tipe Item', 'Parent/Konversi Dari', 'Tampil Input', 'Bisa Output', 'Bisa Preparasi', 'Bisa Produksi', 'Bisa Transfer Produk', 'Stok Minimum', 'Urutan', 'Aktif', 'Keterangan'],
+    MASTER_PRODUK: ['Outlet', 'ID Item', 'Tampil Outlet', 'Urutan', 'Aktif', 'Keterangan', 'Kode Lama'],
+    MASTER_RESEP: ['ID Item Hasil', 'Qty Hasil Standar', 'Versi', 'Aktif', 'Catatan', 'Kode Lama'],
+    MASTER_RESEP_DETAIL: ['ID Resep', 'ID Bahan', 'Qty Bahan', 'Jenis Bahan', 'Catatan'],
+    RESEP_PREPARASI: ['ID Item Hasil', 'Qty Hasil', 'ID Bahan', 'Qty Bahan', 'Yield %', 'Aktif', 'Catatan'],
+    JURNAL_STOK: ['Timestamp', 'Tanggal', 'No Dokumen', 'Modul', 'Arah', 'Lokasi', 'Outlet Tujuan', 'ID Item', 'Qty Masuk', 'Qty Keluar', 'Qty Adjust', 'Petugas', 'Keterangan', 'Ref ID', 'Batch/No Resep'],
+    SALDO_AWAL_STOK: ['Periode', 'Lokasi', 'Outlet', 'ID Item', 'Qty Awal', 'Tanggal Arsip', 'Keterangan']
+  }
+};
+
+/** ========================= WEB APP ROUTER ========================= */
+function doPost(e) {
+  try {
+    const payload = parsePayload_(e);
+    const action = String(payload.action || '').trim();
+    if (!action) throw new Error('Action kosong.');
+
+    const routes = {
+      ping: pingInventoryV3,
+      getDashboardData: getDashboardData,
+
+      // Data init / report V2.6 compatible
+      getBarang: getBarang,
+      getBarangProduksi: getBarangProduksi,
+      getProduksiInit: getBarangProduksi,
+      getResepProduksi: getBarangProduksi,
+      getOutputInit: getOutputInit,
+      getTransferProduksiInit: getTransferProduksiInit,
+      getPreparasiInit: getPreparasiInit,
+      getResepPreparasi: getPreparasiInit,
+      getPreparasiData: getPreparasiInit,
+      getProdukOutletData: getProdukOutletData,
+      getPesananOutletInit: getPesananOutletInit,
+      getPesananOutletList: getPesananOutletList,
+      getPesananOutletPrintData: getPesananOutletPrintData,
+      getRiwayatTransaksi: getRiwayatTransaksi,
+      getJurnalStok: getJurnalStok,
+      getStokAkhirReport: getStokAkhirReport,
+      getStokProduksiReport: getStokProduksiReport,
+      getInputPrintOptions: getInputPrintOptions,
+      getInputPrintData: getInputPrintData,
+      getTransferPrintData: getTransferPrintData,
+      getAdminData: getSetupInventoryData,
+      getSetupInventoryData: getSetupInventoryData,
+      setupResepProduksiV60: setupResepProduksiV61,
+      setupResepProduksiV61: setupResepProduksiV61,
+      setupResepProduksiV63: setupResepProduksiV61,
+
+      // Transaksi V2.6 compatible
+      simpanInputStokPreparasi: simpanInputStokPreparasi,
+      simpanInputStok: simpanInputStokPreparasi,
+      simpanTransaksi: simpanTransaksi,
+      simpanOutputStok: simpanOutputStok,
+      simpanOutputProduksi: simpanOutputProduksi,
+      simpanProduksi: simpanOutputProduksi,
+      simpanPreparasi: simpanPreparasi,
+      simpanTransferProduksi: simpanTransferProduksi,
+      simpanTransferProduk: simpanTransferProduksi,
+      simpanProdukOutletKeluar: simpanProdukOutletKeluar,
+      simpanProdukOutletOpname: simpanProdukOutletOpname,
+      simpanPesananOutlet: simpanPesananOutlet,
+      setupPesananOutletSheetsV90: setupPesananOutletSheetsV90,
+      simpanStokOpname: simpanStokOpname,
+      simpanOlahOutlet: simpanOlahOutlet,
+      simpanProsesOutlet: simpanOlahOutlet,
+
+      // Setup Inventory / CRUD master
+      saveKategoriInventory: saveKategoriInventory,
+      upsertKategoriInventory: saveKategoriInventory,
+      deleteKategoriInventory: deleteKategoriInventory,
+      hapusKategoriInventory: deleteKategoriInventory,
+
+      saveItemInventory: saveItemInventory,
+      upsertItemInventory: saveItemInventory,
+      deleteItemInventory: deleteItemInventory,
+      hapusItemInventory: deleteItemInventory,
+
+      saveProdukInventory: saveProdukInventory,
+      upsertProdukInventory: saveProdukInventory,
+      deleteProdukInventory: deleteProdukInventory,
+      hapusProdukInventory: deleteProdukInventory,
+
+      saveResepInventory: saveResepInventory,
+      upsertResepInventory: saveResepInventory,
+      deleteResepInventory: deleteResepInventory,
+      hapusResepInventory: deleteResepInventory,
+
+      saveResepDetailInventory: saveResepDetailInventory,
+      upsertResepDetailInventory: saveResepDetailInventory,
+      deleteResepDetailInventory: deleteResepDetailInventory,
+      hapusResepDetailInventory: deleteResepDetailInventory,
+
+      saveResepPreparasiInventory: saveResepPreparasiInventory,
+      upsertResepPreparasiInventory: saveResepPreparasiInventory,
+      deleteResepPreparasiInventory: deleteResepPreparasiInventory,
+      hapusResepPreparasiInventory: deleteResepPreparasiInventory,
+
+      // Maintenance helper
+      clearInventoryCache: clearInventoryCache,
+      repairJurnalStokV3: repairJurnalStokV3
+    };
+
+    if (!routes[action]) throw new Error('Action tidak dikenal: ' + action);
+
+    // Validasi user tetap lewat APJ_CORE_USER bila API_URL sudah diisi.
+    // Saat migrasi, mode fallback membuat APP V2.6 tetap aman untuk dites tanpa memaksa login ulang.
+    payload._auth = authorizeInventoryAction_(action, payload);
+
+    return jsonOut_(routes[action](payload));
+  } catch (err) {
+    return jsonOut_({ success: false, message: err && err.message ? err.message : String(err) });
+  }
+}
+
+function doGet(e) {
+  return doPost({ postData: { contents: JSON.stringify((e && e.parameter) || {}) } });
+}
+
+function pingInventoryV3() {
+  const ss = ss_();
+  return ok_({
+    app: 'APJ_INVENTORY_V3',
+    message: 'APJ Inventory V3 aktif.',
+    serverTime: now_(),
+    spreadsheetId: ss.getId(),
+    spreadsheetName: ss.getName(),
+    sheets: {
+      jurnal: !!ss.getSheetByName(APJ_INV_V3.SHEETS.JURNAL),
+      masterItem: !!ss.getSheetByName(APJ_INV_V3.SHEETS.ITEM),
+      masterKategori: !!ss.getSheetByName(APJ_INV_V3.SHEETS.KATEGORI)
+    }
+  });
+}
+
+/** ========================= UTILITIES ========================= */
+function parsePayload_(e) {
+  const raw = e && e.postData && e.postData.contents ? e.postData.contents : '{}';
+  try { return JSON.parse(raw || '{}'); }
+  catch (err) { throw new Error('Payload bukan JSON valid.'); }
+}
+
+function jsonOut_(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj || {}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function ok_(data) {
+  return Object.assign({ success: true }, data || {});
+}
+
+function ss_() {
+  if (APJ_INV_V3.SPREADSHEET_ID) return SpreadsheetApp.openById(APJ_INV_V3.SPREADSHEET_ID);
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (!active) throw new Error('Spreadsheet aktif tidak ditemukan. Isi APJ_INV_V3.SPREADSHEET_ID dengan ID spreadsheet APJ_INVENTORY V.3 atau bind Apps Script ke spreadsheet tersebut.');
+  return active;
+}
+
+function sh_(sheetName, required) {
+  const sh = ss_().getSheetByName(sheetName);
+  if (!sh && required !== false) throw new Error('Sheet belum ada: ' + sheetName);
+  return sh || null;
+}
+
+function nowDate_() { return new Date(); }
+function now_() { return Utilities.formatDate(nowDate_(), APJ_INV_V3.TZ, 'yyyy-MM-dd HH:mm:ss'); }
+function today_() { return Utilities.formatDate(nowDate_(), APJ_INV_V3.TZ, 'yyyy-MM-dd'); }
+function docId_(prefix) { return prefix + '-' + Utilities.formatDate(nowDate_(), APJ_INV_V3.TZ, 'yyyyMMdd-HHmmss') + '-' + Utilities.getUuid().slice(0, 5).toUpperCase(); }
+function normText_(v) { return String(v == null ? '' : v).trim(); }
+function normUpper_(v) { return normText_(v).toUpperCase(); }
+function isActive_(row) { return normUpper_(row['Aktif'] || 'Y') !== 'N'; }
+function isYes_(v, fallback) {
+  const text = normUpper_(v);
+  if (!text) return fallback !== false;
+  return text === 'Y' || text === 'YA' || text === 'TRUE' || text === '1' || text === 'AKTIF';
+}
+function asDateText_(v) {
+  if (!v) return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') return Utilities.formatDate(v, APJ_INV_V3.TZ, 'yyyy-MM-dd');
+  return String(v).slice(0, 10);
+}
+function normNum_(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  let raw = String(v == null ? '' : v).trim().replace(/\s/g, '');
+  if (!raw) return 0;
+  const comma = raw.lastIndexOf(',');
+  const dot = raw.lastIndexOf('.');
+  if (comma !== -1 && dot !== -1) raw = comma > dot ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '');
+  else if (comma !== -1) raw = raw.replace(',', '.');
+  else if ((raw.match(/\./g) || []).length > 1) raw = raw.replace(/\./g, '');
+  const n = parseFloat(raw);
+  return isFinite(n) ? n : 0;
+}
+function round_(n) { return Math.round((Number(n) || 0) * 1000000) / 1000000; }
+function pad_(n, width) { return String(n).padStart(width, '0'); }
+function predictId_(sheetName, rowNumber) {
+  const prefix = APJ_INV_V3.ID_PREFIX_BY_SHEET[sheetName] || 'ID';
+  const digits = APJ_INV_V3.ID_DIGITS_BY_SHEET[sheetName] || 4;
+  return prefix + '-' + pad_(Math.max(1, rowNumber - 1), digits);
+}
+
+function cache_() { return CacheService.getScriptCache(); }
+function cacheKey_(sheetName) { return 'APJ_INV_V3_ROWS_' + sheetName; }
+function clearInventoryCache() {
+  const keys = [
+    APJ_INV_V3.SHEETS.KATEGORI, APJ_INV_V3.SHEETS.ITEM, APJ_INV_V3.SHEETS.PRODUK,
+    APJ_INV_V3.SHEETS.RESEP, APJ_INV_V3.SHEETS.RESEP_DETAIL, APJ_INV_V3.SHEETS.RESEP_PRODUKSI, APJ_INV_V3.SHEETS.PREP_RESEP,
+    APJ_INV_V3.SHEETS.STOK, APJ_INV_V3.SHEETS.SALDO
+  ].map(cacheKey_);
+  cache_().removeAll(keys);
+  return ok_({ message: 'Cache inventory dibersihkan.' });
+}
+function clearSheetCache_(sheetName) { cache_().remove(cacheKey_(sheetName)); }
+
+function readRows_(sheetName, useCache) {
+  if (useCache) {
+    const cached = cache_().get(cacheKey_(sheetName));
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+  }
+  const sh = sh_(sheetName, false);
+  if (!sh) return [];
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  if (lastRow < 1 || lastCol < 1) return [];
+  const values = sh.getRange(1, 1, lastRow, lastCol).getDisplayValues();
+  const headers = values[0].map(h => normText_(h));
+  const rows = [];
+  for (let r = 1; r < values.length; r++) {
+    const arr = values[r];
+    const hasValue = arr.some(v => normText_(v) !== '');
+    if (!hasValue) continue;
+    const obj = { _rowNumber: r + 1 };
+    headers.forEach((h, c) => { if (h) obj[h] = arr[c]; });
+    rows.push(obj);
+  }
+  if (useCache) {
+    const text = JSON.stringify(rows);
+    // CacheService limit sekitar 100KB per key; kalau kebesaran, skip.
+    if (text.length < 90000) cache_().put(cacheKey_(sheetName), text, APJ_INV_V3.CACHE_SECONDS);
+  }
+  return rows;
+}
+
+function headerMap_(sheetName) {
+  const sh = sh_(sheetName);
+  const lastCol = sh.getLastColumn();
+  const headers = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0].map(h => normText_(h));
+  const map = {};
+  headers.forEach((h, i) => { if (h) map[h] = i + 1; });
+  return { sheet: sh, headers, map };
+}
+
+function writeObjects_(sheetName, objects) {
+  if (!objects || !objects.length) return 0;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(28000);
+  try {
+    const meta = headerMap_(sheetName);
+    const writable = APJ_INV_V3.WRITABLE_HEADERS[sheetName] || meta.headers;
+    const cols = writable
+      .map(h => ({ header: h, col: meta.map[h] }))
+      .filter(x => x.col);
+    if (!cols.length) throw new Error('Tidak ada kolom writable untuk sheet ' + sheetName);
+
+    // Penting untuk sheet yang sudah disiapkan banyak baris/formula/dropdown.
+    // getLastRow() bisa membaca baris formula/validasi sebagai baris terpakai,
+    // sehingga transaksi baru lari ke baris paling bawah (contoh: 1001).
+    // Fungsi ini mencari baris kosong pertama dari kolom manual/writable.
+    const startRow = findFirstEmptyWritableRow_(meta.sheet, cols);
+    ensureRowsAvailable_(meta.sheet, startRow + objects.length - 1);
+
+    const groups = groupConsecutiveCols_(cols);
+    groups.forEach(group => {
+      const values = objects.map(obj => group.map(x => obj[x.header] !== undefined ? obj[x.header] : ''));
+      meta.sheet.getRange(startRow, group[0].col, values.length, group.length).setValues(values);
+    });
+    clearSheetCache_(sheetName);
+    if (sheetName !== APJ_INV_V3.SHEETS.JURNAL) clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+    return objects.length;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function findFirstEmptyWritableRow_(sheet, cols) {
+  const maxRows = Math.max(sheet.getMaxRows(), 2);
+  if (maxRows < 2) return 2;
+
+  // Hindari membaca semua kolom sheet. Cukup kolom yang ditulis backend.
+  const minCol = Math.min.apply(null, cols.map(c => c.col));
+  const maxCol = Math.max.apply(null, cols.map(c => c.col));
+  const width = maxCol - minCol + 1;
+  const values = sheet.getRange(2, minCol, maxRows - 1, width).getDisplayValues();
+
+  for (let r = 0; r < values.length; r++) {
+    const row = values[r];
+    const isEmpty = cols.every(c => normText_(row[c.col - minCol]) === '');
+    if (isEmpty) return r + 2;
+  }
+  return maxRows + 1;
+}
+
+function ensureRowsAvailable_(sheet, neededLastRow) {
+  const maxRows = sheet.getMaxRows();
+  if (neededLastRow <= maxRows) return;
+  sheet.insertRowsAfter(maxRows, neededLastRow - maxRows);
+}
+
+function groupConsecutiveCols_(cols) {
+  const sorted = cols.slice().sort((a, b) => a.col - b.col);
+  const groups = [];
+  let current = [];
+  sorted.forEach(x => {
+    if (!current.length || x.col === current[current.length - 1].col + 1) current.push(x);
+    else { groups.push(current); current = [x]; }
+  });
+  if (current.length) groups.push(current);
+  return groups;
+}
+
+function updateRowObject_(sheetName, rowNumber, object) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(28000);
+  try {
+    const meta = headerMap_(sheetName);
+    const writable = APJ_INV_V3.WRITABLE_HEADERS[sheetName] || meta.headers;
+    writable.forEach(h => {
+      if (object[h] !== undefined && meta.map[h]) meta.sheet.getRange(rowNumber, meta.map[h]).setValue(object[h]);
+    });
+    clearSheetCache_(sheetName);
+    if (sheetName !== APJ_INV_V3.SHEETS.JURNAL) clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function findMasterRow_(sheetName, idHeaders, idValue) {
+  const id = normText_(idValue);
+  if (!id) return null;
+  const rows = readRows_(sheetName, false);
+  const keys = Array.isArray(idHeaders) ? idHeaders : [idHeaders];
+  return rows.find(r => keys.some(k => normText_(r[k]) === id)) || null;
+}
+
+function sortByUrutanNama_(a, b) {
+  const ua = normNum_(a['Urutan']);
+  const ub = normNum_(b['Urutan']);
+  if (ua !== ub) return ua - ub;
+  return normText_(a['Nama Item'] || a['Nama Produk'] || a['Nama Kategori']).localeCompare(normText_(b['Nama Item'] || b['Nama Produk'] || b['Nama Kategori']), 'id');
+}
+
+/** ========================= MASTER LOOKUP ========================= */
+function getKategoriRows_() { return readRows_(APJ_INV_V3.SHEETS.KATEGORI, true).filter(isActive_).sort(sortByUrutanNama_); }
+function getItemRows_() { return readRows_(APJ_INV_V3.SHEETS.ITEM, true).filter(r => normText_(r['ID Item'] || r['Kode Lama'] || r['Nama Item'])).sort(sortByUrutanNama_); }
+function getProdukRows_() { return readRows_(APJ_INV_V3.SHEETS.PRODUK, true).filter(r => normText_(r['ID Produk'] || r['ID Item'] || r['Kode Lama'])).sort(sortByUrutanNama_); }
+function getResepRows_() { return readRows_(APJ_INV_V3.SHEETS.RESEP, true).filter(r => normText_(r['ID Resep'] || r['ID Item Hasil'])); }
+function getResepDetailRows_() { return readRows_(APJ_INV_V3.SHEETS.RESEP_DETAIL, true).filter(r => normText_(r['ID Detail'] || r['ID Resep'] || r['ID Bahan'])); }
+function getPrepRows_() { return readRows_(APJ_INV_V3.SHEETS.PREP_RESEP, true).filter(r => normText_(r['ID Resep Preparasi'] || r['ID Item Hasil'] || r['ID Bahan'])); }
+
+function itemLookup_() {
+  const items = getItemRows_();
+  const produk = getProdukRows_();
+  const byId = {}, byOld = {}, byName = {}, byProduct = {};
+  items.forEach(r => {
+    if (r['ID Item']) byId[normText_(r['ID Item'])] = r;
+    if (r['Kode Lama']) byOld[normText_(r['Kode Lama'])] = r;
+    if (r['Nama Item']) byName[normText_(r['Nama Item']).toLowerCase()] = r;
+  });
+  produk.forEach(p => {
+    const item = byId[normText_(p['ID Item'])] || byOld[normText_(p['ID Item'])];
+    if (item && p['ID Produk']) byProduct[normText_(p['ID Produk'])] = item;
+  });
+  return { items, produk, byId, byOld, byName, byProduct };
+}
+
+function findItem_(lookup, idOrName) {
+  const key = normText_(idOrName);
+  if (!key) return null;
+  return lookup.byId[key] || lookup.byOld[key] || lookup.byProduct[key] || lookup.byName[key.toLowerCase()] || null;
+}
+
+
+/** ========================= BUSINESS RULE HELPERS V34 =========================
+ * Aturan operasional APJ:
+ * - Produk dapur/preparasi dikirim lewat Transfer Produk dan dikontrol di Produk Outlet.
+ * - Minuman & Barang Dagang yang dijual boleh keluar lewat Output Stok tujuan Transfer Outlet,
+ *   tetapi tetap menambah stok outlet.
+ * - Barang operasional/non-jual yang dibawa outlet cukup mengurangi stok PUSAT saja.
+ */
+function normalizeBusinessKey_(value) {
+  return normUpper_(value)
+    .replace(/&/g, ' DAN ')
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function itemCategory_(item, fallback) {
+  return normText_((item && item['Kategori']) || fallback || '');
+}
+
+function isMinumanBarangDagangCategory_(kategori) {
+  const key = normalizeBusinessKey_(kategori);
+  return key === 'MINUMAN_DAN_BARANG_DAGANG' || key === 'MINUMAN_BARANG_DAGANG' || key.indexOf('BARANG_DAGANG') >= 0;
+}
+
+function isOutputTransferIntent_(tujuan) {
+  const key = normalizeBusinessKey_(tujuan);
+  return key === 'TRANSFER' || key === 'TRANSFER_OUTLET' || key.indexOf('TRANSFER') >= 0 || key.indexOf('OUTLET') >= 0;
+}
+
+function getProdukRowsForItem_(idItem) {
+  const id = normText_(idItem);
+  if (!id) return [];
+  return getProdukRows_().filter(function(p) {
+    if (!isActive_(p)) return false;
+    if (!isYes_(p['Tampil Outlet'], true)) return false;
+    return normText_(p['ID Item']) === id || normText_(p['Kode Lama']) === id;
+  });
+}
+
+function isItemRegisteredForOutlet_(item, outlet) {
+  if (!item) return false;
+  const id = normText_(item['ID Item']);
+  const targetOutlet = normUpper_(outlet || 'ALL');
+  const rows = getProdukRowsForItem_(id);
+  if (rows.length) {
+    return rows.some(function(p) {
+      const o = normUpper_(p['Outlet'] || 'ALL');
+      return o === 'ALL' || !targetOutlet || o === targetOutlet;
+    });
+  }
+  return isYes_(item['Bisa Transfer Produk'], false);
+}
+
+function isOutputTransferToOutletStock_(item, kategori, outlet) {
+  // Hanya Minuman & Barang Dagang yang dijual lewat Output Stok yang menambah stok outlet.
+  // Barang operasional/kebersihan/kemasan non-jual tidak menambah stok outlet.
+  return !!item && isMinumanBarangDagangCategory_(itemCategory_(item, kategori)) && isItemRegisteredForOutlet_(item, outlet);
+}
+
+function isTransferProductEligible_(item, outlet) {
+  if (!item || !isActive_(item)) return false;
+  return isItemRegisteredForOutlet_(item, outlet);
+}
+
+function transferCategoryRank_(kategori) {
+  const k = normUpper_(kategori || '').replace(/\s+/g, '');
+  if (k.indexOf('PRODUKJADI') !== -1 || k === 'PRODUKSI') return 1;
+  if (k.indexOf('BAHANPREPARASI') !== -1 || k.indexOf('PREPARASI') !== -1 || k.indexOf('SETENGAHJADI') !== -1) return 2;
+  if (k.indexOf('MINUMAN') !== -1 || k.indexOf('BARANGDAGANG') !== -1) return 3;
+  return 9;
+}
+
+function transferRowName_(row, nameField) {
+  const field = nameField || 'nama';
+  return normText_(row && (row[field] || row.namaProduk || row.nama || row['Nama Produk'] || row['Nama Item']) || '');
+}
+
+function inferTransferCategory_(row, nameField) {
+  const direct = normText_(row && (row.kategori || row['Kategori'] || row.kategoriProduk || row['Kategori Produk']) || '');
+  if (direct) return direct;
+  const sumber = normalizeBusinessKey_(row && (row.sumber || row.source || row.sumberTransfer) || '');
+  const n = normalizeBusinessKey_(transferRowName_(row, nameField));
+  if (sumber.indexOf('MINUMAN') >= 0 || sumber.indexOf('BARANG_DAGANG') >= 0) return 'Minuman & Barang Dagang';
+  if (n.indexOf('KREMES') >= 0 || n.indexOf('PREMIX') >= 0 || n.indexOf('SETENGAH_JADI') >= 0 || n.indexOf('SIAP_GORENG') >= 0) return 'Bahan Preparasi';
+  if (n.indexOf('AIR_MINERAL') >= 0 || n === 'VIT' || n.indexOf('FRESTEA') >= 0 || n.indexOf('TEH_PUCUK') >= 0 || n.indexOf('TEH_BOTOL') >= 0 || n.indexOf('KRUPUK') >= 0 || n.indexOf('KERUPUK') >= 0 || n.indexOf('MINUMAN') >= 0) return 'Minuman & Barang Dagang';
+  return 'Produk Jadi';
+}
+
+function outletAyamCutRule_(outlet) {
+  const key = normalizeBusinessKey_(outlet || '');
+  if (key.indexOf('SENISONO') >= 0) return '11';
+  return '';
+}
+
+function ayamPreparasiCut_(row, nameField) {
+  const n = normalizeBusinessKey_(transferRowName_(row, nameField));
+  if (n.indexOf('AYAM') < 0) return '';
+  if (n.indexOf('KREMES') < 0 && n.indexOf('PREMIX') < 0) return '';
+  if (n.indexOf('11') >= 0) return '11';
+  if (n.indexOf('8') >= 0) return '8';
+  return '';
+}
+
+function applyOutletAyamRule_(rows, outlet, nameField) {
+  // V77: Ayam Kremes/Premix 8/11 dikendalikan dari MASTER_PRODUK per outlet.
+  // Tidak ada filter hardcode berdasarkan nama outlet.
+  return rows || [];
+}
+
+function sortTransferRowsByCategory_(rows, nameField) {
+  return (rows || []).sort(function(a, b) {
+    const cA = inferTransferCategory_(a, nameField);
+    const cB = inferTransferCategory_(b, nameField);
+    const rA = transferCategoryRank_(cA);
+    const rB = transferCategoryRank_(cB);
+    if (rA !== rB) return rA - rB;
+    if (cA !== cB) return cA.localeCompare(cB, 'id');
+    const uA = Number(a['Urutan'] || a.urutan || a.urutanProduk || 999999);
+    const uB = Number(b['Urutan'] || b.urutan || b.urutanProduk || 999999);
+    if (uA !== uB) return uA - uB;
+    return transferRowName_(a, nameField).localeCompare(transferRowName_(b, nameField), 'id');
+  });
+}
+
+
+function isAyamPreparasiTransferItem_(item) {
+  const name = normLower_((item && (item['Nama Item'] || item['Nama Produk'])) || '');
+  if (!name || name.indexOf('ayam') === -1) return false;
+  return name.indexOf('kremes') !== -1 || name.indexOf('premix') !== -1;
+}
+
+function produkName_(p, item) {
+  return normText_(p['Nama Produk'] || p['Column 13'] || p['Nama Item'] || p['Nama Hasil'] || p['Nama Barang'] || (item && item['Nama Item']) || '');
+}
+
+function produkCategory_(p, item) {
+  return normText_(p['Kategori'] || p['Kategori Produk'] || p['Kategori Item'] || (item && item['Kategori']) || '');
+}
+
+function produkSatuan_(p, item) {
+  return normText_(p['Satuan'] || p['Satuan Produk'] || p['Satuan Stok'] || (item && (item['Satuan Stok'] || item['Satuan Produksi'] || item['Satuan Beli'])) || '-');
+}
+
+function buildTransferProdukListForOutlet_(outlet) {
+  const lookup = itemLookup_();
+  const stockPusat = centralStockMap_();
+  const locationStock = locationStockMap_(null, null);
+  const targetOutlet = normUpper_(outlet || '');
+  const outlets = getOutlets_();
+  const byId = {};
+
+  getProdukRows_()
+    .filter(isActive_)
+    .filter(function(p) { return isYes_(p['Tampil Outlet'], true); })
+    .filter(function(p) { const o = normUpper_(p['Outlet'] || 'ALL'); return !targetOutlet || o === targetOutlet || o === 'ALL'; })
+    .forEach(function(p) {
+      const item = findItem_(lookup, p['ID Item']);
+      if (!item || !isActive_(item)) return;
+      const id = normText_(item['ID Item']);
+      if (!id) return;
+      byId[id] = { item: item, produk: p };
+    });
+
+  // V78/V79: Transfer Produk hanya mengambil daftar dari MASTER_PRODUK.
+  // Tidak ada fallback dari MASTER_ITEM/Bisa Transfer Produk, supaya produk seperti Begedel Setengah Jadi,
+  // Kikil Setengah Jadi, Ayam Kremes 8/11, dan item lain dapat dikontrol penuh dari MASTER_PRODUK per outlet.
+
+  const list = Object.keys(byId).map(function(id) {
+    const item = byId[id].item;
+    const p = byId[id].produk || {};
+    const outletStocks = {};
+    outlets.forEach(function(o) { outletStocks[o] = locationStock[['OUTLET', normUpper_(o), id].join('|')] || 0; });
+    return {
+      id: id,
+      idProduk: p['ID Produk'] || '',
+      nama: produkName_(p, item),
+      kategori: produkCategory_(p, item),
+      satuan: produkSatuan_(p, item),
+      urutan: Number(p['Urutan'] || item['Urutan'] || 999999),
+      keterangan: p['Keterangan'] || item['Keterangan'] || '',
+      stokPusat: (stockPusat[id] && stockPusat[id].qty) || 0,
+      stokTersedia: (stockPusat[id] && stockPusat[id].qty) || 0,
+      outletStocks: outletStocks,
+      sumberTransfer: 'MASTER_PRODUK'
+    };
+  });
+  return sortTransferRowsByCategory_(applyOutletAyamRule_(list.filter(function(x) { return x.id && x.nama; }), outlet, 'nama'), 'nama');
+}
+
+function childrenByParent_() {
+  const lookup = itemLookup_();
+  const map = {};
+  lookup.items.forEach(child => {
+    if (!isActive_(child)) return;
+    const parentKey = normText_(child['Parent/Konversi Dari']);
+    if (!parentKey) return;
+    const parent = lookup.byId[parentKey] || lookup.byOld[parentKey] || lookup.byName[parentKey.toLowerCase()];
+    const keys = [parentKey];
+    if (parent) keys.push(normText_(parent['ID Item']), normText_(parent['Kode Lama']));
+    keys.filter(Boolean).forEach(k => {
+      if (!map[k]) map[k] = [];
+      map[k].push(child);
+    });
+  });
+  return map;
+}
+
+/** ========================= STOCK ENGINE ========================= */
+function centralStockMap_() {
+  const map = {};
+  readRows_(APJ_INV_V3.SHEETS.STOK, false).forEach(r => {
+    const id = normText_(r['ID Item']);
+    if (!id || id === '0') return;
+    map[id] = {
+      qty: normNum_(r['Stok Akhir']),
+      status: normText_(r['Status']),
+      lastUpdate: normText_(r['Last Update']),
+      satuan: normText_(r['Satuan'])
+    };
+  });
+  return map;
+}
+
+function journalRows_() { return readRows_(APJ_INV_V3.SHEETS.JURNAL, false); }
+function journalSignedQty_(r) {
+  return normNum_(r['Qty Masuk']) - normNum_(r['Qty Keluar']) + normNum_(r['Qty Adjust']);
+}
+function journalDate_(r) { return normText_(r['Tanggal']).slice(0, 10); }
+function journalLoc_(r) { return normUpper_(r['Lokasi'] || 'PUSAT') || 'PUSAT'; }
+function journalOutlet_(r) { return normUpper_(r['Outlet Tujuan'] || 'ALL') || 'ALL'; }
+function journalItemId_(r) { return normText_(r['ID Item']); }
+
+function locationStockMap_(untilDateExclusive, untilDateInclusive) {
+  const map = {};
+  journalRows_().forEach(r => {
+    const date = journalDate_(r);
+    if (untilDateExclusive && date >= untilDateExclusive) return;
+    if (untilDateInclusive && date > untilDateInclusive) return;
+    const id = journalItemId_(r);
+    if (!id) return;
+    const key = [journalLoc_(r), journalOutlet_(r), id].join('|');
+    map[key] = round_((map[key] || 0) + journalSignedQty_(r));
+  });
+  return map;
+}
+
+function todayJournalSums_(date, outlet) {
+  const out = {};
+  journalRows_().forEach(r => {
+    if (journalDate_(r) !== date) return;
+    if (outlet && journalOutlet_(r) !== normUpper_(outlet)) return;
+    if (journalLoc_(r) !== 'OUTLET') return;
+    const id = journalItemId_(r);
+    if (!id) return;
+    if (!out[id]) out[id] = { masuk: 0, terjual: 0, adjust: 0 };
+
+    const modul = normalizeJournalModul_(r['Modul']);
+    const arah = normalizeJournalArah_(r['Arah']);
+
+    // Semua barang masuk outlet tetap dihitung sebagai Tambah, termasuk transfer produk
+    // dan barang dagang yang masuk outlet dari Output Stok.
+    out[id].masuk += normNum_(r['Qty Masuk']);
+
+    // Produk terjual hanya dari modul Produk Outlet, arah OUT.
+    if (modul === 'PRODUK_OUTLET' && arah === 'OUT') {
+      out[id].terjual += normNum_(r['Qty Keluar']);
+    }
+
+    // Stok opname outlet di JURNAL_STOK tersimpan sebagai Modul OPNAME dan Arah ADJ.
+    // Versi lama sebelumnya hanya membaca STOK_OPNAME, sehingga koreksi outlet tidak masuk
+    // ke tampilan Produk Outlet walaupun jurnalnya sudah ada.
+    if (modul === 'OPNAME' && arah === 'ADJ') {
+      out[id].adjust += normNum_(r['Qty Adjust']);
+    }
+  });
+  Object.keys(out).forEach(id => {
+    out[id].masuk = round_(out[id].masuk);
+    out[id].terjual = round_(out[id].terjual);
+    out[id].adjust = round_(out[id].adjust);
+  });
+  return out;
+}
+
+/** ========================= DATA INIT / REPORTS ========================= */
+function getDashboardData(payload) {
+  const items = getItemRows_().filter(isActive_);
+  const kategori = getKategoriRows_();
+  const stock = centralStockMap_();
+  let habis = 0, menipis = 0, aman = 0;
+  Object.keys(stock).forEach(id => {
+    const status = normUpper_(stock[id].status);
+    if (status === 'HABIS') habis++;
+    else if (status === 'MENIPIS') menipis++;
+    else aman++;
+  });
+  return ok_({
+    message: 'Dashboard inventory V3 siap.',
+    kpi: { totalItem: items.length, totalKategori: kategori.length, habis, menipis, aman },
+    kategori: kategori,
+    serverTime: now_()
+  });
+}
+
+function getBarang(payload) {
+  const sheetName = normText_(payload.sheetName);
+  const requestedKategori = APJ_INV_V3.OLD_CATEGORY_MAP[sheetName] || normText_(payload.kategori || payload.category);
+  const context = normText_(payload.context).toLowerCase();
+  const stock = centralStockMap_();
+  const childMap = childrenByParent_();
+
+  let rows = getItemRows_().filter(isActive_);
+  if (requestedKategori) rows = rows.filter(r => normText_(r['Kategori']) === requestedKategori);
+  if (context === 'input') rows = rows.filter(r => isYes_(r['Tampil Input'], true));
+  if (context === 'operasional' || context === 'output') rows = rows.filter(r => isYes_(r['Bisa Output'], true));
+
+  const data = rows.map(r => {
+    const st = stock[normText_(r['ID Item'])] || {};
+    const keys = [normText_(r['ID Item']), normText_(r['Kode Lama'])].filter(Boolean);
+    let children = [];
+    keys.forEach(k => { if (childMap[k]) children = children.concat(childMap[k]); });
+    const seen = {};
+    children = children.filter(c => {
+      const id = normText_(c['ID Item']);
+      if (!id || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+    return {
+      id: r['ID Item'] || r['Kode Lama'],
+      kodeLama: r['Kode Lama'] || '',
+      nama: r['Nama Item'] || '',
+      kategori: r['Kategori'] || '',
+      satuanBeli: r['Satuan Beli'] || r['Satuan Stok'] || '-',
+      satuanStok: r['Satuan Stok'] || r['Satuan Produksi'] || '-',
+      satuanProduksi: r['Satuan Produksi'] || r['Satuan Stok'] || '-',
+      stokTersedia: st.qty || 0,
+      status: st.status || '',
+      lastUpdate: st.lastUpdate || '',
+      sumber: 'MASTER_ITEM/STOK_AKHIR',
+      children: children.map(c => ({
+        id: c['ID Item'] || c['Kode Lama'],
+        kodeLama: c['Kode Lama'] || '',
+        nama: c['Nama Item'] || '',
+        kategori: c['Kategori'] || '',
+        satuanStok: c['Satuan Stok'] || c['Satuan Produksi'] || '-'
+      }))
+    };
+  });
+  return ok_({ data, kategori: requestedKategori });
+}
+
+function getBarangProduksi(payload) {
+  const lookup = itemLookup_();
+  const stock = centralStockMap_();
+
+  // V61: produksi bisa membaca format sederhana dari RESEP_PRODUKSI.
+  // Jika admin mengisi format baru di MASTER_RESEP_DETAIL, sistem tetap dapat membaca.
+  // Urutan baca: RESEP_PRODUKSI -> MASTER_RESEP_DETAIL format baru -> MASTER_RESEP + MASTER_RESEP_DETAIL lama.
+  const simplePack = getResepProduksiRowsV61_();
+  const simpleData = buildProduksiRecipesFromSimpleRowsV61_(simplePack.rows, lookup, stock);
+  if (simpleData.length) return ok_({ data: simpleData, sumberResep: simplePack.source || 'RESEP_PRODUKSI' });
+
+  const legacyData = buildProduksiRecipesFromMasterResepV61_(lookup, stock);
+  return ok_({ data: legacyData, sumberResep: 'MASTER_RESEP_DETAIL_LEGACY' });
+}
+
+function getResepProduksiRowsV61_() {
+  const candidates = [];
+  const push = function(name) {
+    name = normText_(name);
+    if (name && candidates.indexOf(name) === -1) candidates.push(name);
+  };
+  push(APJ_INV_V3.SHEETS.RESEP_PRODUKSI || 'RESEP_PRODUKSI');
+  push('RESEP_PRODUKSI');
+  push(APJ_INV_V3.SHEETS.RESEP_DETAIL || 'MASTER_RESEP_DETAIL');
+  push('MASTER_RESEP_DETAIL');
+
+  for (let i = 0; i < candidates.length; i++) {
+    const sheetName = candidates[i];
+    const rows = readRows_(sheetName, false).filter(function(r) {
+      return isActive_(r) && Object.keys(r || {}).some(function(k) { return normText_(r[k]); });
+    });
+    if (!rows.length) continue;
+
+    // Format sederhana wajib punya minimal identitas resep/hasil dan bahan.
+    const looksSimple = rows.some(function(r) {
+      const recipeKey = normText_(r['ID Resep Produksi'] || r['ID Resep'] || r['ID Detail'] || r['Nama Resep']);
+      const hasilKey = normText_(r['ID Item Hasil'] || r['ID Item'] || r['ID Hasil'] || r['ID Produk Jadi'] || r['Nama Hasil'] || r['Nama Produk Jadi'] || r['Nama Produk']);
+      const bahanKey = normText_(r['ID Bahan'] || r['ID Item Bahan'] || r['Kode Bahan'] || r['Nama Bahan'] || r['Bahan']);
+      return (recipeKey || hasilKey) && bahanKey;
+    });
+    if (!looksSimple) continue;
+
+    const filtered = rows.filter(function(r) {
+      const recipeKey = normText_(r['ID Resep Produksi'] || r['ID Resep'] || r['ID Detail'] || r['Nama Resep']);
+      const hasilKey = normText_(r['ID Item Hasil'] || r['ID Item'] || r['ID Hasil'] || r['ID Produk Jadi'] || r['Nama Hasil'] || r['Nama Produk Jadi'] || r['Nama Produk']);
+      const bahanKey = normText_(r['ID Bahan'] || r['ID Item Bahan'] || r['Kode Bahan'] || r['Nama Bahan'] || r['Bahan']);
+      return (recipeKey || hasilKey) && bahanKey;
+    }).map(function(r) {
+      r._sourceSheet = sheetName;
+      return r;
+    });
+
+    if (filtered.length) return { source: sheetName, rows: filtered };
+  }
+  return { source: '', rows: [] };
+}
+
+function findItemProduksiV61_(lookup, idCandidate, nameCandidate) {
+  return findItem_(lookup, idCandidate) || findItem_(lookup, nameCandidate) || null;
+}
+
+function firstTextV61_(row, keys) {
+  for (let i = 0; i < keys.length; i++) {
+    const v = normText_(row[keys[i]]);
+    if (v) return v;
+  }
+  return '';
+}
+
+function buildProduksiRecipesFromSimpleRowsV61_(rows, lookup, stock) {
+  const groups = {};
+  (rows || []).forEach(function(r) {
+    const idHasilRaw = firstTextV61_(r, ['ID Item Hasil', 'ID Item', 'ID Hasil', 'ID Produk Jadi']);
+    const namaHasilRaw = firstTextV61_(r, ['Nama Hasil', 'Nama Produk Jadi', 'Nama Produk', 'Produk Jadi']);
+    const idBahanRaw = firstTextV61_(r, ['ID Bahan', 'ID Item Bahan', 'Kode Bahan']);
+    const namaBahanRaw = firstTextV61_(r, ['Nama Bahan', 'Bahan', 'Nama Item Bahan']);
+    if (!idHasilRaw && !namaHasilRaw && !idBahanRaw && !namaBahanRaw) return;
+
+    const itemHasil = findItemProduksiV61_(lookup, idHasilRaw, namaHasilRaw);
+    const itemBahan = findItemProduksiV61_(lookup, idBahanRaw, namaBahanRaw);
+    const idHasil = itemHasil ? normText_(itemHasil['ID Item']) : idHasilRaw;
+    const idBahan = itemBahan ? normText_(itemBahan['ID Item']) : idBahanRaw;
+    const idResep = firstTextV61_(r, ['ID Resep Produksi', 'ID Resep', 'ID Detail']) || (normText_(r['Nama Resep']) || idHasil || 'RSP') + '-' + (idBahan || 'BAHAN');
+
+    if (!groups[idResep]) {
+      groups[idResep] = {
+        idResep: idResep,
+        id: idResep,
+        nama: normText_(r['Nama Resep']) || '',
+        namaResep: normText_(r['Nama Resep']) || '',
+        bahan: [],
+        hasil: [],
+        catatan: /migrasi/i.test(String(r['Catatan'] || '')) ? '' : (r['Catatan'] || '')
+      };
+    }
+
+    if (idHasil || namaHasilRaw) {
+      const stHasil = stock[normText_(idHasil)] || {};
+      addUniqueProduksiPartV61_(groups[idResep].hasil, {
+        idItem: idHasil,
+        idHasil: idHasil,
+        idProduksi: idHasil,
+        nama: itemHasil ? itemHasil['Nama Item'] : namaHasilRaw,
+        namaHasil: itemHasil ? itemHasil['Nama Item'] : namaHasilRaw,
+        kategori: itemHasil ? itemHasil['Kategori'] : (r['Kategori Hasil'] || 'Produk Jadi'),
+        kategoriHasil: itemHasil ? itemHasil['Kategori'] : (r['Kategori Hasil'] || 'Produk Jadi'),
+        qty: normNum_(r['Qty Hasil'] || r['Qty Hasil Standar']) || '',
+        satuan: itemHasil ? (itemHasil['Satuan Produksi'] || itemHasil['Satuan Stok']) : (r['Satuan Hasil'] || '-'),
+        satuanHasil: itemHasil ? (itemHasil['Satuan Produksi'] || itemHasil['Satuan Stok']) : (r['Satuan Hasil'] || '-'),
+        stokTersedia: stHasil.qty || 0
+      });
+    }
+
+    if (idBahan || namaBahanRaw) {
+      const stBahan = stock[normText_(idBahan)] || {};
+      addUniqueProduksiPartV61_(groups[idResep].bahan, {
+        idItem: idBahan,
+        idBahan: idBahan,
+        nama: itemBahan ? itemBahan['Nama Item'] : namaBahanRaw,
+        namaBahan: itemBahan ? itemBahan['Nama Item'] : namaBahanRaw,
+        bahanBaku: itemBahan ? itemBahan['Nama Item'] : namaBahanRaw,
+        kategori: itemBahan ? itemBahan['Kategori'] : (r['Kategori Bahan'] || ''),
+        kategoriBahan: itemBahan ? itemBahan['Kategori'] : (r['Kategori Bahan'] || ''),
+        qty: normNum_(r['Qty Bahan']) || '',
+        qtyStandar: normNum_(r['Qty Bahan']) || '',
+        satuan: itemBahan ? (itemBahan['Satuan Stok'] || itemBahan['Satuan Produksi']) : (r['Satuan Bahan'] || '-'),
+        satuanBahan: itemBahan ? (itemBahan['Satuan Stok'] || itemBahan['Satuan Produksi']) : (r['Satuan Bahan'] || '-'),
+        stokTersedia: stBahan.qty || 0
+      });
+    }
+  });
+
+  return Object.keys(groups).map(function(key) {
+    const g = groups[key];
+    if (!g.nama) g.nama = buildProduksiRecipeNameV61_(g);
+    g.namaResep = g.nama;
+    return g;
+  }).filter(function(g) {
+    return g.idResep && g.bahan.length && g.hasil.length;
+  }).sort(function(a, b) {
+    return normText_(a.nama).localeCompare(normText_(b.nama), 'id');
+  });
+}
+
+function buildProduksiRecipesFromMasterResepV61_(lookup, stock) {
+  const resep = getResepRows_().filter(isActive_);
+  const detail = getResepDetailRows_().filter(isActive_);
+  const detailByResep = {};
+  detail.forEach(function(d) {
+    const idResep = normText_(d['ID Resep']);
+    if (!idResep) return;
+    if (!detailByResep[idResep]) detailByResep[idResep] = [];
+    detailByResep[idResep].push(d);
+  });
+
+  return resep.map(function(r) {
+    const itemHasil = findItemProduksiV61_(lookup, r['ID Item Hasil'], r['Nama Hasil']);
+    const idHasil = itemHasil ? normText_(itemHasil['ID Item']) : normText_(r['ID Item Hasil']);
+    const stHasil = stock[normText_(idHasil)] || {};
+    const hasilNama = itemHasil ? itemHasil['Nama Item'] : (r['Nama Hasil'] || '');
+    const hasilSatuan = itemHasil ? (itemHasil['Satuan Produksi'] || itemHasil['Satuan Stok']) : (r['Satuan Hasil'] || '-');
+    const bahanList = (detailByResep[normText_(r['ID Resep'])] || []).map(function(d) {
+      const bahan = findItemProduksiV61_(lookup, d['ID Bahan'], d['Nama Bahan']);
+      const idBahan = bahan ? normText_(bahan['ID Item']) : normText_(d['ID Bahan']);
+      const st = stock[normText_(idBahan)] || {};
+      return {
+        idDetail: d['ID Detail'] || '',
+        idItem: idBahan,
+        idBahan: idBahan,
+        nama: bahan ? bahan['Nama Item'] : (d['Nama Bahan'] || ''),
+        namaBahan: bahan ? bahan['Nama Item'] : (d['Nama Bahan'] || ''),
+        bahanBaku: bahan ? bahan['Nama Item'] : (d['Nama Bahan'] || ''),
+        kategori: bahan ? bahan['Kategori'] : (d['Kategori Bahan'] || ''),
+        kategoriBahan: bahan ? bahan['Kategori'] : (d['Kategori Bahan'] || ''),
+        qty: normNum_(d['Qty Bahan']) || '',
+        qtyStandar: normNum_(d['Qty Bahan']) || '',
+        stokTersedia: st.qty || 0,
+        satuan: bahan ? (bahan['Satuan Stok'] || bahan['Satuan Produksi']) : (d['Satuan Bahan'] || '-'),
+        satuanBahan: bahan ? (bahan['Satuan Stok'] || bahan['Satuan Produksi']) : (d['Satuan Bahan'] || '-')
+      };
+    }).filter(function(b) { return b.idBahan && b.namaBahan; });
+
+    return {
+      idResep: r['ID Resep'],
+      id: r['ID Resep'],
+      nama: normText_(r['Nama Resep']) || (hasilNama ? 'Produksi ' + hasilNama : 'Resep Produksi'),
+      namaResep: normText_(r['Nama Resep']) || (hasilNama ? 'Produksi ' + hasilNama : 'Resep Produksi'),
+      idProduksi: idHasil,
+      produksi: hasilNama,
+      satuanProduksi: hasilSatuan,
+      qtyHasilStandar: normNum_(r['Qty Hasil Standar']) || '',
+      stokTersedia: stHasil.qty || 0,
+      hasil: [{
+        idItem: idHasil,
+        idHasil: idHasil,
+        idProduksi: idHasil,
+        nama: hasilNama,
+        namaHasil: hasilNama,
+        kategori: itemHasil ? itemHasil['Kategori'] : (r['Kategori Hasil'] || 'Produk Jadi'),
+        kategoriHasil: itemHasil ? itemHasil['Kategori'] : (r['Kategori Hasil'] || 'Produk Jadi'),
+        qty: normNum_(r['Qty Hasil Standar']) || '',
+        satuan: hasilSatuan,
+        satuanHasil: hasilSatuan,
+        stokTersedia: stHasil.qty || 0
+      }],
+      bahan: bahanList,
+      catatan: /migrasi/i.test(String(r['Catatan'] || '')) ? '' : (r['Catatan'] || '')
+    };
+  }).filter(function(r) {
+    return r.idProduksi && r.produksi && r.bahan.length;
+  });
+}
+
+function addUniqueProduksiPartV61_(list, part) {
+  const id = normText_(part.idItem || part.idBahan || part.idHasil || part.idProduksi);
+  const name = normText_(part.nama || part.namaBahan || part.namaHasil);
+  if (!id && !name) return;
+  const found = list.find(function(x) {
+    const xId = normText_(x.idItem || x.idBahan || x.idHasil || x.idProduksi);
+    const xName = normText_(x.nama || x.namaBahan || x.namaHasil);
+    return (id && xId === id) || (!id && name && xName.toLowerCase() === name.toLowerCase());
+  });
+  if (found) {
+    if (!(normNum_(found.qty) > 0) && normNum_(part.qty) > 0) found.qty = normNum_(part.qty);
+    if (!(normNum_(found.qtyStandar) > 0) && normNum_(part.qtyStandar) > 0) found.qtyStandar = normNum_(part.qtyStandar);
+    if (!found.nama && part.nama) found.nama = part.nama;
+    if (!found.namaBahan && part.namaBahan) found.namaBahan = part.namaBahan;
+    if (!found.namaHasil && part.namaHasil) found.namaHasil = part.namaHasil;
+    return;
+  }
+  list.push(part);
+}
+
+function buildProduksiRecipeNameV61_(recipe) {
+  const hasilNames = recipe.hasil.map(function(h) { return h.nama || h.namaHasil; }).filter(Boolean);
+  if (recipe.nama) return recipe.nama;
+  if (hasilNames.length === 1) return 'Produksi ' + hasilNames[0];
+  if (hasilNames.length > 1) return 'Produksi Beberapa Produk';
+  return 'Resep Produksi';
+}
+
+function setupResepProduksiV60() {
+  return setupResepProduksiV61();
+}
+
+function setupResepProduksiV63() {
+  return setupResepProduksiV61();
+}
+
+function setupResepProduksiV61() {
+  const sheetName = APJ_INV_V3.SHEETS.RESEP_PRODUKSI || 'RESEP_PRODUKSI';
+  const ss = ss_();
+  let sh = ss.getSheetByName(sheetName);
+  const headers = ['No', 'ID Resep Produksi', 'Nama Resep', 'ID Item Hasil', 'Nama Hasil', 'Qty Hasil', 'Satuan Hasil', 'ID Bahan', 'Nama Bahan', 'Qty Bahan', 'Satuan Bahan', 'Aktif', 'Catatan'];
+  if (!sh) sh = ss.insertSheet(sheetName);
+  sh.clear();
+  sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#356854').setFontColor('#ffffff');
+  sh.setFrozenRows(1);
+
+  const lookup = itemLookup_();
+  const rows = [];
+  const legacy = buildProduksiRecipesFromMasterResepV61_(lookup, centralStockMap_());
+  legacy.forEach(function(r) {
+    (r.bahan || []).forEach(function(b) {
+      const h = (r.hasil || [])[0] || {};
+      rows.push([
+        rows.length + 1,
+        r.idResep,
+        r.nama || r.namaResep || '',
+        h.idItem || r.idProduksi || '',
+        h.nama || h.namaHasil || r.produksi || '',
+        h.qty || r.qtyHasilStandar || 1,
+        h.satuan || r.satuanProduksi || '-',
+        b.idBahan || b.idItem || '',
+        b.namaBahan || b.nama || '',
+        b.qtyStandar || b.qty || 0,
+        b.satuanBahan || b.satuan || '-',
+        'Y',
+        ''
+      ]);
+    });
+  });
+  if (rows.length) sh.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  sh.autoResizeColumns(1, headers.length);
+  clearSheetCache_(sheetName);
+  return ok_({ message: 'Sheet RESEP_PRODUKSI sudah dibuat/diperbarui.', rows: rows.length });
+}
+
+function getOutputInit(payload) {
+  return ok_({ outlets: getOutlets_(), pics: getPics_() });
+}
+
+function getTransferProduksiInit(payload) {
+  const outlets = getOutlets_();
+  const pics = getPics_();
+  const outlet = normUpper_(payload.outlet);
+  const response = { outlets: outlets, pics: pics, produk: [] };
+  if (!outlet) return ok_(response);
+
+  response.produk = buildTransferProdukListForOutlet_(outlet);
+  return ok_(response);
+}
+
+
+function getPreparasiInit(payload) {
+  const lookup = itemLookup_();
+  const stock = centralStockMap_();
+  const kategori = getKategoriRows_();
+
+  const items = lookup.items.filter(isActive_).map(function(r) {
+    const id = normText_(r['ID Item'] || r['Kode Lama']);
+    const st = stock[id] || {};
+    return {
+      id: id,
+      nama: r['Nama Item'] || '',
+      kategori: r['Kategori'] || '',
+      satuan: r['Satuan Stok'] || r['Satuan Produksi'] || r['Satuan Beli'] || '-',
+      satuanStok: r['Satuan Stok'] || r['Satuan Produksi'] || r['Satuan Beli'] || '-',
+      stokTersedia: st.qty || 0,
+      stokAkhir: st.qty || 0,
+      status: st.status || '',
+      bisaPreparasi: isYes_(r['Bisa Preparasi'], true),
+      bisaTransferProduk: isYes_(r['Bisa Transfer Produk'], false)
+    };
+  }).filter(function(x) { return x.id && x.nama; });
+
+  const groups = {};
+  getPrepRows_().filter(isActive_).forEach(function(r) {
+    const idHasilRaw = normText_(r['ID Item Hasil']);
+    const idBahanRaw = normText_(r['ID Bahan']);
+    const itemHasil = findItem_(lookup, idHasilRaw);
+    const itemBahan = findItem_(lookup, idBahanRaw);
+    const idHasil = itemHasil ? normText_(itemHasil['ID Item']) : idHasilRaw;
+    const idBahan = itemBahan ? normText_(itemBahan['ID Item']) : idBahanRaw;
+    if (!idHasil || !idBahan) return;
+
+    const namaHasil = itemHasil ? normText_(itemHasil['Nama Item']) : normText_(r['Nama Hasil']);
+    const namaBahan = itemBahan ? normText_(itemBahan['Nama Item']) : normText_(r['Nama Bahan']);
+    const idResep = normText_(r['ID Resep Preparasi']) || (idHasil + '-' + idBahan);
+    if (!groups[idResep]) {
+      groups[idResep] = {
+        idResep: idResep,
+        idResepPreparasi: idResep,
+        nama: '',
+        namaResep: '',
+        bahan: [],
+        hasil: [],
+        catatan: /migrasi/i.test(String(r['Catatan'] || '')) ? '' : (r['Catatan'] || '')
+      };
+    }
+
+    addUniquePrepPart_(groups[idResep].bahan, {
+      idItem: idBahan,
+      idBahan: idBahan,
+      nama: namaBahan,
+      qty: normNum_(r['Qty Bahan']) || 0,
+      satuan: itemBahan ? (itemBahan['Satuan Stok'] || itemBahan['Satuan Produksi']) : (r['Satuan Bahan'] || '-')
+    });
+    addUniquePrepPart_(groups[idResep].hasil, {
+      idItem: idHasil,
+      idHasil: idHasil,
+      nama: namaHasil,
+      qty: normNum_(r['Qty Hasil']) || 1,
+      satuan: itemHasil ? (itemHasil['Satuan Stok'] || itemHasil['Satuan Produksi']) : (r['Satuan Hasil'] || '-')
+    });
+  });
+
+  const resep = Object.keys(groups).map(function(key) {
+    const g = groups[key];
+    const bahanNames = g.bahan.map(function(b) { return b.nama; }).filter(Boolean);
+    const hasilNames = g.hasil.map(function(h) { return h.nama; }).filter(Boolean);
+    if (bahanNames.length === 1 && hasilNames.length > 1) g.nama = 'Preparasi ' + bahanNames[0];
+    else if (bahanNames.length === 1) g.nama = 'Preparasi ' + bahanNames[0];
+    else if (hasilNames.length === 1) g.nama = hasilNames[0];
+    else g.nama = 'Resep Preparasi';
+    g.namaResep = g.nama;
+    return g;
+  }).filter(function(r) { return r.idResep && r.bahan.length && r.hasil.length; }).sort(function(a, b) {
+    return normText_(a.nama).localeCompare(normText_(b.nama), 'id');
+  });
+
+  return ok_({
+    message: 'Data preparasi siap.',
+    kategori: kategori,
+    items: items,
+    resep: resep,
+    serverTime: now_()
+  });
+}
+
+function addUniquePrepPart_(list, part) {
+  const id = normText_(part.idItem || part.idBahan || part.idHasil);
+  if (!id) return;
+  const found = list.find(function(x) { return normText_(x.idItem || x.idBahan || x.idHasil) === id; });
+  if (found) {
+    if (!(normNum_(found.qty) > 0) && normNum_(part.qty) > 0) found.qty = normNum_(part.qty);
+    if (!found.nama && part.nama) found.nama = part.nama;
+    return;
+  }
+  list.push(part);
+}
+
+function getProdukOutletData(payload) {
+  const level = normText_(payload.level);
+  const isOwner = /owner|super/i.test(level);
+  const allowedOutlets = getOutlets_();
+  let outlet = normUpper_(payload.outlet) || allowedOutlets[0] || 'LAHOR';
+  if (allowedOutlets.indexOf(outlet) === -1) outlet = allowedOutlets[0] || outlet;
+  const date = asDateText_(payload.tanggal) || today_();
+
+  const before = locationStockMap_(date, null);
+  const todaySums = todayJournalSums_(date, outlet);
+  const produk = buildTransferProdukListForOutlet_(outlet);
+
+  const data = sortTransferRowsByCategory_(produk.map(function(p) {
+    const id = normText_(p.id);
+    const yesterday = before[['OUTLET', outlet, id].join('|')] || 0;
+    const today = todaySums[id] || { masuk: 0, terjual: 0, adjust: 0 };
+    const sisa = round_(yesterday + today.masuk - today.terjual + today.adjust);
+    return {
+      id: id,
+      idProduk: p.idProduk || '',
+      nama: p.nama || '',
+      kategori: p.kategori || '',
+      satuan: p.satuan || '-',
+      keterangan: p.keterangan || '',
+      urutan: p.urutan || p['Urutan'] || 999999,
+      stokKemarin: round_(yesterday),
+      stokMasuk: round_(today.masuk),
+      stokTerjual: round_(today.terjual),
+      selisihOpname: round_(today.adjust),
+      stokSisa: sisa
+    };
+  }).filter(function(x) { return x.id && x.nama; }), 'nama');
+
+  return ok_({ data: data, outlet: outlet, allowedOutlets: allowedOutlets, canSelectOutlet: isOwner || !level, tanggal: date });
+}
+
+
+function getPesananOutletInit(payload) {
+  const allowedOutlets = getOutlets_();
+  let outlet = normUpper_(payload.outlet) || allowedOutlets[0] || 'LAHOR';
+  if (allowedOutlets.indexOf(outlet) === -1) outlet = allowedOutlets[0] || outlet;
+  const produk = buildTransferProdukListForOutlet_(outlet).map(function(p) {
+    return {
+      id: p.id,
+      idItem: p.id,
+      idProduk: p.idProduk || '',
+      nama: p.nama || '',
+      namaProduk: p.nama || '',
+      kategori: p.kategori || '',
+      satuan: p.satuan || '-',
+      urutan: p.urutan || 999999
+    };
+  });
+  return ok_({ outlet: outlet, allowedOutlets: allowedOutlets, produk: produk });
+}
+
+function setupPesananOutletSheetsV90() {
+  const shHeader = ensurePesananSheet_('PESANAN_OUTLET', pesananOutletHeaders_());
+  ensurePesananSheet_('PESANAN_OUTLET_DETAIL', pesananOutletDetailHeaders_());
+  syncPesananNamaPemesanHeaderV95_(shHeader);
+  return ok_({ message: 'Sheet PESANAN_OUTLET dan PESANAN_OUTLET_DETAIL siap digunakan. Nama Pemesan diselaraskan V95.' });
+}
+
+function pesananOutletHeaders_() {
+  return ['Timestamp', 'Tanggal Input', 'No Pesanan', 'Outlet', 'Tanggal Pesanan', 'Penerima', 'Nama Pemesan', 'Nomor HP', 'Status Pembayaran', 'Metode Pembayaran', 'Bank', 'Jumlah Rp', 'Jenis Pengambilan', 'Jam', 'Alamat', 'Catatan Tambahan', 'Status Pesanan'];
+}
+
+function pesananOutletDetailHeaders_() {
+  return ['Timestamp', 'No Pesanan', 'No Grup', 'Jenis Pesanan', 'Qty Pesanan', 'Kemasan', 'ID Lauk', 'Nama Lauk', 'Urutan Lauk', 'Catatan Grup'];
+}
+
+function syncPesananNamaPemesanHeaderV95_(sh) {
+  // V95: sheet user ada header lama/typo "Nama Pesanan".
+  // Data tetap dibaca dan dipindahkan ke header resmi "Nama Pemesan" supaya print ulang tidak kosong.
+  if (!sh) return;
+  const lastCol = Math.max(1, sh.getLastColumn());
+  const lastRow = Math.max(1, sh.getLastRow());
+  const headerRange = sh.getRange(1, 1, 1, lastCol);
+  const headers = headerRange.getDisplayValues()[0].map(function(h) { return normText_(h); });
+  const idxCanonical = headers.indexOf('Nama Pemesan');
+  const idxLegacy = headers.indexOf('Nama Pesanan');
+
+  if (idxLegacy >= 0 && idxCanonical < 0) {
+    sh.getRange(1, idxLegacy + 1).setValue('Nama Pemesan');
+    return;
+  }
+
+  if (idxLegacy >= 0 && idxCanonical >= 0 && lastRow > 1) {
+    const rows = lastRow - 1;
+    const legacyVals = sh.getRange(2, idxLegacy + 1, rows, 1).getDisplayValues();
+    const canonicalRange = sh.getRange(2, idxCanonical + 1, rows, 1);
+    const canonicalVals = canonicalRange.getDisplayValues();
+    let changed = false;
+    for (let i = 0; i < rows; i++) {
+      if (!normText_(canonicalVals[i][0]) && normText_(legacyVals[i][0])) {
+        canonicalVals[i][0] = legacyVals[i][0];
+        changed = true;
+      }
+    }
+    if (changed) canonicalRange.setValues(canonicalVals);
+  }
+}
+
+function ensurePesananSheet_(sheetName, headers) {
+  const ss = ss_();
+  let sh = ss.getSheetByName(sheetName);
+  if (!sh) sh = ss.insertSheet(sheetName);
+  if (sh.getLastRow() < 1 || sh.getLastColumn() < 1 || sh.getRange(1, 1).getDisplayValue() === '') {
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#1f4e79').setFontColor('#ffffff');
+  } else {
+    const current = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), headers.length)).getDisplayValues()[0].map(function(h) { return normText_(h); });
+    const missing = headers.filter(function(h) { return current.indexOf(h) === -1; });
+    if (missing.length) {
+      const startCol = sh.getLastColumn() + 1;
+      sh.getRange(1, startCol, 1, missing.length).setValues([missing]);
+      sh.getRange(1, startCol, 1, missing.length).setFontWeight('bold').setBackground('#1f4e79').setFontColor('#ffffff');
+    }
+  }
+  return sh;
+}
+
+function appendPesananObjects_(sheetName, headers, objects) {
+  if (!objects || !objects.length) return 0;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(28000);
+  try {
+    const sh = ensurePesananSheet_(sheetName, headers);
+    const lastCol = Math.max(sh.getLastColumn(), headers.length);
+    const sheetHeaders = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0].map(function(h) { return normText_(h); });
+    const cols = headers.map(function(h) { return { header: h, col: sheetHeaders.indexOf(h) + 1 }; }).filter(function(x) { return x.col > 0; });
+    const startRow = findFirstEmptyWritableRow_(sh, cols);
+    ensureRowsAvailable_(sh, startRow + objects.length - 1);
+
+    // V94: tulis berdasarkan posisi header aktual di sheet, bukan asumsi kolom A..N.
+    // Ini mencegah data seperti Nama Pemesan masuk ke kolom yang salah ketika header sheet berubah/bergeser.
+    const values = objects.map(function(obj) {
+      const row = new Array(lastCol).fill('');
+      headers.forEach(function(h) {
+        const idx = sheetHeaders.indexOf(h);
+        if (idx >= 0) row[idx] = obj[h] !== undefined ? obj[h] : '';
+      });
+      // V95: isi juga header lama/typo "Nama Pesanan" bila kolom itu masih ada di sheet pengguna.
+      // Dengan begitu tampilan sheet lama tetap terbaca, dan print ulang tetap mengambil "Nama Pemesan".
+      if (obj['Nama Pemesan'] !== undefined) {
+        const legacyIdx = sheetHeaders.indexOf('Nama Pesanan');
+        if (legacyIdx >= 0 && !row[legacyIdx]) row[legacyIdx] = obj['Nama Pemesan'];
+      }
+      return row;
+    });
+    sh.getRange(startRow, 1, values.length, lastCol).setValues(values);
+    return objects.length;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function nextPesananNo_(tanggalInput) {
+  const date = asDateText_(tanggalInput) || today_();
+  const key = 'PSN-' + date.replace(/-/g, '');
+  const sh = ensurePesananSheet_('PESANAN_OUTLET', pesananOutletHeaders_());
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return key + '-001';
+  const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0].map(function(h) { return normText_(h); });
+  const col = headers.indexOf('No Pesanan') + 1;
+  if (!col) return key + '-001';
+  const vals = sh.getRange(2, col, lastRow - 1, 1).getDisplayValues().map(function(r) { return normText_(r[0]); });
+  let maxSeq = 0;
+  vals.forEach(function(v) {
+    if (v.indexOf(key + '-') !== 0) return;
+    const n = parseInt(v.split('-').pop(), 10);
+    if (isFinite(n) && n > maxSeq) maxSeq = n;
+  });
+  return key + '-' + pad_(maxSeq + 1, 3);
+}
+
+function simpanPesananOutlet(payload) {
+  setupPesananOutletSheetsV90();
+  const tanggalInput = asDateText_(payload.tanggalInput) || today_();
+  const outlet = normUpper_(payload.outlet);
+  const tanggalPesanan = asDateText_(payload.tanggalPesanan);
+  const penerima = normText_(payload.penerima || payload.petugas);
+  const namaPemesan = normText_(payload.namaPemesan || payload.pemesan || payload.namaCustomer || payload.customer || payload['Nama Pemesan'] || payload['Nama Pesanan'] || payload['Pemesan']);
+  const groups = Array.isArray(payload.groups) ? payload.groups : [];
+  if (!outlet) throw new Error('Outlet wajib diisi.');
+  if (!tanggalPesanan) throw new Error('Tanggal pesanan wajib diisi.');
+  if (!namaPemesan) throw new Error('Nama pemesan wajib diisi.');
+  if (!groups.length) throw new Error('Rincian pesanan wajib diisi.');
+
+  const noPesanan = normText_(payload.noPesanan) || nextPesananNo_(tanggalInput);
+  const ts = now_();
+  const header = {
+    'Timestamp': ts,
+    'Tanggal Input': tanggalInput,
+    'No Pesanan': noPesanan,
+    'Outlet': outlet,
+    'Tanggal Pesanan': tanggalPesanan,
+    'Penerima': penerima,
+    'Nama Pemesan': namaPemesan,
+    'Nomor HP': normText_(payload.nomorHp),
+    'Status Pembayaran': normText_(payload.statusPembayaran || 'Belum Bayar'),
+    'Metode Pembayaran': normText_(payload.metodePembayaran || 'Tunai'),
+    'Bank': normText_(payload.bank),
+    'Jumlah Rp': normNum_(payload.jumlahRp),
+    'Jenis Pengambilan': normText_(payload.jenisPengambilan || 'DIAMBIL'),
+    'Jam': normText_(payload.jam),
+    'Alamat': normText_(payload.alamat),
+    'Catatan Tambahan': normText_(payload.catatanTambahan),
+    'Status Pesanan': normText_(payload.statusPesanan || 'Baru')
+  };
+
+  const details = [];
+  groups.forEach(function(g, groupIdx) {
+    const lauk = Array.isArray(g.lauk) ? g.lauk : [];
+    if (!lauk.length) throw new Error('Isi lauk wajib diisi pada pesanan ' + (groupIdx + 1) + '.');
+    const qty = normNum_(g.qtyPesanan);
+    if (qty <= 0) throw new Error('Qty pesanan wajib lebih dari 0 pada pesanan ' + (groupIdx + 1) + '.');
+    lauk.forEach(function(l, laukIdx) {
+      details.push({
+        'Timestamp': ts,
+        'No Pesanan': noPesanan,
+        'No Grup': g.noGrup || groupIdx + 1,
+        'Jenis Pesanan': normText_(g.jenisPesanan),
+        'Qty Pesanan': qty,
+        'Kemasan': normText_(g.kemasan),
+        'ID Lauk': normText_(l.id || l.idItem),
+        'Nama Lauk': normText_(l.nama || l.namaProduk),
+        'Urutan Lauk': l.urutan || laukIdx + 1,
+        'Catatan Grup': normText_(g.catatanGrup)
+      });
+    });
+  });
+
+  appendPesananObjects_('PESANAN_OUTLET', pesananOutletHeaders_(), [header]);
+  appendPesananObjects_('PESANAN_OUTLET_DETAIL', pesananOutletDetailHeaders_(), details);
+  return ok_({ message: 'Pesanan outlet berhasil disimpan.', noPesanan: noPesanan, detailCount: details.length });
+}
+
+
+
+function pesananRowTextV94_(row, keys) {
+  row = row || {};
+  for (let i = 0; i < keys.length; i++) {
+    const v = normText_(row[keys[i]]);
+    if (v) return v;
+  }
+  return '';
+}
+
+function pesananRowNumV94_(row, keys) {
+  row = row || {};
+  for (let i = 0; i < keys.length; i++) {
+    const v = normNum_(row[keys[i]]);
+    if (v) return v;
+  }
+  return 0;
+}
+
+function getPesananOutletList(payload) {
+  setupPesananOutletSheetsV90();
+  const outlet = normUpper_(payload.outlet);
+  const tanggalPesanan = asDateText_(payload.tanggalPesanan);
+  const limit = Math.max(1, Math.min(200, normNum_(payload.limit) || 50));
+  let rows = readRows_('PESANAN_OUTLET', false).filter(function(r) {
+    const no = normText_(r['No Pesanan']);
+    if (!no) return false;
+    if (outlet && normUpper_(r['Outlet']) !== outlet) return false;
+    if (tanggalPesanan && asDateText_(r['Tanggal Pesanan']) !== tanggalPesanan) return false;
+    return true;
+  });
+  rows.sort(function(a, b) {
+    const ta = normText_(a['Timestamp']);
+    const tb = normText_(b['Timestamp']);
+    if (ta === tb) return normText_(b['No Pesanan']).localeCompare(normText_(a['No Pesanan']));
+    return tb.localeCompare(ta);
+  });
+  rows = rows.slice(0, limit).map(function(r) {
+    return {
+      timestamp: normText_(r['Timestamp']),
+      tanggalInput: asDateText_(r['Tanggal Input']),
+      noPesanan: normText_(r['No Pesanan']),
+      outlet: normText_(r['Outlet']),
+      tanggalPesanan: asDateText_(r['Tanggal Pesanan']),
+      penerima: normText_(r['Penerima']),
+      namaPemesan: pesananRowTextV94_(r, ['Nama Pemesan','Nama Pesanan','Pemesan','Nama Pemesan Outlet','Customer','Nama Customer','Nama Orang']),
+      nomorHp: pesananRowTextV94_(r, ['Nomor HP','No HP','Nomor Hp','HP','Telepon']),
+      statusPembayaran: normText_(r['Status Pembayaran']),
+      metodePembayaran: normText_(r['Metode Pembayaran']),
+      bank: normText_(r['Bank']),
+      jumlahRp: pesananRowNumV94_(r, ['Jumlah Rp','Jumlah','Nominal','Total Rp']),
+      jenisPengambilan: normText_(r['Jenis Pengambilan']),
+      jam: normText_(r['Jam']),
+      statusPesanan: normText_(r['Status Pesanan'])
+    };
+  });
+  return ok_({ data: rows, count: rows.length });
+}
+
+function getPesananOutletPrintData(payload) {
+  setupPesananOutletSheetsV90();
+  const noPesanan = normText_(payload.noPesanan);
+  if (!noPesanan) throw new Error('Nomor pesanan wajib diisi.');
+  const headers = readRows_('PESANAN_OUTLET', false).filter(function(r) {
+    return normText_(r['No Pesanan']) === noPesanan;
+  });
+  if (!headers.length) throw new Error('Pesanan tidak ditemukan: ' + noPesanan);
+  const h = headers[headers.length - 1];
+  const details = readRows_('PESANAN_OUTLET_DETAIL', false).filter(function(r) {
+    return normText_(r['No Pesanan']) === noPesanan;
+  });
+  const groupMap = {};
+  details.forEach(function(d) {
+    const noGrup = normText_(d['No Grup']) || '1';
+    if (!groupMap[noGrup]) {
+      groupMap[noGrup] = {
+        noGrup: normNum_(noGrup) || noGrup,
+        jenisPesanan: normText_(d['Jenis Pesanan']),
+        qtyPesanan: normNum_(d['Qty Pesanan']),
+        kemasan: normText_(d['Kemasan']),
+        catatanGrup: normText_(d['Catatan Grup']),
+        lauk: []
+      };
+    }
+    groupMap[noGrup].lauk.push({
+      id: normText_(d['ID Lauk']),
+      idItem: normText_(d['ID Lauk']),
+      nama: normText_(d['Nama Lauk']),
+      namaProduk: normText_(d['Nama Lauk']),
+      urutan: normNum_(d['Urutan Lauk']) || groupMap[noGrup].lauk.length + 1
+    });
+  });
+  const groups = Object.keys(groupMap).sort(function(a, b) {
+    return (normNum_(a) || 9999) - (normNum_(b) || 9999);
+  }).map(function(k) {
+    const g = groupMap[k];
+    g.lauk.sort(function(a, b) { return (normNum_(a.urutan) || 9999) - (normNum_(b.urutan) || 9999); });
+    return g;
+  });
+  const data = {
+    noPesanan: noPesanan,
+    tanggalInput: asDateText_(h['Tanggal Input']),
+    outlet: normText_(h['Outlet']),
+    tanggalPesanan: asDateText_(h['Tanggal Pesanan']),
+    penerima: normText_(h['Penerima']),
+    namaPemesan: pesananRowTextV94_(h, ['Nama Pemesan','Nama Pesanan','Pemesan','Nama Pemesan Outlet','Customer','Nama Customer','Nama Orang']),
+    nomorHp: pesananRowTextV94_(h, ['Nomor HP','No HP','Nomor Hp','HP','Telepon']),
+    statusPembayaran: normText_(h['Status Pembayaran']),
+    metodePembayaran: normText_(h['Metode Pembayaran']),
+    bank: normText_(h['Bank']),
+    jumlahRp: pesananRowNumV94_(h, ['Jumlah Rp','Jumlah','Nominal','Total Rp']),
+    jenisPengambilan: normText_(h['Jenis Pengambilan']),
+    jam: normText_(h['Jam']),
+    alamat: normText_(h['Alamat']),
+    catatanTambahan: normText_(h['Catatan Tambahan']),
+    statusPesanan: normText_(h['Status Pesanan']),
+    groups: groups
+  };
+  return ok_({ data: data });
+}
+
+function getStokAkhirReport(payload) {
+  let rows = readRows_(APJ_INV_V3.SHEETS.STOK, false).filter(r => normText_(r['ID Item']) && normText_(r['ID Item']) !== '0');
+  if (payload.kategori) rows = rows.filter(r => normText_(r['Kategori']) === normText_(payload.kategori));
+  const data = rows.map(r => ({
+    id: r['ID Item'],
+    nama: r['Nama Item'],
+    kategori: r['Kategori'],
+    satuanStok: r['Satuan'],
+    stokTersedia: normNum_(r['Stok Akhir']),
+    qtyAwal: normNum_(r['Qty Awal']),
+    qtyMasuk: normNum_(r['Qty Masuk']),
+    qtyKeluar: normNum_(r['Qty Keluar']),
+    qtyAdjust: normNum_(r['Qty Adjust']),
+    status: r['Status'],
+    lastUpdate: r['Last Update'],
+    sumber: 'STOK_AKHIR'
+  }));
+  return ok_({ data, raw: rows });
+}
+
+function getStokProduksiReport(payload) {
+  const rows = readRows_(APJ_INV_V3.SHEETS.STOK, false)
+    .filter(r => normText_(r['ID Item']) && normText_(r['ID Item']) !== '0')
+    .filter(r => normText_(r['Kategori']) === 'Produk Jadi' || normText_(r['Kategori']) === 'Bahan Preparasi');
+  return ok_({ data: rows.map(r => ({
+    idProduksi: r['ID Item'],
+    produksi: r['Nama Item'],
+    stokTersedia: normNum_(r['Stok Akhir']),
+    satuanProduksi: r['Satuan'],
+    status: r['Status'],
+    lastUpdate: r['Last Update'],
+    sumber: 'STOK_AKHIR'
+  })) });
+}
+
+function getJurnalStok(payload) {
+  return getRiwayatTransaksi(payload);
+}
+
+function getRiwayatTransaksi(payload) {
+  const dari = asDateText_(payload.tanggalDari || payload.dari);
+  const sampai = asDateText_(payload.tanggalSampai || payload.sampai);
+  const jenisFilter = normText_(payload.jenis);
+  const keyword = normText_(payload.keyword).toLowerCase();
+  const limit = Math.min(Math.max(parseInt(payload.limit || 1500, 10), 1), 5000);
+
+  let rows = journalRows_();
+  if (dari) rows = rows.filter(r => journalDate_(r) >= dari);
+  if (sampai) rows = rows.filter(r => journalDate_(r) <= sampai);
+
+  const lookup = itemLookup_();
+  let data = rows.map(r => journalToLegacy_(r, lookup)).filter(r => {
+    if (jenisFilter && jenisFilter !== 'Semua' && jenisFilter !== 'ALL' && normText_(r.jenis) !== jenisFilter) return false;
+    if (keyword) {
+      const hay = [r.txId, r.petugas, r.kategori, r.outlet, r.idBarang, r.namaBarang, r.keterangan, r.modul].join(' ').toLowerCase();
+      if (hay.indexOf(keyword) === -1) return false;
+    }
+    return true;
+  });
+  data.sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
+  const totalBeforeLimit = data.length;
+  data = data.slice(0, limit);
+  return ok_({ data, summary: buildRiwayatSummary_(data), totalBeforeLimit, userOnly: false });
+}
+
+function journalToLegacy_(r, lookup) {
+  lookup = lookup || itemLookup_();
+  const idItem = journalItemId_(r);
+  const item = findItem_(lookup, idItem);
+  const meta = {
+    nama: normText_(r['Nama Item']) || (item ? normText_(item['Nama Item']) : ''),
+    kategori: normText_(r['Kategori']) || (item ? normText_(item['Kategori']) : ''),
+    satuan: normText_(r['Satuan']) || (item ? normText_(item['Satuan Stok'] || item['Satuan Produksi'] || item['Satuan Beli']) : '')
+  };
+  const modul = normUpper_(r['Modul']);
+  let jenis = 'Output';
+  if (modul.indexOf('INPUT') !== -1) jenis = 'Input';
+  else if (modul.indexOf('PRODUKSI') !== -1) jenis = 'Produksi';
+  else if (modul.indexOf('TRANSFER') !== -1) jenis = 'Transfer';
+  else if (modul.indexOf('OPNAME') !== -1) jenis = 'Opname';
+  else if (modul.indexOf('PREPARASI') !== -1) jenis = 'Preparasi';
+  return {
+    timestamp: r['Timestamp'],
+    tanggal: journalDate_(r),
+    txId: r['No Dokumen'] || r['Ref ID'] || '',
+    jenis,
+    modul: r['Modul'],
+    arah: r['Arah'],
+    lokasi: r['Lokasi'],
+    outlet: r['Outlet Tujuan'],
+    idBarang: idItem,
+    namaBarang: meta.nama,
+    kategori: meta.kategori,
+    qty: Math.abs(journalSignedQty_(r)) || normNum_(r['Qty Masuk']) || normNum_(r['Qty Keluar']) || Math.abs(normNum_(r['Qty Adjust'])),
+    qtyMasuk: normNum_(r['Qty Masuk']),
+    qtyKeluar: normNum_(r['Qty Keluar']),
+    qtyAdjust: normNum_(r['Qty Adjust']),
+    satuan: meta.satuan,
+    petugas: r['Petugas'],
+    keterangan: r['Keterangan'],
+    refId: r['Ref ID'],
+    batchId: r['Batch/No Resep']
+  };
+}
+
+function buildRiwayatSummary_(rows) {
+  const uniqueTx = {}, uniquePetugas = {}, byJenis = {};
+  let totalQty = 0;
+  rows.forEach(r => {
+    if (r.txId) uniqueTx[r.txId] = true;
+    if (r.petugas) uniquePetugas[r.petugas] = true;
+    byJenis[r.jenis || '-'] = (byJenis[r.jenis || '-'] || 0) + 1;
+    totalQty += normNum_(r.qty);
+  });
+  return { totalRows: rows.length, uniqueTransaksi: Object.keys(uniqueTx).length, totalPetugas: Object.keys(uniquePetugas).length, totalQty: round_(totalQty), byJenis };
+}
+
+/** ========================= PRINT HELPERS ========================= */
+function getInputPrintOptions(payload) {
+  const tanggal = asDateText_(payload.tanggal) || today_();
+  const lookup = itemLookup_();
+  const grouped = {};
+
+  journalRows_().forEach(r => {
+    if (journalDate_(r) !== tanggal) return;
+    if (normNum_(r['Qty Masuk']) <= 0) return;
+    if (journalLoc_(r) !== 'PUSAT') return;
+
+    const id = journalItemId_(r);
+    if (!id) return;
+
+    const item = findItem_(lookup, id);
+    const nama = normText_(r['Nama Item']) || (item ? normText_(item['Nama Item']) : '');
+    const kategori = normText_(r['Kategori']) || (item ? normText_(item['Kategori']) : '');
+    const satuan = normText_(r['Satuan']) || (item ? normText_(item['Satuan Stok'] || item['Satuan Produksi'] || item['Satuan Beli']) : '');
+    const key = id;
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        key,
+        id,
+        nama: nama || 'Barang tidak ditemukan',
+        kategori: kategori || 'Tanpa Kategori',
+        satuan: satuan || '-',
+        qtyMasuk: 0
+      };
+    }
+    grouped[key].qtyMasuk += normNum_(r['Qty Masuk']);
+  });
+
+  const data = Object.keys(grouped).map(k => {
+    grouped[k].qtyMasuk = round_(grouped[k].qtyMasuk);
+    return grouped[k];
+  }).sort((a, b) => normText_(a.kategori + a.nama).localeCompare(normText_(b.kategori + b.nama), 'id'));
+
+  return ok_({ data, tanggal });
+}
+
+function getInputPrintData(payload) {
+  const tanggal = asDateText_(payload.tanggal) || today_();
+  const keys = (payload.barangKeys || payload.keys || []).map(normText_);
+  const options = getInputPrintOptions({ tanggal }).data || [];
+  const selected = keys.length ? options.filter(x => keys.indexOf(normText_(x.key)) !== -1 || keys.indexOf(normText_(x.id)) !== -1) : options;
+  return ok_({ data: { tanggal, items: selected }, items: selected });
+}
+
+function getTransferPrintData(payload) {
+  const tanggal = asDateText_(payload.tanggal) || today_();
+  const outlet = normUpper_(payload.outlet);
+  if (!outlet) return ok_({ groups: [], allGroup: null });
+
+  const lookup = itemLookup_();
+  const rows = journalRows_().filter(function(r) {
+    if (journalDate_(r) !== tanggal) return false;
+    if (journalOutlet_(r) !== outlet) return false;
+    if (journalLoc_(r) !== 'OUTLET') return false;
+    if (normNum_(r['Qty Masuk']) <= 0) return false;
+    const modul = normalizeJournalModul_(r['Modul']);
+    if (modul === 'TRANSFER_PRODUK') return true;
+    if (modul === 'OUTPUT') {
+      const item = findItem_(lookup, r['ID Item']);
+      return isOutputTransferToOutletStock_(item, itemCategory_(item, r['Kategori']), outlet);
+    }
+    return false;
+  });
+
+  const byDoc = {};
+  rows.forEach(function(r) {
+    const txId = normText_(r['No Dokumen'] || r['Ref ID']) || 'TRF-TANPA-NOMOR';
+    if (!byDoc[txId]) byDoc[txId] = { txId: txId, tanggal: tanggal, outlet: outlet, pic: '', petugas: r['Petugas'] || '', catatan: '', rows: [] };
+    const ket = normText_(r['Keterangan']);
+    const picMatch = ket.match(/PIC\s*:\s*([^|]+)/i);
+    if (picMatch) byDoc[txId].pic = normText_(picMatch[1]);
+    byDoc[txId].catatan = byDoc[txId].catatan || ket;
+    const item = findItem_(lookup, r['ID Item']);
+    byDoc[txId].rows.push({
+      idProduk: r['ID Item'],
+      namaProduk: normText_(r['Nama Item']) || (item ? normText_(item['Nama Item']) : ''),
+      qtyTransfer: normNum_(r['Qty Masuk']),
+      satuan: normText_(r['Satuan']) || (item ? normText_(item['Satuan Stok'] || item['Satuan Produksi'] || item['Satuan Beli']) : '-'),
+      kategori: item ? normText_(item['Kategori']) : normText_(r['Kategori']),
+      sumber: normalizeJournalModul_(r['Modul']) === 'OUTPUT' ? 'OUTPUT_MINUMAN_BARANG_DAGANG' : 'TRANSFER_PRODUK',
+      catatan: r['Keterangan']
+    });
+  });
+
+  const masterAllRows = buildA4RowsForOutlet_(outlet, rows);
+  const groups = Object.keys(byDoc).map(function(txId) {
+    const g = byDoc[txId];
+    g.rows = sortTransferRowsByCategory_(applyOutletAyamRule_(g.rows, outlet, 'namaProduk'), 'namaProduk');
+    g.totalItem = g.rows.length;
+    g.totalQty = round_(g.rows.reduce(function(s, r) { return s + normNum_(r.qtyTransfer); }, 0));
+    g.a4Rows = masterAllRows.map(function(x) {
+      const tambah = g.rows.filter(function(r) { return r.idProduk === x.idProduk; }).reduce(function(s, r) { return s + normNum_(r.qtyTransfer); }, 0);
+      return Object.assign({}, x, { tambahProduk: round_(tambah), totalProduk: round_(normNum_(x.stokAkhir) + tambah) });
+    });
+    return g;
+  });
+
+  let allGroup = null;
+  if (groups.length > 1) {
+    const allRows = [];
+    groups.forEach(function(g) { g.rows.forEach(function(r) { allRows.push(r); }); });
+    const sortedAllRows = sortTransferRowsByCategory_(applyOutletAyamRule_(allRows, outlet, 'namaProduk'), 'namaProduk');
+    allGroup = {
+      txId: 'ALL', tanggal: tanggal, outlet: outlet,
+      pic: groups.map(function(g) { return g.pic; }).filter(Boolean).join(', '),
+      petugas: groups.map(function(g) { return g.petugas; }).filter(Boolean)[0] || '',
+      catatan: 'Gabungan semua transfer produk/barang dagang tanggal/outlet ini.',
+      rows: sortedAllRows,
+      totalItem: sortedAllRows.length,
+      totalQty: round_(sortedAllRows.reduce(function(s, r) { return s + normNum_(r.qtyTransfer); }, 0)),
+      a4Rows: masterAllRows
+    };
+  }
+  return ok_({ groups: groups, allGroup: allGroup });
+}
+
+function buildA4RowsForOutlet_(outlet, transferRows) {
+  const beforeToday = locationStockMap_(today_(), null);
+  const byId = {};
+  buildTransferProdukListForOutlet_(outlet).forEach(function(p) {
+    if (p.id) byId[p.id] = {
+      idProduk: p.id,
+      namaProduk: p.nama,
+      satuan: p.satuan || '-',
+      kategori: p.kategori || '',
+      stokAkhir: beforeToday[['OUTLET', normUpper_(outlet), p.id].join('|')] || 0,
+      tambahProduk: 0,
+      totalProduk: 0,
+      produkTerjual: '',
+      produkAkhir: ''
+    };
+  });
+  (transferRows || []).forEach(function(r) {
+    const id = journalItemId_(r);
+    if (!id) return;
+    if (!byId[id]) {
+      const item = findItem_(itemLookup_(), id);
+      byId[id] = {
+        idProduk: id,
+        namaProduk: item ? item['Nama Item'] : normText_(r['Nama Item']),
+        satuan: item ? (item['Satuan Stok'] || item['Satuan Produksi'] || '-') : (normText_(r['Satuan']) || '-'),
+        kategori: item ? normText_(item['Kategori']) : normText_(r['Kategori']),
+        stokAkhir: beforeToday[['OUTLET', normUpper_(outlet), id].join('|')] || 0,
+        tambahProduk: 0,
+        totalProduk: 0,
+        produkTerjual: '',
+        produkAkhir: ''
+      };
+    }
+    byId[id].tambahProduk = round_(normNum_(byId[id].tambahProduk) + normNum_(r['Qty Masuk']));
+  });
+  const list = Object.keys(byId).map(function(id) {
+    const x = byId[id];
+    x.stokAkhir = round_(x.stokAkhir);
+    x.tambahProduk = round_(x.tambahProduk);
+    x.totalProduk = round_(normNum_(x.stokAkhir) + normNum_(x.tambahProduk));
+    return x;
+  });
+  return sortTransferRowsByCategory_(applyOutletAyamRule_(list.filter(function(x) { return x.idProduk && x.namaProduk; }), outlet, 'namaProduk'), 'namaProduk');
+}
+
+/** ========================= SAVE TRANSACTIONS ========================= */
+function normalizeJournalModul_(value) {
+  const v = normUpper_(value).replace(/\s+/g, '_');
+  const map = {
+    INPUT: 'INPUT',
+    INPUT_STOK: 'INPUT',
+    STOK_INPUT: 'INPUT',
+    OUTPUT: 'OUTPUT',
+    OUTPUT_STOK: 'OUTPUT',
+    STOK_OUTPUT: 'OUTPUT',
+    PREPARASI: 'PREPARASI',
+    PRODUKSI: 'PRODUKSI',
+    TRANSFER: 'TRANSFER_PRODUK',
+    TRANSFER_PRODUK: 'TRANSFER_PRODUK',
+    TRANSFER_PRODUKSI: 'TRANSFER_PRODUK',
+    PRODUK_OUTLET: 'PRODUK_OUTLET',
+    PRODUK_OUTLET_KELUAR: 'PRODUK_OUTLET',
+    STOK_OPNAME: 'OPNAME',
+    OPNAME: 'OPNAME',
+    ARSIP: 'ARSIP'
+  };
+  return map[v] || v;
+}
+
+function normalizeJournalArah_(value) {
+  const v = normUpper_(value).replace(/\s+/g, '_');
+  if (v === 'MASUK' || v === 'IN' || v === 'INPUT') return 'IN';
+  if (v === 'KELUAR' || v === 'OUT' || v === 'OUTPUT') return 'OUT';
+  if (v === 'ADJUST' || v === 'ADJ' || v === 'OPNAME' || v === 'KOREKSI') return 'ADJ';
+  return v || 'IN';
+}
+
+function isJournalIn_(arah) { return normalizeJournalArah_(arah) === 'IN'; }
+function isJournalOut_(arah) { return normalizeJournalArah_(arah) === 'OUT'; }
+function isJournalAdj_(arah) { return normalizeJournalArah_(arah) === 'ADJ'; }
+
+function journalObject_(args) {
+  const lookup = args.lookup || itemLookup_();
+  const item = args.item || findItem_(lookup, args.idItem || args.id || args.namaItem || args.nama);
+  const idItem = item ? item['ID Item'] : normText_(args.idItem || args.id || '');
+  const modul = normalizeJournalModul_(args.modul || '');
+  const arah = normalizeJournalArah_(args.arah || 'IN');
+  const qty = normNum_(args.qty);
+  return {
+    'Timestamp': now_(),
+    'Tanggal': asDateText_(args.tanggal) || today_(),
+    'No Dokumen': args.noDokumen || args.txId || docId_(args.prefix || 'JRN'),
+    'Modul': modul,
+    'Arah': arah,
+    'Lokasi': normUpper_(args.lokasi || 'PUSAT') || 'PUSAT',
+    'Outlet Tujuan': normUpper_(args.outlet || 'ALL') || 'ALL',
+    'ID Item': idItem,
+    'Qty Masuk': isJournalIn_(arah) ? qty : '',
+    'Qty Keluar': isJournalOut_(arah) ? qty : '',
+    'Qty Adjust': isJournalAdj_(arah) ? qty : '',
+    'Petugas': args.petugas || '',
+    'Keterangan': args.keterangan || '',
+    'Ref ID': args.refId || '',
+    'Batch/No Resep': args.batchId || args.noResep || ''
+  };
+}
+
+function simpanInputStokPreparasi(payload) {
+  const lookup = itemLookup_();
+  const noDokumen = payload.noDokumen || docId_('IN');
+  const batchId = payload.batchId || docId_('BATCH-IN');
+  const rows = [];
+
+  // Format V67: inputRows = [tanggal, petugas, kategori, id, nama, qtyBeli, satBeli, qtyStok, satStok, selisihSupplier, qtyStandarSupplier, catatanSupplier]
+  (payload.inputRows || []).forEach(arr => {
+    const r = Array.isArray(arr) ? arr : [];
+    const idItem = r[3] || arr.id || arr.idItem;
+    const item = findItem_(lookup, idItem || r[4]);
+    const qtyBeliInfo = normText_(r[5] || '') + ' ' + normText_(r[6] || '');
+    const selisihSupplier = normText_(r[9] || arr.selisihSupplier || '');
+    const standarSupplier = normText_(r[10] || arr.qtyStandarSupplier || '');
+    let ket = 'Input stok. Qty beli: ' + qtyBeliInfo;
+    if (selisihSupplier !== '') {
+      const angkaSelisih = normNum_(selisihSupplier);
+      const tanda = angkaSelisih > 0 ? '+' : '';
+      ket += ' | Selisih supplier ayam: ' + tanda + angkaSelisih + ' ' + normText_(r[8] || '') + (standarSupplier !== '' ? ' dari standar ' + standarSupplier + ' ' + normText_(r[8] || '') : '');
+    }
+    rows.push(journalObject_({
+      lookup, item, idItem,
+      tanggal: r[0] || payload.tanggal,
+      petugas: r[1] || payload.petugas,
+      modul: 'INPUT_STOK', arah: 'MASUK', lokasi: 'PUSAT', outlet: 'ALL',
+      qty: r[7] || r[5] || arr.qtyStok || arr.qtyMasuk || arr.qty,
+      noDokumen, batchId, prefix: 'IN',
+      keterangan: ket
+    }));
+  });
+
+  // Format V2.6: outputRows parent preparasi = [tanggal, petugas, kategori, id, nama, qty, satuan, tujuan, outlet, pic]
+  (payload.outputRows || []).forEach(arr => {
+    const r = Array.isArray(arr) ? arr : [];
+    const idItem = r[3] || arr.id || arr.idItem;
+    const item = findItem_(lookup, idItem || r[4]);
+    rows.push(journalObject_({
+      lookup, item, idItem,
+      tanggal: r[0] || payload.tanggal,
+      petugas: r[1] || payload.petugas,
+      modul: 'PREPARASI', arah: 'KELUAR', lokasi: 'PUSAT', outlet: 'ALL',
+      qty: r[5] || arr.qty,
+      noDokumen, batchId, prefix: 'PREP',
+      keterangan: 'Parent bahan dipreparasi menjadi item turunan.'
+    }));
+  });
+
+  // Format V3/future: rows object biasa.
+  (payload.rows || []).forEach(r => {
+    const item = findItem_(lookup, r.idItem || r.id || r.nama);
+    rows.push(journalObject_({ lookup, item, idItem: r.idItem || r.id, tanggal: payload.tanggal || r.tanggal, petugas: payload.petugas || r.petugas, modul: 'INPUT_STOK', arah: 'MASUK', lokasi: 'PUSAT', outlet: 'ALL', qty: r.qtyStok || r.qtyMasuk || r.qty, noDokumen, batchId, prefix: 'IN', keterangan: r.keterangan || payload.keterangan || '' }));
+  });
+
+  if (!rows.length) throw new Error('Tidak ada baris input valid untuk disimpan.');
+  writeObjects_(APJ_INV_V3.SHEETS.JURNAL, rows);
+  clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  return ok_({ message: 'Input stok tersimpan ke JURNAL_STOK.', count: rows.length, noDokumen, batchId });
+}
+
+function simpanTransaksi(payload) {
+  if (normUpper_(payload.sheetName) === 'STOK_OPNAME') return simpanStokOpname(payload);
+  return simpanOutputStok(payload);
+}
+
+function simpanOutputStok(payload) {
+  const lookup = itemLookup_();
+  const noDokumen = payload.noDokumen || docId_('OUT');
+  const batchId = payload.batchId || docId_('BATCH-OUT');
+  const rows = [];
+  let countOutletIn = 0;
+  let countPusatOnly = 0;
+
+  (payload.data || payload.rows || []).forEach(function(x) {
+    // V2.6 array: [tanggal, petugas, kategori, id, nama, qty, satuan, tujuan, outlet, pic, catatan]
+    const arr = Array.isArray(x) ? x : [];
+    const tanggal = arr[0] || x.tanggal || payload.tanggal;
+    const petugas = arr[1] || x.petugas || payload.petugas;
+    const kategoriInput = arr[2] || x.kategori || payload.kategori;
+    const idItem = arr[3] || x.idItem || x.idBarang || x.id;
+    const nama = arr[4] || x.nama || x.namaItem;
+    const qty = arr[5] || x.qtyKeluar || x.qty;
+    const tujuan = normText_(arr[7] || x.tujuan || x.keterangan || 'Pemakaian Pusat');
+    const outlet = normUpper_(arr[8] || x.outlet || payload.outlet);
+    const pic = normText_(arr[9] || x.pic || payload.pic);
+    const catatanManual = normText_(arr[10] || x.catatan || payload.keterangan || '');
+    const item = findItem_(lookup, idItem || nama);
+    const kategori = itemCategory_(item, kategoriInput);
+    const isTransfer = isOutputTransferIntent_(tujuan);
+    const masukOutlet = isTransfer && outlet && isOutputTransferToOutletStock_(item, kategori, outlet);
+
+    const ketParts = [];
+    ketParts.push('Tujuan: ' + (isTransfer ? 'Transfer Outlet' : tujuan));
+    if (isTransfer && outlet) ketParts.push('Outlet: ' + outlet);
+    if (pic) ketParts.push('PIC: ' + pic);
+    if (catatanManual) ketParts.push(catatanManual);
+    if (isTransfer && !masukOutlet) ketParts.push('Barang operasional/non-jual: tidak menambah stok outlet.');
+    if (masukOutlet) ketParts.push('Barang jual outlet: menambah stok outlet.');
+    const keterangan = ketParts.join(' | ');
+
+    // Semua output selalu mengurangi stok pusat/gudang.
+    rows.push(journalObject_({ lookup: lookup, item: item, idItem: idItem, tanggal: tanggal, petugas: petugas, modul: 'OUTPUT', arah: 'OUT', lokasi: 'PUSAT', outlet: 'ALL', qty: qty, noDokumen: noDokumen, batchId: batchId, prefix: 'OUT', keterangan: keterangan }));
+
+    // Hanya Minuman & Barang Dagang yang dijual/terdaftar outlet yang masuk stok outlet.
+    // Barang operasional cukup keluar dari pusat saja.
+    if (masukOutlet) {
+      rows.push(journalObject_({ lookup: lookup, item: item, idItem: idItem, tanggal: tanggal, petugas: petugas, modul: 'OUTPUT', arah: 'IN', lokasi: 'OUTLET', outlet: outlet, qty: qty, noDokumen: noDokumen, batchId: batchId, prefix: 'OUT', keterangan: keterangan }));
+      countOutletIn++;
+    } else {
+      countPusatOnly++;
+    }
+  });
+
+  if (!rows.length) throw new Error('Tidak ada baris output valid untuk disimpan.');
+  writeObjects_(APJ_INV_V3.SHEETS.JURNAL, rows);
+  clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  return ok_({
+    message: 'Output stok tersimpan. Barang jual Minuman & Barang Dagang masuk stok outlet; barang operasional hanya mengurangi stok pusat.',
+    count: rows.length,
+    countOutletIn: countOutletIn,
+    countPusatOnly: countPusatOnly,
+    noDokumen: noDokumen,
+    batchId: batchId
+  });
+}
+
+function simpanOutputProduksi(payload) {
+  const lookup = itemLookup_();
+  const noDokumen = payload.noDokumen || docId_('PRD');
+  const batchId = payload.batchId || docId_('BATCH-PRD');
+  const rows = [];
+
+  (payload.bahanRows || payload.bahan || []).forEach(b => {
+    const item = findItem_(lookup, b.idBahan || b.idItem || b.id || b.bahanBaku);
+    rows.push(journalObject_({ lookup, item, idItem: b.idBahan || b.idItem || b.id, tanggal: b.tanggal || payload.tanggal, petugas: b.petugas || payload.petugas, modul: 'PRODUKSI', arah: 'KELUAR', lokasi: 'PUSAT', outlet: 'ALL', qty: b.qtyKeluar || b.qty, noDokumen, batchId, prefix: 'PRD', keterangan: b.keterangan || 'Pemakaian bahan produksi' }));
+  });
+
+  (payload.produksiRows || payload.hasil || payload.rows || []).forEach(p => {
+    const item = findItem_(lookup, p.idProduksi || p.idItem || p.id || p.produksi);
+    rows.push(journalObject_({ lookup, item, idItem: p.idProduksi || p.idItem || p.id, tanggal: p.tanggal || payload.tanggal, petugas: p.petugas || payload.petugas, modul: 'PRODUKSI', arah: 'MASUK', lokasi: 'PUSAT', outlet: 'ALL', qty: p.qtyProduksi || p.qty, noDokumen, batchId, prefix: 'PRD', keterangan: p.keterangan || 'Hasil produksi' }));
+  });
+
+  if (!rows.length) throw new Error('Tidak ada baris produksi valid untuk disimpan.');
+  writeObjects_(APJ_INV_V3.SHEETS.JURNAL, rows);
+  clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  return ok_({ message: 'Produksi tersimpan ke JURNAL_STOK.', count: rows.length, noDokumen, batchId });
+}
+
+function simpanPreparasi(payload) {
+  const lookup = itemLookup_();
+  const noDokumen = payload.noDokumen || docId_('PREP');
+  const batchId = payload.batchId || docId_('BATCH-PREP');
+  const rows = [];
+  (payload.bahan || payload.bahanRows || []).forEach(b => {
+    const item = findItem_(lookup, b.idBahan || b.idItem || b.id || b.nama);
+    rows.push(journalObject_({ lookup, item, idItem: b.idBahan || b.idItem || b.id, tanggal: b.tanggal || payload.tanggal, petugas: b.petugas || payload.petugas, modul: 'PREPARASI', arah: 'KELUAR', lokasi: 'PUSAT', outlet: 'ALL', qty: b.qtyKeluar || b.qty, noDokumen, batchId, prefix: 'PREP', keterangan: b.keterangan || 'Bahan preparasi' }));
+  });
+  (payload.hasil || payload.hasilRows || []).forEach(h => {
+    const item = findItem_(lookup, h.idHasil || h.idItem || h.id || h.nama);
+    rows.push(journalObject_({ lookup, item, idItem: h.idHasil || h.idItem || h.id, tanggal: h.tanggal || payload.tanggal, petugas: h.petugas || payload.petugas, modul: 'PREPARASI', arah: 'MASUK', lokasi: 'PUSAT', outlet: 'ALL', qty: h.qtyMasuk || h.qty, noDokumen, batchId, prefix: 'PREP', keterangan: h.keterangan || 'Hasil preparasi' }));
+  });
+  if (!rows.length) throw new Error('Tidak ada baris preparasi valid untuk disimpan.');
+  writeObjects_(APJ_INV_V3.SHEETS.JURNAL, rows);
+  clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  return ok_({ message: 'Preparasi tersimpan ke JURNAL_STOK.', count: rows.length, noDokumen, batchId });
+}
+
+function simpanTransferProduksi(payload) {
+  const lookup = itemLookup_();
+  const noDokumen = payload.noDokumen || docId_('TRF');
+  const batchId = payload.batchId || docId_('BATCH-TRF');
+  const outlet = normUpper_(payload.outlet);
+  if (!outlet) throw new Error('Outlet tujuan wajib diisi.');
+  const rows = [];
+
+  (payload.rows || []).forEach(function(r) {
+    const item = findItem_(lookup, r.idProduk || r.idItem || r.id || r.namaProduk);
+    const idItem = item ? item['ID Item'] : (r.idProduk || r.idItem || r.id);
+    const qty = r.qtyTransfer || r.qty;
+    if (!item) throw new Error('Item transfer tidak ditemukan: ' + (r.namaProduk || r.idProduk || r.idItem || r.id));
+    if (!isTransferProductEligible_(item, outlet)) throw new Error('Item belum ditandai sebagai produk outlet/siap transfer: ' + (item['Nama Item'] || idItem));
+    const kategori = itemCategory_(item, '');
+    const ket = (r.catatan || payload.catatan || 'Transfer produk outlet') + (payload.pic ? ' | PIC: ' + payload.pic : '') + ' | Kategori: ' + kategori;
+    rows.push(journalObject_({ lookup: lookup, item: item, idItem: idItem, tanggal: payload.tanggal || r.tanggal, petugas: payload.petugas || r.petugas, modul: 'TRANSFER_PRODUK', arah: 'OUT', lokasi: 'PUSAT', outlet: 'ALL', qty: qty, noDokumen: noDokumen, batchId: batchId, prefix: 'TRF', keterangan: ket }));
+    rows.push(journalObject_({ lookup: lookup, item: item, idItem: idItem, tanggal: payload.tanggal || r.tanggal, petugas: payload.petugas || r.petugas, modul: 'TRANSFER_PRODUK', arah: 'IN', lokasi: 'OUTLET', outlet: outlet, qty: qty, noDokumen: noDokumen, batchId: batchId, prefix: 'TRF', keterangan: ket }));
+  });
+  if (!rows.length) throw new Error('Tidak ada baris transfer valid untuk disimpan.');
+  writeObjects_(APJ_INV_V3.SHEETS.JURNAL, rows);
+  clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  return ok_({ message: 'Transfer produk tersimpan. Produk produksi/preparasi masuk stok outlet.', count: rows.length, noDokumen: noDokumen, batchId: batchId });
+}
+
+function simpanOlahOutlet(payload) {
+  const lookup = itemLookup_();
+  const noDokumen = payload.noDokumen || docId_('OLH');
+  const batchId = payload.batchId || docId_('BATCH-OLH');
+  const outlet = normUpper_(payload.outlet);
+  if (!outlet) throw new Error('Outlet wajib diisi untuk proses outlet.');
+  const rows = [];
+  (payload.rows || []).forEach(function(r) {
+    const bahan = findItem_(lookup, r.idBahan || r.idAsal || r.idItemAsal || r.asal || r.namaAsal);
+    const hasil = findItem_(lookup, r.idHasil || r.idTujuan || r.idItemHasil || r.hasil || r.namaHasil);
+    const qty = normNum_(r.qty || r.qtyProses || r.qtyGoreng);
+    if (!bahan || !hasil) throw new Error('Barang asal/hasil proses outlet belum lengkap.');
+    if (qty <= 0) throw new Error('Qty proses outlet harus lebih dari 0.');
+    const ket = r.keterangan || payload.keterangan || 'Proses outlet / olah akhir';
+    rows.push(journalObject_({ lookup: lookup, item: bahan, idItem: bahan['ID Item'], tanggal: payload.tanggal || r.tanggal, petugas: payload.petugas || r.petugas, modul: 'PRODUK_OUTLET', arah: 'OUT', lokasi: 'OUTLET', outlet: outlet, qty: qty, noDokumen: noDokumen, batchId: batchId, prefix: 'OLH', keterangan: ket + ' | Asal' }));
+    rows.push(journalObject_({ lookup: lookup, item: hasil, idItem: hasil['ID Item'], tanggal: payload.tanggal || r.tanggal, petugas: payload.petugas || r.petugas, modul: 'PRODUK_OUTLET', arah: 'IN', lokasi: 'OUTLET', outlet: outlet, qty: qty, noDokumen: noDokumen, batchId: batchId, prefix: 'OLH', keterangan: ket + ' | Hasil' }));
+  });
+  if (!rows.length) throw new Error('Tidak ada baris proses outlet valid untuk disimpan.');
+  writeObjects_(APJ_INV_V3.SHEETS.JURNAL, rows);
+  clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  return ok_({ message: 'Proses outlet tersimpan. Stok setengah jadi berkurang dan stok siap jual bertambah.', count: rows.length, noDokumen: noDokumen, batchId: batchId });
+}
+
+function simpanProdukOutletKeluar(payload) {
+  const lookup = itemLookup_();
+  const noDokumen = payload.noDokumen || docId_('SALE');
+  const batchId = payload.batchId || docId_('BATCH-SALE');
+  const outlet = normUpper_(payload.outlet);
+  if (!outlet) throw new Error('Outlet wajib diisi.');
+  const rows = (payload.rows || []).map(r => {
+    const item = findItem_(lookup, r.id || r.idItem || r.idProduk || r.nama);
+    return journalObject_({ lookup, item, idItem: r.id || r.idItem || r.idProduk, tanggal: payload.tanggal || r.tanggal, petugas: payload.petugas || r.petugas, modul: 'PRODUK_OUTLET', arah: 'KELUAR', lokasi: 'OUTLET', outlet, qty: r.qtyKeluar || r.qty, noDokumen, batchId, prefix: 'SALE', keterangan: r.keterangan || 'Terjual' });
+  });
+  if (!rows.length) throw new Error('Tidak ada baris produk terjual valid untuk disimpan.');
+  writeObjects_(APJ_INV_V3.SHEETS.JURNAL, rows);
+  clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  return ok_({ message: 'Produk outlet terjual tersimpan.', count: rows.length, noDokumen, batchId });
+}
+
+function simpanProdukOutletOpname(payload) {
+  return simpanStokOpname(Object.assign({}, payload, { lokasi: 'OUTLET' }));
+}
+
+function simpanStokOpname(payload) {
+  const lookup = itemLookup_();
+  const noDokumen = payload.noDokumen || docId_('OPN');
+  const batchId = payload.batchId || docId_('BATCH-OPN');
+  const rows = [];
+  const lokasi = normUpper_(payload.lokasi || (payload.outlet ? 'OUTLET' : 'PUSAT')) || 'PUSAT';
+  const outlet = normUpper_(payload.outlet || (lokasi === 'OUTLET' ? payload.outlet : 'ALL')) || 'ALL';
+
+  (payload.data || payload.rows || []).forEach(x => {
+    const arr = Array.isArray(x) ? x : [];
+    // V2.6 opname array: [tanggal, petugas, kategori, id, nama, stokSistem, stokFisik, selisih, satuan, alasan]
+    const tanggal = arr[0] || x.tanggal || payload.tanggal;
+    const petugas = arr[1] || x.petugas || payload.petugas;
+    const idItem = arr[3] || x.id || x.idItem || x.idProduk;
+    const nama = arr[4] || x.nama || x.namaItem;
+    const stokSistem = normNum_(arr[5] || x.stokSistem);
+    const stokFisik = normNum_(arr[6] || x.stokFisik);
+    const selisih = x.selisih !== undefined ? normNum_(x.selisih) : (arr[7] !== undefined && arr[7] !== '' ? normNum_(arr[7]) : round_(stokFisik - stokSistem));
+    const item = findItem_(lookup, idItem || nama);
+    rows.push(journalObject_({ lookup, item, idItem, tanggal, petugas, modul: 'STOK_OPNAME', arah: 'ADJUST', lokasi, outlet, qty: selisih, noDokumen, batchId, prefix: 'OPN', keterangan: arr[9] || x.alasan || payload.keterangan || 'Stok opname' }));
+  });
+
+  if (!rows.length) throw new Error('Tidak ada baris opname valid untuk disimpan.');
+  writeObjects_(APJ_INV_V3.SHEETS.JURNAL, rows);
+  clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  return ok_({ message: 'Stok opname tersimpan ke JURNAL_STOK.', count: rows.length, noDokumen, batchId });
+}
+
+/** ========================= SETUP INVENTORY DATA ========================= */
+function getSetupInventoryData(payload) {
+  return ok_({
+    kategori: readRows_(APJ_INV_V3.SHEETS.KATEGORI, true),
+    items: readRows_(APJ_INV_V3.SHEETS.ITEM, true),
+    produk: readRows_(APJ_INV_V3.SHEETS.PRODUK, true),
+    resep: readRows_(APJ_INV_V3.SHEETS.RESEP, true),
+    resepDetail: readRows_(APJ_INV_V3.SHEETS.RESEP_DETAIL, true),
+    resepPreparasi: readRows_(APJ_INV_V3.SHEETS.PREP_RESEP, true),
+    outlets: getOutlets_(payload),
+    pics: getPics_(payload)
+  });
+}
+
+function saveKategoriInventory(payload) {
+  const data = payload.data || payload.kategori || payload;
+  const id = normText_(data.idKategori || data['ID Kategori']);
+  const obj = {
+    'Nama Kategori': data.namaKategori || data['Nama Kategori'] || data.nama || data.kategori,
+    'Tipe Stok': data.tipeStok || data['Tipe Stok'] || 'STOK_GUDANG',
+    'Prefix': data.prefix || data['Prefix'] || '',
+    'Urutan': data.urutan || data['Urutan'] || '',
+    'Aktif': data.aktif || data['Aktif'] || 'Y',
+    'Keterangan': data.keterangan || data['Keterangan'] || ''
+  };
+  if (!obj['Nama Kategori']) throw new Error('Nama kategori wajib diisi.');
+  return upsertMaster_(APJ_INV_V3.SHEETS.KATEGORI, ['ID Kategori'], id, obj, 'Kategori');
+}
+function deleteKategoriInventory(payload) { return softDeleteMaster_(APJ_INV_V3.SHEETS.KATEGORI, ['ID Kategori'], payload.idKategori || payload.id, 'Kategori'); }
+
+function saveItemInventory(payload) {
+  const data = payload.data || payload.item || payload;
+  const id = normText_(data.idItem || data['ID Item']);
+  const obj = {
+    'Kategori': data.kategori || data['Kategori'],
+    'Kode Lama': data.kodeLama || data['Kode Lama'] || '',
+    'Nama Item': data.namaItem || data['Nama Item'] || data.nama,
+    'Satuan Beli': data.satuanBeli || data['Satuan Beli'] || '',
+    'Satuan Stok': data.satuanStok || data['Satuan Stok'] || '',
+    'Satuan Produksi': data.satuanProduksi || data['Satuan Produksi'] || data.satuanStok || data['Satuan Stok'] || '',
+    'Tipe Item': data.tipeItem || data['Tipe Item'] || 'NORMAL',
+    'Parent/Konversi Dari': data.parent || data.parentId || data['Parent/Konversi Dari'] || '',
+    'Tampil Input': data.tampilInput || data['Tampil Input'] || 'Y',
+    'Bisa Output': data.bisaOutput || data['Bisa Output'] || 'Y',
+    'Bisa Preparasi': data.bisaPreparasi || data['Bisa Preparasi'] || 'Y',
+    'Bisa Produksi': data.bisaProduksi || data['Bisa Produksi'] || 'Y',
+    'Bisa Transfer Produk': data.bisaTransferProduk || data['Bisa Transfer Produk'] || 'N',
+    'Stok Minimum': data.stokMinimum || data['Stok Minimum'] || 0,
+    'Urutan': data.urutan || data['Urutan'] || '',
+    'Aktif': data.aktif || data['Aktif'] || 'Y',
+    'Keterangan': data.keterangan || data['Keterangan'] || ''
+  };
+  if (!obj['Kategori']) throw new Error('Kategori item wajib diisi.');
+  if (!obj['Nama Item']) throw new Error('Nama item wajib diisi.');
+  if (!obj['Satuan Stok']) throw new Error('Satuan stok wajib diisi.');
+  return upsertMaster_(APJ_INV_V3.SHEETS.ITEM, ['ID Item', 'Kode Lama'], id || obj['Kode Lama'], obj, 'Item');
+}
+function deleteItemInventory(payload) { return softDeleteMaster_(APJ_INV_V3.SHEETS.ITEM, ['ID Item', 'Kode Lama'], payload.idItem || payload.id || payload.kodeLama, 'Item'); }
+
+function saveProdukInventory(payload) {
+  const data = payload.data || payload.produk || payload;
+  const id = normText_(data.idProduk || data['ID Produk']);
+  const obj = {
+    'Outlet': normUpper_(data.outlet || data['Outlet'] || 'ALL'),
+    'ID Item': data.idItem || data['ID Item'],
+    'Tampil Outlet': data.tampilOutlet || data['Tampil Outlet'] || 'Y',
+    'Urutan': data.urutan || data['Urutan'] || '',
+    'Aktif': data.aktif || data['Aktif'] || 'Y',
+    'Keterangan': data.keterangan || data['Keterangan'] || '',
+    'Kode Lama': data.kodeLama || data['Kode Lama'] || ''
+  };
+  if (!obj['Outlet']) throw new Error('Outlet produk wajib diisi.');
+  if (!obj['ID Item']) throw new Error('ID Item produk wajib diisi.');
+  return upsertMaster_(APJ_INV_V3.SHEETS.PRODUK, ['ID Produk', 'Kode Lama'], id || obj['Kode Lama'], obj, 'Produk');
+}
+function deleteProdukInventory(payload) { return softDeleteMaster_(APJ_INV_V3.SHEETS.PRODUK, ['ID Produk', 'Kode Lama'], payload.idProduk || payload.id || payload.kodeLama, 'Produk'); }
+
+function saveResepInventory(payload) {
+  const data = payload.data || payload.resep || payload;
+  const id = normText_(data.idResep || data['ID Resep']);
+  const obj = {
+    'ID Item Hasil': data.idItemHasil || data['ID Item Hasil'] || data.idHasil,
+    'Qty Hasil Standar': data.qtyHasilStandar || data['Qty Hasil Standar'] || 1,
+    'Versi': data.versi || data['Versi'] || 'v1',
+    'Aktif': data.aktif || data['Aktif'] || 'Y',
+    'Catatan': data.catatan || data['Catatan'] || '',
+    'Kode Lama': data.kodeLama || data['Kode Lama'] || ''
+  };
+  if (!obj['ID Item Hasil']) throw new Error('ID Item Hasil resep wajib diisi.');
+  return upsertMaster_(APJ_INV_V3.SHEETS.RESEP, ['ID Resep', 'Kode Lama'], id || obj['Kode Lama'], obj, 'Resep');
+}
+function deleteResepInventory(payload) { return softDeleteMaster_(APJ_INV_V3.SHEETS.RESEP, ['ID Resep', 'Kode Lama'], payload.idResep || payload.id || payload.kodeLama, 'Resep'); }
+
+function saveResepDetailInventory(payload) {
+  const data = payload.data || payload.detail || payload;
+  const id = normText_(data.idDetail || data['ID Detail']);
+  const obj = {
+    'ID Resep': data.idResep || data['ID Resep'],
+    'ID Bahan': data.idBahan || data['ID Bahan'],
+    'Qty Bahan': data.qtyBahan || data['Qty Bahan'] || 0,
+    'Jenis Bahan': data.jenisBahan || data['Jenis Bahan'] || 'Bahan',
+    'Catatan': data.catatan || data['Catatan'] || ''
+  };
+  if (!obj['ID Resep']) throw new Error('ID Resep detail wajib diisi.');
+  if (!obj['ID Bahan']) throw new Error('ID Bahan detail wajib diisi.');
+  return upsertMaster_(APJ_INV_V3.SHEETS.RESEP_DETAIL, ['ID Detail'], id, obj, 'Detail resep');
+}
+function deleteResepDetailInventory(payload) { return softDeleteOrClearMaster_(APJ_INV_V3.SHEETS.RESEP_DETAIL, ['ID Detail'], payload.idDetail || payload.id, 'Detail resep'); }
+
+function saveResepPreparasiInventory(payload) {
+  const data = payload.data || payload.resepPreparasi || payload;
+  const id = normText_(data.idResepPreparasi || data['ID Resep Preparasi']);
+  const obj = {
+    'ID Item Hasil': data.idItemHasil || data['ID Item Hasil'] || data.idHasil,
+    'Qty Hasil': data.qtyHasil || data['Qty Hasil'] || 1,
+    'ID Bahan': data.idBahan || data['ID Bahan'],
+    'Qty Bahan': data.qtyBahan || data['Qty Bahan'] || 0,
+    'Yield %': data.yield || data.yieldPct || data['Yield %'] || 100,
+    'Aktif': data.aktif || data['Aktif'] || 'Y',
+    'Catatan': data.catatan || data['Catatan'] || ''
+  };
+  if (!obj['ID Item Hasil']) throw new Error('ID Item Hasil preparasi wajib diisi.');
+  if (!obj['ID Bahan']) throw new Error('ID Bahan preparasi wajib diisi.');
+  return upsertMaster_(APJ_INV_V3.SHEETS.PREP_RESEP, ['ID Resep Preparasi'], id, obj, 'Resep preparasi');
+}
+function deleteResepPreparasiInventory(payload) { return softDeleteMaster_(APJ_INV_V3.SHEETS.PREP_RESEP, ['ID Resep Preparasi'], payload.idResepPreparasi || payload.id, 'Resep preparasi'); }
+
+function upsertMaster_(sheetName, idHeaders, idValue, obj, label) {
+  const existing = idValue ? findMasterRow_(sheetName, idHeaders, idValue) : null;
+  if (existing) {
+    updateRowObject_(sheetName, existing._rowNumber, obj);
+    return ok_({ message: label + ' berhasil diperbarui.', mode: 'update', id: idValue, rowNumber: existing._rowNumber });
+  }
+  const rowBefore = sh_(sheetName).getLastRow();
+  writeObjects_(sheetName, [obj]);
+  const rowNumber = rowBefore + 1;
+  return ok_({ message: label + ' berhasil ditambahkan.', mode: 'insert', id: predictId_(sheetName, rowNumber), rowNumber });
+}
+
+function softDeleteMaster_(sheetName, idHeaders, idValue, label) {
+  const existing = findMasterRow_(sheetName, idHeaders, idValue);
+  if (!existing) throw new Error(label + ' tidak ditemukan: ' + idValue);
+  updateRowObject_(sheetName, existing._rowNumber, { 'Aktif': 'N', 'Keterangan': (existing['Keterangan'] || existing['Catatan'] || '') + ' | Dinonaktifkan ' + now_() });
+  return ok_({ message: label + ' dinonaktifkan. ID tidak dihapus agar histori aman.', id: idValue, rowNumber: existing._rowNumber });
+}
+
+function softDeleteOrClearMaster_(sheetName, idHeaders, idValue, label) {
+  const existing = findMasterRow_(sheetName, idHeaders, idValue);
+  if (!existing) throw new Error(label + ' tidak ditemukan: ' + idValue);
+  const meta = headerMap_(sheetName);
+  if (meta.map['Aktif']) return softDeleteMaster_(sheetName, idHeaders, idValue, label);
+  // Sheet detail tidak punya kolom Aktif; kosongkan kolom manual supaya formula ID otomatis tidak rusak.
+  const obj = {};
+  (APJ_INV_V3.WRITABLE_HEADERS[sheetName] || []).forEach(h => obj[h] = '');
+  updateRowObject_(sheetName, existing._rowNumber, obj);
+  return ok_({ message: label + ' dikosongkan. Baris tidak dihapus agar ID lain aman.', id: idValue, rowNumber: existing._rowNumber });
+}
+
+
+
+/** ========================= MAINTENANCE / REPAIR ========================= */
+function repairJurnalStokV3(payload) {
+  const sheetName = APJ_INV_V3.SHEETS.JURNAL;
+  const meta = headerMap_(sheetName);
+  const writable = APJ_INV_V3.WRITABLE_HEADERS[sheetName] || meta.headers;
+  const cols = writable
+    .map(h => ({ header: h, col: meta.map[h] }))
+    .filter(x => x.col);
+  if (!cols.length) throw new Error('Tidak ada kolom writable untuk sheet ' + sheetName);
+
+  const maxRows = Math.max(meta.sheet.getMaxRows(), 2);
+  if (maxRows < 2) return ok_({ message: 'JURNAL_STOK masih kosong.', count: 0 });
+
+  const minCol = Math.min.apply(null, cols.map(c => c.col));
+  const maxCol = Math.max.apply(null, cols.map(c => c.col));
+  const width = maxCol - minCol + 1;
+  const values = meta.sheet.getRange(2, minCol, maxRows - 1, width).getDisplayValues();
+  const objects = [];
+
+  values.forEach(row => {
+    const empty = cols.every(c => normText_(row[c.col - minCol]) === '');
+    if (empty) return;
+    const obj = {};
+    cols.forEach(c => { obj[c.header] = row[c.col - minCol]; });
+    obj['Modul'] = normalizeJournalModul_(obj['Modul']);
+    obj['Arah'] = normalizeJournalArah_(obj['Arah']);
+    objects.push(obj);
+  });
+
+  const groups = groupConsecutiveCols_(cols);
+  groups.forEach(group => {
+    meta.sheet.getRange(2, group[0].col, maxRows - 1, group.length).clearContent();
+  });
+  SpreadsheetApp.flush();
+
+  const count = objects.length ? writeObjects_(sheetName, objects) : 0;
+  clearSheetCache_(sheetName);
+  clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+  return ok_({
+    message: 'JURNAL_STOK dirapikan: baris kosong atas dipakai dan nilai Modul/Arah disesuaikan dropdown sheet.',
+    count: count
+  });
+}
+
+/** ========================= APJ CORE USER INTEGRATION ========================= */
+function authorizeInventoryAction_(action, payload) {
+  const permissionKey = permissionKeyForAction_(action);
+  const profile = getCoreProfileFromPayload_(payload);
+
+  if (!profile) {
+    if (APJ_INV_V3.CORE_USER.REQUIRE_SESSION) throw new Error('Session APJ_CORE_USER wajib. Silakan login ulang.');
+    return buildFallbackProfile_(payload, permissionKey);
+  }
+
+  if (permissionKey && !coreProfileHasPermission_(profile, permissionKey)) {
+    throw new Error('Akses ditolak. Permission dibutuhkan: ' + permissionKey);
+  }
+  return profile;
+}
+
+function permissionKeyForAction_(action) {
+  const setupActions = [
+    'getAdminData', 'getSetupInventoryData',
+    'saveKategoriInventory', 'upsertKategoriInventory', 'deleteKategoriInventory', 'hapusKategoriInventory',
+    'saveItemInventory', 'upsertItemInventory', 'deleteItemInventory', 'hapusItemInventory',
+    'saveProdukInventory', 'upsertProdukInventory', 'deleteProdukInventory', 'hapusProdukInventory',
+    'saveResepInventory', 'upsertResepInventory', 'deleteResepInventory', 'hapusResepInventory',
+    'saveResepDetailInventory', 'upsertResepDetailInventory', 'deleteResepDetailInventory', 'hapusResepDetailInventory',
+    'saveResepPreparasiInventory', 'upsertResepPreparasiInventory', 'deleteResepPreparasiInventory', 'hapusResepPreparasiInventory'
+  ];
+  if (setupActions.indexOf(action) >= 0) return 'admin';
+
+  const map = {
+    getDashboardData: 'inventory',
+    getBarang: 'inventory',
+    getBarangProduksi: 'produksi',
+    getOutputInit: 'outputStok',
+    getTransferProduksiInit: 'transferProduksi',
+    getPreparasiInit: 'produksi',
+    getResepPreparasi: 'produksi',
+    getPreparasiData: 'produksi',
+    getProdukOutletData: 'produkOutlet',
+    getPesananOutletInit: 'produkOutlet',
+    getPesananOutletList: 'produkOutlet',
+    getPesananOutletPrintData: 'produkOutlet',
+    getRiwayatTransaksi: 'riwayatTransaksi',
+    getJurnalStok: 'riwayatTransaksi',
+    getStokAkhirReport: 'lihatStok',
+    getStokProduksiReport: 'lihatStok',
+    getInputPrintOptions: 'inputStok',
+    getInputPrintData: 'inputStok',
+    getTransferPrintData: 'transferProduksi',
+    simpanInputStokPreparasi: 'inputStok',
+    simpanInputStok: 'inputStok',
+    simpanTransaksi: 'outputStok',
+    simpanOutputStok: 'outputStok',
+    simpanOutputProduksi: 'produksi',
+    simpanProduksi: 'produksi',
+    simpanPreparasi: 'produksi',
+    simpanTransferProduksi: 'transferProduksi',
+    simpanTransferProduk: 'transferProduksi',
+    simpanProdukOutletKeluar: 'produkOutlet',
+    simpanProdukOutletOpname: 'produkOutlet',
+    simpanPesananOutlet: 'produkOutlet',
+    setupPesananOutletSheetsV90: 'produkOutlet',
+    simpanOlahOutlet: 'produkOutlet',
+    simpanProsesOutlet: 'produkOutlet',
+    simpanStokOpname: 'stokOpname'
+  };
+  return map[action] || '';
+}
+
+function getCoreProfileFromPayload_(payload) {
+  const url = normText_(APJ_INV_V3.CORE_USER.API_URL);
+  if (!url) return null;
+
+  const token = getSessionToken_(payload);
+  if (!token) return null;
+
+  const key = 'APJ_INV_CORE_PROFILE_' + token;
+  const cached = cache_().get(key);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (err) {}
+  }
+
+  const res = callCoreUser_('getMyProfile', { sessionToken: token, token: token, appName: 'APJ_INVENTORY' });
+  if (!res || !res.success || !res.user) return null;
+  const profile = normalizeCoreProfile_(res.user);
+  cache_().put(key, JSON.stringify(profile), APJ_INV_V3.CORE_USER.CACHE_SECONDS || 300);
+  return profile;
+}
+
+function getCoreOutlets_(payload) {
+  const url = normText_(APJ_INV_V3.CORE_USER.API_URL);
+  if (!url) return [];
+  try {
+    const token = getSessionToken_(payload || {});
+    const res = callCoreUser_('getOutlets', { sessionToken: token, token: token, appName: 'APJ_INVENTORY' });
+    return res && res.success && Array.isArray(res.outlets) ? res.outlets : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function callCoreUser_(action, data) {
+  const url = normText_(APJ_INV_V3.CORE_USER.API_URL);
+  if (!url) return null;
+  const payload = Object.assign({}, data || {}, { action: action });
+  const response = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  const text = response.getContentText() || '{}';
+  try { return JSON.parse(text); }
+  catch (err) { throw new Error('Response APJ_CORE_USER bukan JSON valid.'); }
+}
+
+function getSessionToken_(payload) {
+  return normText_(payload.sessionToken || payload.token || payload.authToken || payload.APJ_SESSION_TOKEN || payload.apjSessionToken);
+}
+
+function normalizeCoreProfile_(u) {
+  return {
+    userId: normText_(u.userId || u.USER_ID),
+    username: normText_(u.username || u.USERNAME),
+    nama: normText_(u.nama || u.NAMA || u.username),
+    level: normUpper_(u.level || u.LEVEL),
+    outlet: normUpper_(u.outlet || u.outletUtama || u.OUTLET_UTAMA),
+    outletUtama: normUpper_(u.outletUtama || u.outlet || u.OUTLET_UTAMA),
+    outletAkses: normUpper_(u.outletAkses || u.OUTLET_AKSES || u.outletUtama || u.outlet),
+    status: normUpper_(u.status || u.STATUS || 'AKTIF'),
+    permissions: u.permissions || {}
+  };
+}
+
+function buildFallbackProfile_(payload, permissionKey) {
+  return {
+    userId: normText_(payload.userId || ''),
+    username: normText_(payload.username || payload.userName || ''),
+    nama: normText_(payload.nama || payload.petugas || payload.userName || ''),
+    level: normUpper_(payload.level || payload.userLevel || ''),
+    outlet: normUpper_(payload.outlet || payload.userOutlet || ''),
+    outletUtama: normUpper_(payload.outlet || payload.userOutlet || ''),
+    outletAkses: normUpper_(payload.outletAkses || payload.userOutlet || payload.outlet || ''),
+    status: 'FALLBACK',
+    permissions: permissionKey ? makeFallbackPermission_(permissionKey) : {}
+  };
+}
+
+function makeFallbackPermission_(permissionKey) {
+  const p = {};
+  p[permissionKey] = true;
+  p[normalizeHeaderLoose_(permissionKey)] = true;
+  return p;
+}
+
+function coreProfileHasPermission_(profile, permissionKey) {
+  if (!permissionKey) return true;
+  if (!profile) return false;
+  if ((APJ_INV_V3.CORE_USER.FULL_ACCESS_LEVELS || []).indexOf(normUpper_(profile.level)) >= 0) return true;
+  if (permissionKey === 'admin' && (APJ_INV_V3.CORE_USER.ADMIN_LEVELS || []).indexOf(normUpper_(profile.level)) >= 0) return true;
+  const perms = profile.permissions || {};
+  return !!perms[permissionKey] || !!perms[normalizeHeaderLoose_(permissionKey)] || !!perms[normUpper_(permissionKey)];
+}
+
+function normalizeHeaderLoose_(value) {
+  return normText_(value).trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+/** ========================= OUTLET / PIC HELPERS ========================= */
+function getOutlets_(payload) {
+  const fromProduk = getProdukRows_().map(r => normUpper_(r['Outlet'])).filter(v => v && v !== 'ALL');
+  const fromCore = getCoreOutlets_(payload || {}).map(o => normUpper_(o.kodeOutlet || o.KODE_OUTLET || o.outlet || o.namaOutlet || o.NAMA_OUTLET)).filter(v => v && v !== 'ALL');
+  const fromAuth = payload && payload._auth && payload._auth.outletAkses ? String(payload._auth.outletAkses).split(/[;,]/).map(normUpper_) : [];
+  const all = APJ_INV_V3.DEFAULT_OUTLETS.concat(fromProduk).concat(fromCore).concat(fromAuth);
+  const seen = {};
+  return all.filter(o => {
+    if (!o || seen[o]) return false;
+    seen[o] = true;
+    return true;
+  });
+}
+
+function getPics_(payload) {
+  const names = [];
+  if (payload && payload._auth && payload._auth.nama) names.push(payload._auth.nama);
+  if (payload && payload.petugas) names.push(payload.petugas);
+  if (payload && payload.userName) names.push(payload.userName);
+  const seen = {};
+  return names.filter(n => {
+    n = normText_(n);
+    if (!n || seen[n]) return false;
+    seen[n] = true;
+    return true;
+  });
+}
+
+
+function setupPesananOutletSheetsV94() {
+  return setupPesananOutletSheetsV90();
+}

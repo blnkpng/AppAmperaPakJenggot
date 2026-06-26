@@ -1,0 +1,15 @@
+APJ MASTER MANIFEST - Produk Outlet V95
+
+File utama dalam paket:
+- produk-outlet.html
+- assets/css/pages/apj-produk-outlet.css
+- assets/js/pages/apj-produk-outlet.js
+- CODE_GS_APJ_INVENTORI_MASTER.txt
+- README_APJ_MASTER.txt
+- MANIFEST_APJ_MASTER.txt
+
+Ringkasan pembaruan:
+- Print Pesanan 58mm diperbesar dan dipaksa render sebelum dialog print agar tidak mencetak kosong.
+- Nama Pemesan diselaraskan dengan sheet yang memakai header lama/typo Nama Pesanan.
+- Backend pesanan menulis berdasarkan header sheet aktual dan mengisi alias header lama jika masih ada.
+- Format paket memakai file MASTER untuk Code.gs, README, dan Manifest.

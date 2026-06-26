@@ -1164,3 +1164,9 @@ body.apj-produk-outlet-v93 .modal-print-pesanan-card .modal-actions{
   body.apj-produk-outlet-v93 .produk-actions{grid-template-columns:1fr;}
   body.apj-produk-outlet-v93 .produk-actions > button{min-height:52px;font-size:15px;}
 }
+
+
+/* APJ Produk Outlet V95 - Print Pesanan Sheet Align & Thermal Blank Fix */
+body.apj-produk-outlet-v95 .print-pesanan-title{font-size:15px;}
+body.apj-produk-outlet-v95 .print-pesanan-meta{font-size:13.5px;}
+body.apj-produk-outlet-v95 .print-pesanan-card .btn-print{font-weight:950;}

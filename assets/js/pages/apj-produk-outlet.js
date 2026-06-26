@@ -489,7 +489,7 @@
   function buildPesananPrintHtml(payload, noPesanan){
     payload = payload || {};
     const nomor = noPesanan || payload.noPesanan || payload['No Pesanan'] || 'DRAFT';
-    const namaPemesan = payload.namaPemesan || payload.pemesan || payload.namaCustomer || payload.customer || payload['Nama Pemesan'] || payload['Pemesan'] || document.getElementById('pesananNamaPemesan')?.value || '';
+    const namaPemesan = payload.namaPemesan || payload.pemesan || payload.namaCustomer || payload.customer || payload['Nama Pemesan'] || payload['Nama Pesanan'] || payload['Pemesan'] || document.getElementById('pesananNamaPemesan')?.value || '';
     const nomorHp = payload.nomorHp || payload.noHp || payload.hp || payload['Nomor HP'] || payload['No HP'] || '';
     const now = new Date();
     const rowsHtml = (payload.groups || []).map((g, i) => `<div class="order-block">
@@ -501,7 +501,7 @@
     </div>`).join('');
     const bayar = `${payload.statusPembayaran || '-'} - ${payload.metodePembayaran || '-'}${payload.metodePembayaran === 'Transfer' && payload.bank ? ' ' + payload.bank : ''}`;
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pesanan Outlet 58mm</title><style>
-      @page{size:58mm auto;margin:0!important}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-height:auto!important;height:auto!important;overflow:visible!important}body{font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.28;font-weight:500;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{width:54mm;max-width:54mm;margin:0 auto;padding:2mm 0 2mm 0;break-inside:auto;page-break-inside:auto}.center{text-align:center}.brand{font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:.1px}.title{font-size:11px;font-weight:900;text-transform:uppercase;margin-top:.8mm}.dash{border-top:1.5px dashed #000;margin:1.7mm 0}.meta{display:grid;grid-template-columns:18mm 1fr;gap:.55mm 1mm;font-size:9.8px;line-height:1.25}.order-block{border-bottom:1.2px dashed #777;padding:1.8mm 0;break-inside:avoid;page-break-inside:avoid}.order-title{font-size:11px;font-weight:900}.order-sub{font-weight:800;margin-top:1mm}.lauk{padding-left:2.2mm}.note{margin-top:1mm}.footer{margin-top:2mm;font-size:9px;text-align:center}@media print{@page{size:58mm auto;margin:0!important}html,body{width:58mm!important;height:auto!important;overflow:visible!important}.wrap{width:54mm!important;max-width:54mm!important}.order-block{break-inside:avoid;page-break-inside:avoid}body:after{content:"";display:block;height:1mm}}
+      @page{size:58mm 297mm;margin:0!important}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-width:58mm!important;min-height:30mm!important;height:auto!important;overflow:visible!important}body{font-family:Arial,Helvetica,sans-serif;font-size:12.2px;line-height:1.34;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}.wrap{width:56mm;max-width:56mm;margin:0 auto;padding:2mm 1mm 3mm 1mm;break-inside:auto;page-break-inside:auto}.center{text-align:center}.brand{font-size:15.5px;font-weight:900;text-transform:uppercase;letter-spacing:.1px}.title{font-size:12.5px;font-weight:900;text-transform:uppercase;margin-top:.9mm}.dash{border-top:1.6px dashed #000;margin:2mm 0}.meta{display:grid;grid-template-columns:19mm 1fr;gap:.8mm 1mm;font-size:11.2px;line-height:1.32}.meta div,.order-block,.note,.footer{word-break:break-word;overflow-wrap:anywhere}.order-block{border-bottom:1.4px dashed #555;padding:2mm 0;break-inside:avoid;page-break-inside:avoid}.order-title{font-size:13px;font-weight:900}.order-sub{font-weight:900;margin-top:1mm}.lauk{padding-left:2.5mm;font-size:12.2px}.note{margin-top:1mm;font-weight:800}.footer{margin-top:2mm;font-size:10.2px;text-align:center}@media print{@page{size:58mm 297mm;margin:0!important}html,body{width:58mm!important;min-width:58mm!important;height:auto!important;min-height:30mm!important;overflow:visible!important}.wrap{width:56mm!important;max-width:56mm!important}.order-block{break-inside:avoid;page-break-inside:avoid}body:after{content:"";display:block;height:2mm}}
     </style></head><body><div class="wrap">
       <div class="center"><div class="brand">AMPERA PAK JENGGOT</div><div class="title">Form Pesanan Outlet</div></div><div class="dash"></div>
       <div class="meta"><div>No</div><div>: ${esc(nomor)}</div><div>Outlet</div><div>: ${esc(payload.outlet || '-')}</div><div>Tgl Pesanan</div><div>: ${esc(formatLongDateId(payload.tanggalPesanan || ''))}</div><div>Jam</div><div>: ${esc(payload.jam || '-')}</div><div>Penerima</div><div>: ${esc(payload.penerima || '-')}</div><div>Pemesan</div><div>: ${esc(namaPemesan || '-')}</div><div>HP</div><div>: ${esc(nomorHp || '-')}</div></div>
@@ -525,8 +525,9 @@
   }
 
   function printHtml58Roll(html, printWindow){
-    // V93: gunakan popup cetak nyata, bukan iframe tersembunyi.
-    // RawBT / sebagian driver thermal sering mengirim kertas kosong jika sumber cetak dari iframe tersembunyi.
+    // V95: gunakan popup cetak nyata + tunggu dokumen render sempurna.
+    // Sebagian driver thermal menampilkan pratinjau benar tetapi mencetak kosong jika print dipanggil terlalu cepat
+    // atau @page memakai tinggi auto. Karena itu ukuran halaman dibuat eksplisit 58mm x 297mm di buildPesananPrintHtml().
     const win = printWindow && !printWindow.closed ? printWindow : openPrintWindowShell('Cetak Pesanan 58mm');
     if (!win) {
       showToast('Popup cetak diblokir browser. Izinkan popup lalu coba cetak lagi.', 'error');
@@ -536,15 +537,29 @@
       win.document.open();
       win.document.write(html);
       win.document.close();
+      let printed = false;
       const runPrint = () => {
+        if (printed) return;
+        printed = true;
         try {
           win.focus();
+          // Paksa browser menghitung layout sebelum dialog print dibuka.
+          void win.document.body.offsetHeight;
           win.print();
         } catch (err) {
+          printed = false;
           showToast(err.message || 'Gagal membuka dialog cetak.', 'error');
         }
       };
-      setTimeout(runPrint, 650);
+      const waitReady = () => {
+        try {
+          const bodyText = win.document.body ? String(win.document.body.innerText || win.document.body.textContent || '').trim() : '';
+          if (win.document.readyState === 'complete' && bodyText) return setTimeout(runPrint, 450);
+        } catch (_) {}
+        setTimeout(waitReady, 120);
+      };
+      setTimeout(waitReady, 120);
+      setTimeout(runPrint, 1800);
     } catch (err) {
       showToast(err.message || 'Gagal menyiapkan dokumen cetak.', 'error');
     }
