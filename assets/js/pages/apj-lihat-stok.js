@@ -1,8 +1,8 @@
 
 /*
- * APJ LIHAT STOK V50 - Web PrintArea Fix
+ * APJ LIHAT STOK V105 - Cetak Rekap PIC Direct Core User Fix
  * - Tampilan karyawan dibuat formal tanpa istilah teknis sheet/backend.
- * - Data penandatangan diambil dari APJ_CORE_USER apabila akses tersedia.
+ * - Data penandatangan diambil dari backend Inventory yang membaca APJ_CORE_USER.USER secara langsung.
  * - Cetak rekap dibuat bersih, tanggal diperbarui diformat, dan penandatangan memakai daftar karyawan.
  */
 (function () {
@@ -181,36 +181,90 @@
     STATE.signers = [current];
     fillSignatureSelects([current], false);
 
-    const actions = ['getSignatureUsers', 'getDaftarPenandatangan', 'adminGetUsers'];
-    for (const action of actions) {
+    // V105: sumber resmi penanggung jawab/PIC adalah backend Inventory,
+    // karena backend sudah membaca langsung APJ_CORE_USER.USER dengan SpreadsheetApp.openById.
+    const inventoryActions = [
+      'getPicKaryawanList',
+      'getInventoryPicList',
+      'getAllPicKaryawan',
+      'getOutputPicList',
+      'getTransferPicList',
+      'getKaryawanAktifInventory',
+      'getTransferProduksiInit'
+    ];
+
+    for (const action of inventoryActions) {
       try {
-        const res = await callCore(action, { appName: 'APJ_INVENTORY' });
+        const res = await callInventory(action, {
+          includeInactive: false,
+          aktifOnly: true,
+          includeAllUsers: true,
+          allowAllUsers: true,
+          forDropdown: true,
+          forPicDropdown: true,
+          context: 'LIHAT_STOK_CETAK_REKAP',
+          source: 'lihat-stok'
+        });
         const sourceRows = extractSignatureUserRows(res);
         const users = normalizeSignatureUsers(sourceRows);
         if (res && res.success && users.length) {
           STATE.signers = users;
           fillSignatureSelects(STATE.signers, false);
-          return;
+          if (users.length > 1) return;
         }
       } catch (err) {
-        // lanjut ke action berikutnya. Jika semua gagal, tetap gunakan user aktif.
+        // Coba action Inventory berikutnya. Jika semua gagal, tetap gunakan user aktif.
       }
     }
 
-    STATE.signers = [current];
+    // Core frontend hanya fallback lama. Jangan dijadikan sumber utama.
+    const coreActions = ['getSignatureUsers', 'getDaftarPenandatangan', 'adminGetUsers'];
+    for (const action of coreActions) {
+      try {
+        const res = await callCore(action, { appName: 'APJ_INVENTORY', includeAllUsers: true, allowAllUsers: true, forDropdown: true });
+        const sourceRows = extractSignatureUserRows(res);
+        const users = normalizeSignatureUsers(sourceRows);
+        if (res && res.success && users.length > STATE.signers.length) {
+          STATE.signers = users;
+          fillSignatureSelects(STATE.signers, false);
+          return;
+        }
+      } catch (err) {
+        // lanjut ke action berikutnya.
+      }
+    }
+
+    STATE.signers = ensureCurrentSigner(STATE.signers && STATE.signers.length ? STATE.signers : [current], current);
     fillSignatureSelects(STATE.signers, false);
   }
 
   function extractSignatureUserRows(res) {
     if (!res) return [];
-    if (Array.isArray(res.users)) return res.users;
-    if (Array.isArray(res.karyawan)) return res.karyawan;
-    if (Array.isArray(res.penandatangan)) return res.penandatangan;
-    if (Array.isArray(res.employees)) return res.employees;
+    if (Array.isArray(res)) return res;
+    const keys = ['pics', 'pic', 'picList', 'daftarPic', 'daftarPIC', 'users', 'user', 'karyawan', 'pegawai', 'staff', 'penandatangan', 'signers', 'signatureUsers', 'employees', 'employee', 'rows', 'items', 'list', 'dataRows', 'records', 'allUsers', 'activeUsers', 'karyawanAktif', 'userList', 'employeeList'];
+    for (const key of keys) {
+      if (Array.isArray(res[key])) return res[key];
+    }
     if (Array.isArray(res.data)) return res.data;
-    if (res.data && Array.isArray(res.data.users)) return res.data.users;
-    if (res.data && Array.isArray(res.data.karyawan)) return res.data.karyawan;
-    return [];
+    if (res.data && typeof res.data === 'object') {
+      for (const key of keys) {
+        if (Array.isArray(res.data[key])) return res.data[key];
+      }
+    }
+    return findBestSignatureArray(res);
+  }
+
+  function findBestSignatureArray(value, depth) {
+    depth = depth || 0;
+    if (!value || depth > 3) return [];
+    if (Array.isArray(value)) return normalizeSignatureUsers(value).length ? value : [];
+    if (typeof value !== 'object') return [];
+    let best = [];
+    Object.keys(value).forEach(key => {
+      const candidate = findBestSignatureArray(value[key], depth + 1);
+      if (normalizeSignatureUsers(candidate).length > normalizeSignatureUsers(best).length) best = candidate;
+    });
+    return best;
   }
 
   function currentUserAsSigner() {
@@ -224,10 +278,19 @@
   function normalizeSignatureUsers(users) {
     const seen = {};
     return (users || []).map(user => {
-      const nama = stringFirst(user.nama, user.NAMA, user.name, user.username, user.USERNAME);
-      const level = stringFirst(user.level, user.LEVEL);
+      if (typeof user === 'string') return { nama: user.trim(), level: '', outlet: '', status: 'AKTIF' };
+      const nama = stringFirst(
+        user.namaPic, user.NAMA_PIC, user['Nama PIC'], user['NAMA PIC'], user.pic, user.PIC,
+        user.penerima, user.PENERIMA, user['Penanggung Jawab'], user['PENANGGUNG JAWAB'], user.penanggungJawab, user.PENANGGUNG_JAWAB,
+        user.nama, user.NAMA, user['Nama'], user['Nama Karyawan'], user['NAMA KARYAWAN'], user.NAMA_KARYAWAN,
+        user.namaKaryawan, user.NAMA_LENGKAP, user['NAMA LENGKAP'], user.namaLengkap,
+        user.name, user.NAME, user.fullName, user.FULL_NAME, user.displayName, user.DISPLAY_NAME,
+        user.namaUser, user.NAMA_USER, user['NAMA USER'], user.username, user.USERNAME, user.email, user.EMAIL,
+        user.value, user.label
+      );
+      const level = stringFirst(user.level, user.LEVEL, user.role, user.ROLE, user.jabatan, user.JABATAN);
       const outlet = stringFirst(user.outletUtama, user.OUTLET_UTAMA, user.outlet, user.OUTLET, user.outletAkses, user.OUTLET_AKSES);
-      const status = stringFirst(user.status, user.STATUS, 'AKTIF');
+      const status = stringFirst(user.status, user.STATUS, user.aktif, user.AKTIF, user.active, user.ACTIVE, user.isActive, user.IS_ACTIVE, user.statusAktif, user.STATUS_AKTIF, 'AKTIF');
       return { nama, level, outlet, status };
     }).filter(user => user.nama && isActiveStatus(user.status)).filter(user => {
       const key = user.nama.toLowerCase();

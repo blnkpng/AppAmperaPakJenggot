@@ -1,4 +1,4 @@
-/* APJ TRANSFER PRODUK V104 - PIC DIRECT CORE USER FIX */
+/* APJ TRANSFER PRODUK V105 - PIC DROPDOWN ENABLE FIX */
 const APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.inventoryApiUrl || (window.APJ_CONFIG.apis && window.APJ_CONFIG.apis.inventory))) || "https://script.google.com/macros/s/AKfycbx3sNyaAR5b1MZjpjzuCuyeYuVi-bL0k1Nb1MgI40l5kQmSWfmxXCSfTpBy7sQ-0oQ/exec";
 const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl || (window.APJ_CONFIG.apis && window.APJ_CONFIG.apis.core))) || "";
     let globalProduk = [];
@@ -88,13 +88,13 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
       globalAllProduk = [];
         globalOutlets = normalizeOutletOptions(result.outlets || []);
         globalPics = normalizePicOptions(result.pics || []);
-        setPicLoadingState('Memuat daftar penanggung jawab...');
-        renderDropdowns({ skipPic: true });
-        await loadInventoryEmployeePics();
-        await loadCoreEmployeePics();
+
+        // V105: jangan tahan dropdown PIC dalam kondisi disabled sambil menunggu sumber data tambahan.
+        // Sumber utama PIC sudah dikirim backend Inventory dari APJ_CORE_USER.USER.
         renderDropdowns();
         renderKpi();
         setProductTableMessage('Pilih outlet tujuan. Daftar produk akan dimuat otomatis.');
+        refreshPicOptionsInBackground();
       } catch (error) {
         const message = getFriendlyError(error);
         setProductTableMessage(message, 'error');
@@ -109,6 +109,34 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
       picSelect.classList.add('is-loading');
       picSelect.innerHTML = `<option value="" selected>${escapeHtml(message)}</option>`;
       picSelect.title = 'Daftar penanggung jawab sedang dimuat.';
+    }
+
+    function refreshPicOptionsInBackground() {
+      setTimeout(async () => {
+        try {
+          await loadInventoryEmployeePics();
+          renderDropdowns();
+        } catch (err) {
+          renderDropdowns();
+        }
+
+        // Core API browser hanya tambahan. Jangan sampai menahan/disable UI jika endpoint lambat.
+        if (CORE_APPS_SCRIPT_URL) {
+          try {
+            await withTimeout(loadCoreEmployeePics(), 6000);
+            renderDropdowns();
+          } catch (err) {
+            renderDropdowns();
+          }
+        }
+      }, 50);
+    }
+
+    function withTimeout(promise, ms) {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout memuat PIC tambahan.')), ms || 6000))
+      ]);
     }
 
     function renderDropdowns(options = {}) {

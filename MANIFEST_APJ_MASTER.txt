@@ -1,23 +1,28 @@
-APJ Produk Outlet V104 - PIC Direct Core User Fix
+APJ Produk Outlet V105 - Transfer & Lihat Stok PIC Fix
 
 File penting:
 - CODE_GS_APJ_INVENTORI_MASTER.txt
-- output-stok.html
 - transfer-produksi.html
-- assets/js/pages/apj-output-stok.js
+- lihat-stok.html
 - assets/js/pages/apj-transfer-produksi.js
+- assets/js/pages/apj-lihat-stok.js
 - README_APJ_MASTER.txt
 - PIC_CORE_USER_SETUP_V104.txt
 
-Perubahan utama:
-- PIC Output Stok dan Penanggung Jawab Transfer Produk diambil langsung dari APJ_CORE_USER sheet USER.
-- CORE_USER.SPREADSHEET_ID = 1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk.
-- Tidak memakai UrlFetchApp, aman dari error script.external_request.
-- Ditambahkan checker: cekPicCoreUserV104.
-- Cache Output/Transfer dinaikkan ke v104.
+Perubahan utama V105:
+- Transfer Produk: dropdown Penanggung Jawab Penerima tidak lagi terkunci/disabled saat data PIC tambahan masih dimuat.
+- Transfer Produk: sumber utama PIC tetap dari backend Inventory yang membaca APJ_CORE_USER.USER.
+- Lihat Stok: modal Cetak Rekap sekarang mengambil PIC/Penanggung Jawab dari backend Inventory, bukan hanya Core API frontend.
+- Lihat Stok: pilihan Supervisor/PIC membaca daftar dari APJ_CORE_USER.USER melalui Code.gs Inventory.
+- Cache Transfer dan Lihat Stok dinaikkan ke v105.
+
+Yang tidak diubah:
+- Modul Produk Outlet, Output Stok, Preparasi, Produksi, Input, Opname tidak disentuh logikanya.
+- Sumber resmi PIC tetap APJ_CORE_USER.USER dengan Spreadsheet ID 1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk.
 
 Warisan fix tetap ada:
-- V102: Output tetap aman dari error UrlFetchApp.
+- V104: PIC Direct dari APJ_CORE_USER.USER.
+- V102: Output aman dari error UrlFetchApp.
 - V101: Satuan Selisih Preparasi dropdown.
 - V99: Cetak Rekap font besar.
 - V97: Pesanan Lauk | Qty | Catatan.
