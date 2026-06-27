@@ -1,0 +1,75 @@
+DOKUMENTASI APJ V107 - SETUP INVENTORY FIX
+============================================================
+Nama paket: APP_V10_2_SETUP_INVENTORY_V107
+Basis: APP_V10_1_SETUP_INVENTORY_V106 / V105 final
+Fokus perubahan: Setup Inventory saja.
+
+PERBAIKAN V107
+------------------------------------------------------------
+1. Panduan Setup Inventory
+   - Modal panduan dibuat solid/tidak transparan.
+   - Background modal dark mode dibuat tegas supaya teks tidak bercampur dengan halaman belakang.
+   - Light mode modal panduan juga dibuat putih solid dan lebih nyaman dibaca.
+
+2. Light Mode Setup Inventory
+   - Panel, tabel, card KPI, toolbar, filter, dan modal form diberi style khusus light mode.
+   - Header tabel tidak lagi gelap pekat saat light mode.
+   - Baris tabel dibuat putih/biru muda bergantian agar mata tidak capek.
+   - Input/select/textarea dibuat background putih solid.
+
+3. Tambah/Edit Resep Preparasi
+   - Form Resep Preparasi sekarang mendukung lebih dari 1 bahan.
+   - UI bahan dibuat seperti Tambah Resep Produksi: ada tombol + Tambah Bahan.
+   - Setiap baris bahan berisi: Bahan Dipakai | Qty Bahan | Catatan Bahan.
+   - Minimal 1 bahan wajib diisi dengan qty lebih dari 0.
+
+4. Backend Resep Preparasi Multi Bahan
+   - saveResepPreparasiInventory sekarang menerima bahanList/details/bahan.
+   - Satu ID Resep Preparasi dapat memiliki beberapa baris bahan di sheet RESEP_PREPARASI.
+   - Saat edit resep preparasi, baris lama untuk ID yang sama dinonaktifkan, lalu versi baru ditulis ulang.
+   - deleteResepPreparasiInventory menonaktifkan semua baris bahan dengan ID Resep Preparasi yang sama.
+   - Tidak memakai delete fisik agar histori dan ID lama tetap aman.
+
+5. Urutan Otomatis
+   - Tambah Item: field Urutan otomatis mengikuti urutan terakhir dari kategori yang dipilih + 1.
+   - Saat kategori diganti di form Tambah Item, angka Urutan ikut disesuaikan otomatis.
+   - Baris bahan di Tambah Resep Produksi dan Tambah Resep Preparasi diberi nomor otomatis sesuai urutan input.
+
+FILE YANG BERUBAH
+------------------------------------------------------------
+- setup-inventory.html
+- assets/css/pages/apj-setup-inventory.css
+- assets/js/pages/apj-setup-inventory.js
+- CODE_GS_APJ_INVENTORI_MASTER.txt
+- README_APJ_MASTER.txt
+- MANIFEST_APJ_MASTER.txt
+- DOKUMENTASI_APJ_V107_SETUP_INVENTORY_FIX.txt
+
+CATATAN BACKEND
+------------------------------------------------------------
+Sheet RESEP_PREPARASI sekarang ditulis dengan pola:
+ID Resep Preparasi | ID Item Hasil | Qty Hasil | ID Bahan | Qty Bahan | Yield % | Aktif | Catatan
+
+Contoh 1 resep preparasi multi bahan:
+PRP-0007 | ITM-0100 | 10 | ITM-0001 | 2   | 100 | Y | Begedel SJ
+PRP-0007 | ITM-0100 | 10 | ITM-0002 | 0.5 | 100 | Y | Begedel SJ
+PRP-0007 | ITM-0100 | 10 | ITM-0003 | 0.1 | 100 | Y | Begedel SJ
+
+Saat transaksi Preparasi dipilih, backend getPreparasiInit sudah mengelompokkan baris dengan ID Resep Preparasi sama menjadi 1 resep dengan banyak bahan.
+
+CHECKLIST TESTING
+------------------------------------------------------------
+1. Buka setup-inventory.html.
+2. Test dark mode: buka Panduan Setup, pastikan tidak transparan.
+3. Test light mode: tabel dan modal harus nyaman dibaca.
+4. Tab Item -> Tambah Item -> pilih kategori, pastikan Urutan otomatis terisi.
+5. Tab Resep Produksi -> Tambah Resep, tambah beberapa bahan, pastikan nomor baris otomatis.
+6. Tab Resep Preparasi -> Tambah Preparasi, tambah beberapa bahan, simpan.
+7. Buka Preparasi, pilih resep tersebut, pastikan semua bahan muncul.
+8. Test edit Resep Preparasi, ubah daftar bahan, simpan lagi.
+
+CATATAN PENTING
+------------------------------------------------------------
+- Modul lain tidak diubah secara logic.
+- Jurnal/Riwayat Inventory belum dibuat; tahap berikutnya bisa dibuat file riwayat-inventory.html.
+- Hapus master tetap soft delete/nonaktif, bukan hapus fisik.

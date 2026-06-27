@@ -1,0 +1,252 @@
+DOKUMENTASI APJ V106 - SETUP INVENTORY
+============================================================
+
+1. TUJUAN
+------------------------------------------------------------
+Halaman setup-inventory.html dibuat agar admin APJ bisa mengelola master inventory tanpa membuka Google Sheet langsung.
+
+Fokus V106:
+- Kategori
+- Item
+- Resep Produksi
+- Resep Preparasi
+
+Belum termasuk:
+- Jurnal/Riwayat Inventory. Itu akan dibuat setelah Setup Inventory aman.
+
+
+2. FILE BARU
+------------------------------------------------------------
+setup-inventory.html
+assets/css/pages/apj-setup-inventory.css
+assets/js/pages/apj-setup-inventory.js
+DOKUMENTASI_APJ_V106_SETUP_INVENTORY.txt
+
+
+3. ID DAN ENDPOINT
+------------------------------------------------------------
+Spreadsheet Inventory:
+1F02isprz0K-sPO0GfoA73ZICqZD-Swzt9xXkOsz7lPI
+
+Spreadsheet APJ_CORE_USER:
+1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk
+
+Deploy URL Inventory:
+https://script.google.com/macros/s/AKfycbzisWWG4QzlI2_xB9arSGLAx0zn3Rgcu_Jt9tFXpJZTcXohFXwmE0sDTGCxf-i2OL0k/exec
+
+Deploy URL Core User:
+https://script.google.com/macros/s/AKfycbwXjexCdYXsygij_WdgA6H26Xp__GCpRbLk1oxpocnvmOvyy8_9G2lVKW_6wr2qV19YkQ/exec
+
+
+4. SHEET YANG DIPAKAI
+------------------------------------------------------------
+MASTER_KATEGORI
+MASTER_ITEM
+MASTER_RESEP
+MASTER_RESEP_DETAIL
+RESEP_PREPARASI
+
+Data pendukung:
+MASTER_PRODUK
+STOK_AKHIR
+JURNAL_STOK
+APJ_CORE_USER.USER
+
+
+5. BACKEND ACTION YANG DIPAKAI
+------------------------------------------------------------
+Load data:
+- getSetupInventoryData
+
+Kategori:
+- saveKategoriInventory
+- deleteKategoriInventory
+
+Item:
+- saveItemInventory
+- deleteItemInventory
+
+Resep Produksi:
+- saveResepInventory
+- deleteResepInventory
+- saveResepDetailInventory
+- deleteResepDetailInventory
+
+Resep Preparasi:
+- saveResepPreparasiInventory
+- deleteResepPreparasiInventory
+
+
+6. LOGIKA KATEGORI
+------------------------------------------------------------
+Kategori adalah kelompok besar stok.
+
+Field utama:
+- Nama Kategori
+- Tipe Stok
+- Prefix
+- Urutan
+- Aktif
+- Keterangan
+
+Contoh kategori final APJ:
+- Bahan Utama
+- Bahan Baku/Bumbu
+- Bahan Preparasi
+- Produk Jadi
+- Kemasan
+- Minuman & Barang Dagang
+- Kebersihan/Operasional
+
+Hapus kategori memakai soft delete:
+Aktif = N
+
+
+7. LOGIKA ITEM
+------------------------------------------------------------
+Item adalah semua barang yang dihitung stoknya.
+
+Field utama:
+- Kategori
+- Kode Lama
+- Nama Item
+- Satuan Beli
+- Satuan Stok
+- Satuan Produksi
+- Tipe Item
+- Parent/Konversi Dari
+- Tampil Input
+- Bisa Output
+- Bisa Preparasi
+- Bisa Produksi
+- Bisa Transfer Produk
+- Stok Minimum
+- Urutan
+- Aktif
+- Keterangan
+
+Hak pakai modul:
+Tampil Input = item muncul di Input Stok.
+Bisa Output = item bisa dikeluarkan dari gudang.
+Bisa Preparasi = item bisa dipakai/menjadi hasil preparasi.
+Bisa Produksi = item bisa dipakai/menjadi hasil produksi.
+Bisa Transfer Produk = item bisa dikirim ke outlet.
+
+Hapus item memakai soft delete:
+Aktif = N
+
+
+8. LOGIKA RESEP PRODUKSI
+------------------------------------------------------------
+Resep Produksi dipakai untuk proses setengah jadi/bahan menjadi produk jadi.
+
+Header resep disimpan di MASTER_RESEP:
+- ID Resep
+- ID Item Hasil
+- Qty Hasil Standar
+- Versi
+- Aktif
+- Catatan
+- Kode Lama
+
+Detail bahan disimpan di MASTER_RESEP_DETAIL:
+- ID Detail
+- ID Resep
+- ID Bahan
+- Qty Bahan
+- Jenis Bahan
+- Catatan
+
+Satu resep produksi bisa memiliki banyak bahan.
+
+Contoh:
+Resep: Begedel Goreng
+Hasil: Begedel Goreng 10 pcs
+Bahan:
+- Begedel Setengah Jadi 10 pcs
+- Telur 4 pcs
+
+Catatan:
+Jumlah resep adalah standar. Pada transaksi Produksi, jumlah real tetap boleh disesuaikan.
+
+
+9. LOGIKA RESEP PREPARASI
+------------------------------------------------------------
+Resep Preparasi dipakai untuk proses bahan mentah menjadi bahan siap olah.
+
+Sheet: RESEP_PREPARASI
+
+Field:
+- ID Resep Preparasi
+- ID Item Hasil
+- Qty Hasil
+- ID Bahan
+- Qty Bahan
+- Yield %
+- Aktif
+- Catatan
+
+Contoh:
+Ayam Potong -> Ayam Kremes / Ayam Premix
+Kentang + bumbu -> Begedel Setengah Jadi
+Kikil mentah -> Kikil siap olah
+
+Catatan penting:
+Sisa/susut/rusak/hilang tidak dihitung otomatis di master resep.
+Sisa/susut dicatat saat transaksi Preparasi karena kondisi fisik bisa berubah.
+
+
+10. KENAPA HAPUS TIDAK DELETE PERMANEN?
+------------------------------------------------------------
+Karena item/kategori/resep bisa sudah dipakai di JURNAL_STOK.
+Kalau baris dihapus permanen, histori stok bisa rusak dan laporan lama bisa kehilangan referensi.
+
+Maka tombol Hapus di Setup Inventory melakukan soft delete:
+- Data dibuat nonaktif.
+- Riwayat tetap aman.
+
+
+11. MASUKAN STRUKTUR SETUP UNTUK APJ
+------------------------------------------------------------
+Setup Inventory sebaiknya hanya untuk master data, bukan transaksi.
+
+Isi paling tepat:
+1. Kategori
+2. Item
+3. Resep Produksi
+4. Resep Preparasi
+
+Nanti setelah ini, menu Jurnal/Riwayat sebaiknya berisi:
+- Filter tanggal
+- Filter modul
+- Filter item
+- Filter outlet/lokasi
+- Filter petugas
+- Nomor dokumen
+- Arah stok: IN / OUT / ADJUST
+- Cetak/Export
+
+
+12. CHECKLIST TESTING V106
+------------------------------------------------------------
+1. Buka setup-inventory.html.
+2. Pastikan halaman tidak 404.
+3. Pastikan user header muncul.
+4. Klik tab Kategori, Item, Resep Produksi, Resep Preparasi.
+5. Tambah kategori test.
+6. Edit kategori test.
+7. Hapus/nonaktifkan kategori test.
+8. Tambah item test.
+9. Edit item test.
+10. Tambah resep produksi test dengan lebih dari 1 bahan.
+11. Tambah resep preparasi test.
+12. Refresh Ctrl + F5.
+13. Pastikan data muncul kembali.
+
+
+13. KODE KERJA
+------------------------------------------------------------
+APP_V10_1_SETUP_INVENTORY_V106.zip
+
+Status:
+V106 menambahkan Setup Inventory HTML. Jurnal/Riwayat Inventory belum dibuat dan akan dilanjutkan setelah halaman Setup aman.

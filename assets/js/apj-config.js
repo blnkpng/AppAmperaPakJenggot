@@ -4,7 +4,7 @@
 */
 window.APJ_CONFIG = window.APJ_CONFIG || {
   appName: 'APJ Central',
-  appVersion: 'APJ CENTRAL V104 - PIC DIRECT CORE USER FIX',
+  appVersion: 'APJ CENTRAL V109 - RIWAYAT INVENTORY',
   timezone: 'Asia/Jakarta',
   coreApiUrl: 'https://script.google.com/macros/s/AKfycbwXjexCdYXsygij_WdgA6H26Xp__GCpRbLk1oxpocnvmOvyy8_9G2lVKW_6wr2qV19YkQ/exec',
   inventoryApiUrl: 'https://script.google.com/macros/s/AKfycbzisWWG4QzlI2_xB9arSGLAx0zn3Rgcu_Jt9tFXpJZTcXohFXwmE0sDTGCxf-i2OL0k/exec',
@@ -45,7 +45,8 @@ window.APJ_CONFIG = window.APJ_CONFIG || {
     produkOutlet: 'produk-outlet.html',
     stokOpname: 'stok-opname.html',
     lihatStok: 'lihat-stok.html',
-    riwayatTransaksi: 'riwayat-transaksi.html',
+    riwayatTransaksi: 'riwayat-inventory.html',
+    riwayatInventory: 'riwayat-inventory.html',
     setupInventory: 'setup-inventory.html',
     admin: 'admin.html',
     absensi: 'absensi.html',

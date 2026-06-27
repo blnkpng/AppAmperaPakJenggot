@@ -153,7 +153,7 @@
     'produk-outlet.html': 'produkOutlet',
     'stok-opname.html': 'stokOpname',
     'lihat-stok.html': 'lihatStok',
-    'riwayat-transaksi.html': 'riwayatTransaksi',
+    'riwayat-inventory.html': 'riwayatTransaksi',
     'admin.html': 'admin'
   };
 
@@ -193,7 +193,7 @@
     var map = {
       'dashboard.html':'Dashboard', 'input-stok.html':'Input Stok', 'output-stok.html':'Output Stok',
       'transfer-produksi.html':'Transfer Produk Outlet', 'produk-outlet.html':'Produk Outlet',
-      'stok-opname.html':'Stok Opname', 'lihat-stok.html':'Lihat Stok', 'riwayat-transaksi.html':'Riwayat Transaksi', 'admin.html':'Admin Sistem'
+      'stok-opname.html':'Stok Opname', 'lihat-stok.html':'Lihat Stok', 'riwayat-inventory.html':'Riwayat Transaksi', 'admin.html':'Admin Sistem'
     };
     return map[file || pageName()] || 'Menu';
   }

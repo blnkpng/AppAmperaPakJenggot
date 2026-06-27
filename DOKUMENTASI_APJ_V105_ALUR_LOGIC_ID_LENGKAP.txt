@@ -1,0 +1,916 @@
+====================================================================
+DOKUMENTASI MASTER APJ INVENTORY V3
+MILESTONE: APJ PRODUK OUTLET V105 - FINAL SEMENTARA
+====================================================================
+
+Nama paket final:
+APJ_PRODUK_OUTLET_V105_FINAL_FULL_CODE_DOKUMENTASI.zip
+
+Basis paket terakhir:
+APJ_PRODUK_OUTLET_V105_TRANSFER_LIHAT_STOK_PIC_FIX
+
+Status:
+BERES SAMPAI TITIK INI.
+Paket ini menjadi acuan kerja lanjutan setelah V105.
+Jangan memakai versi lama kecuali memang ingin rollback.
+
+Tanggal kerja paket:
+2026-06-27
+
+Teknologi:
+- Frontend: HTML, CSS, JavaScript static.
+- Backend Inventory: Google Apps Script Web App.
+- Database Inventory: Google Spreadsheet APJ_INVENTORY V.3.
+- Login/User/Permission/PIC: Google Spreadsheet APJ_CORE_USER.
+- Zona waktu sistem: Asia/Jakarta.
+
+====================================================================
+1. ID, URL, DAN KONFIGURASI PENTING
+====================================================================
+
+1.1 Spreadsheet Inventory
+Nama:
+APJ_INVENTORY V.3
+
+Spreadsheet ID:
+1F02isprz0K-sPO0GfoA73ZICqZD-Swzt9xXkOsz7lPI
+
+Dipakai di Code.gs:
+APJ_INV_V3.SPREADSHEET_ID
+
+1.2 Spreadsheet Core User
+Nama sumber:
+APJ_CORE_USER
+
+Spreadsheet ID:
+1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk
+
+Sheet resmi PIC/User:
+USER
+
+Dipakai di Code.gs:
+APJ_INV_V3.CORE_USER.SPREADSHEET_ID
+APJ_INV_V3.CORE_USER.USER_SHEET = USER
+
+1.3 Deploy URL Inventory V3
+https://script.google.com/macros/s/AKfycbzisWWG4QzlI2_xB9arSGLAx0zn3Rgcu_Jt9tFXpJZTcXohFXwmE0sDTGCxf-i2OL0k/exec
+
+Dipakai di frontend:
+assets/js/apj-config.js
+- inventoryApiUrl
+- apis.inventory
+
+1.4 Deploy URL Core User
+https://script.google.com/macros/s/AKfycbwXjexCdYXsygij_WdgA6H26Xp__GCpRbLk1oxpocnvmOvyy8_9G2lVKW_6wr2qV19YkQ/exec
+
+Dipakai di frontend:
+assets/js/apj-config.js
+- coreApiUrl
+- apis.core
+
+Catatan penting:
+Di backend Inventory, APJ_INV_V3.CORE_USER.API_URL sengaja dikosongkan.
+Alasannya: tidak memakai UrlFetchApp agar tidak muncul error izin:
+script.external_request.
+
+Untuk PIC/Penanggung Jawab, backend Inventory membaca langsung spreadsheet
+APJ_CORE_USER memakai SpreadsheetApp.openById, bukan UrlFetchApp.
+
+1.5 Outlet default
+- LAHOR
+- SENISONO
+- PUJON
+- NGUJUNG
+- POKOPEK
+
+1.6 Level akses penting
+Di Code.gs Inventory:
+ADMIN_LEVELS = OWNER, SUPERADMIN, SUPERVISOR
+FULL_ACCESS_LEVELS = OWNER, SUPERADMIN
+
+====================================================================
+2. FILE UTAMA DALAM PAKET
+====================================================================
+
+2.1 Backend master
+CODE_GS_APJ_INVENTORI_MASTER.txt
+
+Isi:
+Full Code.gs Inventory V3 terbaru.
+File ini yang ditempel ke Apps Script Inventory.
+
+2.2 Dokumentasi utama
+README_APJ_MASTER.txt
+MANIFEST_APJ_MASTER.txt
+PIC_CORE_USER_SETUP_V104.txt
+DOKUMENTASI_APJ_V105_ALUR_LOGIC_ID_LENGKAP.txt
+
+2.3 Halaman HTML aktif
+index.html
+dashboard.html
+dashboard-inventory.html
+dashboard-absensi.html
+input-stok.html
+output-stok.html
+preparasi.html
+produksi.html
+transfer-produksi.html
+produk-outlet.html
+stok-opname.html
+lihat-stok.html
+
+2.4 Halaman/sidebar pendamping
+preparasi.html.sidebar.html
+produk-outlet.html.sidebar.html
+
+2.5 JavaScript global
+assets/js/apj-config.js
+assets/js/apj-api.js
+assets/js/apj-auth.js
+assets/js/apj-inventory-api.js
+assets/js/apj-login.js
+assets/js/apj-sidebar.js
+assets/js/apj-layout.js
+assets/js/apj-theme.js
+assets/js/apj-toast.js
+assets/js/apj-date.js
+assets/js/apj-table.js
+assets/js/apj-guide.js
+assets/js/apj-legacy-bridge.js
+
+2.6 JavaScript halaman
+assets/js/pages/apj-index.js
+assets/js/pages/apj-dashboard.js
+assets/js/pages/apj-input-stok.js
+assets/js/pages/apj-output-stok.js
+assets/js/pages/apj-preparasi.js
+assets/js/pages/apj-produksi.js
+assets/js/pages/apj-transfer-produksi.js
+assets/js/pages/apj-produk-outlet.js
+assets/js/pages/apj-stok-opname.js
+assets/js/pages/apj-lihat-stok.js
+assets/js/pages/apj-riwayat-transaksi.js
+assets/js/pages/apj-admin.js
+
+2.7 CSS global dan halaman
+assets/css/apj-core.css
+assets/css/apj-theme.css
+assets/css/apj-inventory.css
+assets/css/apj-legacy-inventory.css
+assets/css/apj-print.css
+assets/css/pages/*.css
+
+Catatan:
+- File riwayat-inventory.html dan setup-inventory.html tidak menjadi fokus V105.
+- CSS/JS untuk riwayat/admin masih ada sebagai aset pendukung lama.
+
+====================================================================
+3. STRUKTUR SHEET INVENTORY
+====================================================================
+
+3.1 Sheet master utama
+MASTER_KATEGORI
+MASTER_ITEM
+MASTER_PRODUK
+MASTER_RESEP
+MASTER_RESEP_DETAIL
+RESEP_PRODUKSI
+RESEP_PREPARASI
+SALDO_AWAL_STOK
+
+3.2 Sheet stok dan jurnal
+JURNAL_STOK
+STOK_AKHIR
+
+Prinsip penting:
+STOK_AKHIR tidak ditulis langsung oleh frontend.
+Stok dihitung dari JURNAL_STOK dan formula/view sheet.
+Semua perubahan stok harus masuk jurnal.
+
+3.3 Sheet pesanan outlet
+PESANAN_OUTLET
+PESANAN_OUTLET_DETAIL
+
+Header PESANAN_OUTLET yang didukung:
+- Timestamp
+- Tanggal Input
+- No Pesanan
+- Outlet
+- Tanggal Pesanan
+- Penerima
+- Nama Pesanan / Nama Pemesan
+- Nomor HP
+- Status Pembayaran
+- Metode Pembayaran
+- Bank
+- Jumlah Rp
+- Jenis Pengambilan
+- Jam
+- Alamat
+- Catatan Tambahan
+- Status Pesanan
+- Nama Pemesan
+
+Catatan V95:
+Sheet lama sempat memakai header Nama Pesanan.
+Code.gs sekarang membaca Nama Pesanan dan Nama Pemesan.
+Jika kolom Nama Pemesan ada, data diselaraskan agar print tidak kosong.
+
+Header PESANAN_OUTLET_DETAIL yang didukung:
+- Timestamp
+- No Pesanan
+- No Grup
+- Jenis Pesanan
+- Qty Pesanan
+- Kemasan
+- ID Lauk
+- Nama Lauk
+- Urutan Lauk
+- Catatan Grup
+- Qty Lauk
+- Catatan Lauk
+
+Catatan V97:
+Print Pesanan sekarang menampilkan Lauk | Qty | Catatan agar pembagian lauk jelas.
+
+====================================================================
+4. STRUKTUR SHEET CORE USER
+====================================================================
+
+Sumber resmi user, login, permission, outlet, dan PIC adalah APJ_CORE_USER.
+
+Sheet penting:
+USER
+LEVEL_PERMISSION
+MODUL_ACCESS
+OUTLET
+LOG_LOGIN
+UCAPAN_ULANG_TAHUN
+
+Catatan lama yang sudah diingat:
+- Tab modul bernama MODUL_ACCESS, bukan MODULE_ACCESS.
+- LONGITUDE/LONGTITUDE harus toleran karena data lama memakai LONGTITUDE.
+
+PIC / Penanggung Jawab:
+- Diambil dari sheet USER.
+- Dibaca langsung oleh Code.gs Inventory melalui SpreadsheetApp.openById.
+- Tidak memakai UrlFetchApp.
+
+Function cek:
+cekPicCoreUserV104
+
+Jika function ini menghasilkan banyak nama, maka dropdown PIC di Transfer Produk dan Lihat Stok harus muncul lengkap.
+
+====================================================================
+5. KATEGORI INVENTORY FINAL
+====================================================================
+
+Kategori utama:
+1. Bahan Utama
+2. Bahan Baku/Bumbu
+3. Bahan Preparasi
+4. Produk Jadi
+5. Kemasan
+6. Minuman & Barang Dagang
+7. Kebersihan/Operasional
+
+Prinsip:
+- Input Stok dipakai untuk pembelian/penambahan stok.
+- Output Stok dipakai untuk barang keluar umum, operasional, rusak, dan transfer non-produk.
+- Preparasi dipakai untuk bahan mentah menjadi bahan siap olah/setengah jadi.
+- Produksi dipakai untuk setengah jadi menjadi produk jadi.
+- Transfer Produk dipakai untuk mengirim produk/hasil produksi/preparasi ke outlet.
+- Produk Outlet dipakai untuk kontrol stok barang jual di outlet.
+
+====================================================================
+6. ALUR LOGIKA STOK GLOBAL
+====================================================================
+
+Semua transaksi stok masuk ke JURNAL_STOK.
+
+Kolom logika utama jurnal:
+- Timestamp
+- Tanggal
+- No Dokumen
+- Modul
+- Arah
+- Lokasi
+- Outlet Tujuan
+- ID Item
+- Qty Masuk
+- Qty Keluar
+- Qty Adjust
+- Petugas
+- Keterangan
+- Ref ID
+- Batch/No Resep
+
+Arah stok:
+MASUK / IN      = menambah stok.
+KELUAR / OUT    = mengurangi stok.
+ADJUST          = koreksi stok opname.
+
+Lokasi:
+PUSAT           = gudang/dapur pusat.
+OUTLET          = stok outlet.
+
+Outlet:
+ALL             = pusat / bukan outlet tertentu.
+LAHOR, SENISONO, PUJON, NGUJUNG, POKOPEK = outlet tujuan.
+
+====================================================================
+7. ALUR LOGIN DAN SESSION
+====================================================================
+
+1. User login melalui index.html.
+2. Frontend memanggil Core User API.
+3. Data session disimpan di localStorage dengan key APJ_*.
+4. Halaman inventory membaca session untuk:
+   - nama petugas,
+   - level,
+   - outlet,
+   - permission/modul.
+5. Backend Inventory tetap kompatibel fallback supaya operasional tidak mandek.
+6. Sumber permission utama tetap APJ_CORE_USER.
+
+Storage key penting:
+APJ_SESSION_ACTIVE
+APJ_SESSION_TOKEN
+APJ_USER_ID
+APJ_USER_USERNAME
+APJ_USER_NAME
+APJ_USER_LEVEL
+APJ_USER_OUTLET
+APJ_USER_OUTLET_ACCESS
+APJ_USER_PERMISSIONS
+APJ_MODULE_ACCESS
+APJ_USER_DATA
+
+====================================================================
+8. ALUR MENU INPUT STOK
+====================================================================
+
+Halaman:
+input-stok.html
+JS:
+assets/js/pages/apj-input-stok.js
+Backend action:
+simpanInputStok / simpanInputStokPreparasi
+
+Tujuan:
+Mencatat barang masuk ke gudang/pusat.
+
+Alur:
+1. User pilih tanggal.
+2. User pilih kategori.
+3. User pilih nama barang.
+4. User isi qty masuk.
+5. User isi satuan/petugas/catatan bila perlu.
+6. Simpan.
+7. Backend menulis JURNAL_STOK dengan:
+   Modul = INPUT_STOK
+   Arah = MASUK
+   Lokasi = PUSAT
+   Outlet = ALL
+8. STOK_AKHIR ikut berubah lewat jurnal/formula.
+
+Print:
+- Ada cetak label 58mm.
+- Filter tanggal dan kategori.
+
+====================================================================
+9. ALUR MENU OUTPUT STOK
+====================================================================
+
+Halaman:
+output-stok.html
+JS:
+assets/js/pages/apj-output-stok.js
+Backend action:
+getOutputInit
+simpanOutputStok
+getOutputPicList / getPicKaryawanList / getInventoryPicList
+
+Tujuan:
+Mencatat barang keluar dari gudang/pusat.
+
+Jenis penggunaan:
+- Pemakaian pusat.
+- Operasional.
+- Barang rusak/hilang.
+- Transfer outlet untuk barang jual tertentu.
+
+Logika penting:
+Semua Output selalu mengurangi stok pusat.
+
+Jika tujuan = Transfer Outlet:
+- Outlet wajib dipilih.
+- PIC penerima wajib/diisi.
+- Untuk barang jual seperti Minuman & Barang Dagang yang terdaftar sebagai stok outlet,
+  sistem menambah stok outlet juga.
+- Untuk barang operasional/non-jual, sistem hanya mengurangi stok pusat dan outlet hanya dicatat sebagai informasi.
+
+Jurnal:
+1. Baris OUT dari PUSAT selalu dibuat.
+2. Baris IN ke OUTLET hanya dibuat jika item memang layak masuk stok outlet.
+
+PIC:
+- Sumber resmi dari APJ_CORE_USER.USER.
+- Pada V102 sempat dibuat input manual fallback.
+- Pada V104/V105 sumber utama dikunci kembali ke Core User langsung.
+
+====================================================================
+10. ALUR MENU PREPARASI
+====================================================================
+
+Halaman:
+preparasi.html
+JS:
+assets/js/pages/apj-preparasi.js
+Backend action:
+getPreparasiInit
+simpanPreparasi
+
+Tujuan:
+Mencatat proses bahan mentah/bahan utama menjadi bahan siap olah atau setengah jadi.
+
+Contoh:
+- Ayam Potong 8 menjadi Ayam Kremes 8 dan Ayam Premix 8.
+- Kikil mentah menjadi Kikil siap olah.
+- Kentang menjadi Begedel Setengah Jadi.
+
+Alur:
+1. User pilih resep preparasi atau manual.
+2. Sistem menampilkan Bahan Keluar.
+3. Sistem menampilkan Hasil Masuk.
+4. Qty standar dari resep boleh diedit sesuai kondisi nyata.
+5. User simpan.
+6. Backend menulis jurnal:
+   - Bahan keluar: Modul PREPARASI, Arah KELUAR, Lokasi PUSAT.
+   - Hasil masuk: Modul PREPARASI, Arah MASUK, Lokasi PUSAT.
+
+Logika sisa/susut V100:
+Tidak ada hitung sisa otomatis global.
+Alasan:
+- Bahan dan hasil bisa beda satuan, contoh Kg vs Pcs.
+- Bahan bisa lebih dari satu.
+- Hasil bisa lebih banyak angka karena beda satuan.
+- Resep bumbu bisa paten tetapi tidak bisa dihitung sisa secara global.
+
+Sisa/Susut/Rusak/Hilang:
+- Dicatat manual sebagai catatan proses.
+- Tidak mengubah stok otomatis.
+- Stok hanya berubah dari Bahan Keluar dan Hasil Masuk.
+
+Satuan Selisih V101:
+Dropdown:
+Kg, Gram, Pcs, Porsi, Pack, Box, Liter, Ml, Botol, Bungkus, Ikat, Lembar, Butir, Ekor, Loyang, Panci, Paket.
+
+====================================================================
+11. ALUR MENU PRODUKSI
+====================================================================
+
+Halaman:
+produksi.html
+JS:
+assets/js/pages/apj-produksi.js
+Backend action:
+simpanProduksi / simpanOutputProduksi
+
+Tujuan:
+Mengubah bahan/setengah jadi menjadi produk jadi.
+
+Alur:
+1. User pilih produk/resep produksi.
+2. Bahan produksi keluar dari stok pusat.
+3. Hasil produksi masuk ke stok pusat sebagai Produk Jadi.
+4. Backend menulis JURNAL_STOK:
+   - Bahan: Modul PRODUKSI, Arah KELUAR.
+   - Hasil: Modul PRODUKSI, Arah MASUK.
+
+Produk Jadi ini kemudian bisa dikirim ke outlet lewat Transfer Produk.
+
+====================================================================
+12. ALUR MENU TRANSFER PRODUK
+====================================================================
+
+Halaman:
+transfer-produksi.html
+JS:
+assets/js/pages/apj-transfer-produksi.js
+Backend action:
+getTransferProduksiInit
+simpanTransferProduk / simpanTransferProduksi
+getTransferPrintData
+getTransferPicList / getPicKaryawanList / getInventoryPicList
+
+Tujuan:
+Mengirim produk produksi/preparasi dari pusat ke outlet.
+
+Alur:
+1. User pilih tanggal transfer.
+2. User pilih outlet tujuan.
+3. User pilih Penanggung Jawab Penerima/PIC.
+4. Sistem memuat produk yang boleh dikirim ke outlet tersebut.
+5. User isi jumlah dikirim.
+6. User simpan.
+7. Backend membuat dua baris jurnal per item:
+   - OUT dari PUSAT.
+   - IN ke OUTLET tujuan.
+
+Validasi:
+- Outlet wajib ada.
+- Item harus eligible sebagai produk outlet/siap transfer.
+- Qty harus valid.
+
+PIC V105:
+- Dropdown Penanggung Jawab Penerima sudah tidak disabled.
+- Data dari APJ_CORE_USER.USER langsung dipakai.
+- Loading tambahan tidak lagi mengunci form.
+
+Print:
+- Cetak Surat Jalan.
+- Data surat jalan membaca transaksi transfer tersimpan.
+
+====================================================================
+13. ALUR MENU PRODUK OUTLET
+====================================================================
+
+Halaman:
+produk-outlet.html
+JS:
+assets/js/pages/apj-produk-outlet.js
+Backend action:
+getProdukOutletData
+simpanProdukOutletKeluar
+simpanProdukOutletOpname
+simpanOlahOutlet / simpanProsesOutlet
+simpanPesananOutlet
+getPesananOutletInit
+getPesananOutletList
+getPesananOutletPrintData
+
+Tujuan:
+Mengontrol stok barang jual di outlet.
+
+Bagian utama:
+1. Rekap Produk Outlet.
+2. Produk terjual/keluar outlet.
+3. Opname outlet.
+4. Olah/Goreng/Proses outlet.
+5. Pesanan outlet.
+6. Print rekap dan print pesanan.
+
+13.1 Produk terjual
+- Mengurangi stok outlet.
+- Jurnal: Modul PRODUK_OUTLET, Arah KELUAR, Lokasi OUTLET.
+
+13.2 Opname outlet
+- Koreksi stok fisik outlet.
+- Jurnal: Modul STOK_OPNAME, Arah ADJUST, Lokasi OUTLET.
+
+13.3 Olah/Goreng Outlet
+Dipakai untuk item setengah jadi yang diproses di outlet.
+Contoh:
+Ayam Kremes/Premix -> Ayam Goreng siap jual.
+
+Logika:
+- Item asal berkurang di outlet.
+- Item hasil bertambah di outlet.
+- Jurnal: Modul PRODUK_OUTLET, Arah OUT dan IN, Lokasi OUTLET.
+
+13.4 Pesanan Outlet
+Dipakai untuk pesanan nasi box/custom.
+
+Data header masuk ke PESANAN_OUTLET.
+Detail lauk masuk ke PESANAN_OUTLET_DETAIL.
+
+Fix penting:
+- V95: Nama Pemesan / Nama Pesanan selaras.
+- V96: Font print pesanan 58mm jadi 14px dan tidak bold semua.
+- V97: Isi lauk menjadi Lauk | Qty | Catatan.
+- V98: Print rekap 58mm tidak lagi pakai iframe tersembunyi.
+- V99: Font Cetak Rekap diperbesar dan layout jadi kartu agar mudah dibaca.
+
+====================================================================
+14. ALUR MENU STOK OPNAME
+====================================================================
+
+Halaman:
+stok-opname.html
+JS:
+assets/js/pages/apj-stok-opname.js
+Backend action:
+simpanStokOpname
+
+Tujuan:
+Mencatat selisih stok fisik dibanding stok sistem.
+
+Alur:
+1. Pilih tanggal/kategori/lokasi.
+2. Isi stok fisik.
+3. Sistem hitung selisih.
+4. Simpan.
+5. Backend menulis JURNAL_STOK:
+   Modul = STOK_OPNAME
+   Arah = ADJUST
+   Qty Adjust = selisih
+
+====================================================================
+15. ALUR MENU LIHAT STOK
+====================================================================
+
+Halaman:
+lihat-stok.html
+JS:
+assets/js/pages/apj-lihat-stok.js
+Backend action:
+getStokAkhirReport
+getPicKaryawanList / getInventoryPicList / getAllPicKaryawan
+
+Tujuan:
+Melihat stok akhir pusat/outlet.
+
+V105 khusus Lihat Stok:
+- Modal Cetak Rekap mengambil PIC dari backend Inventory.
+- Backend Inventory membaca APJ_CORE_USER.USER.
+- Supervisor/PIC pada cetak rekap tidak lagi hanya menampilkan user login.
+
+Cetak Rekap:
+- Dipakai untuk rekap stok.
+- PIC/TTD diambil dari daftar Core User.
+
+====================================================================
+16. ENDPOINT / ACTION BACKEND INVENTORY PENTING
+====================================================================
+
+Init dan report:
+ping
+getDashboardData
+getBarang
+getBarangProduksi
+getOutputInit
+getTransferProduksiInit
+getPreparasiInit
+getProdukOutletData
+getStokAkhirReport
+getStokProduksiReport
+getRiwayatTransaksi
+getJurnalStok
+getInputPrintOptions
+getInputPrintData
+getTransferPrintData
+
+PIC:
+getOutputPicList
+getTransferPicList
+getPicKaryawanList
+getInventoryPicList
+getAllPicKaryawan
+getKaryawanAktifInventory
+cekPicCoreUserV104
+
+Transaksi:
+simpanInputStok
+simpanInputStokPreparasi
+simpanOutputStok
+simpanPreparasi
+simpanProduksi
+simpanOutputProduksi
+simpanTransferProduk
+simpanTransferProduksi
+simpanProdukOutletKeluar
+simpanProdukOutletOpname
+simpanOlahOutlet
+simpanProsesOutlet
+simpanStokOpname
+simpanPesananOutlet
+
+Pesanan:
+setupPesananOutletSheetsV90
+getPesananOutletInit
+getPesananOutletList
+getPesananOutletPrintData
+
+Setup Inventory:
+getSetupInventoryData
+saveKategoriInventory / deleteKategoriInventory
+saveItemInventory / deleteItemInventory
+saveProdukInventory / deleteProdukInventory
+saveResepInventory / deleteResepInventory
+saveResepDetailInventory / deleteResepDetailInventory
+saveResepPreparasiInventory / deleteResepPreparasiInventory
+
+Maintenance:
+clearInventoryCache
+repairJurnalStokV3
+
+====================================================================
+17. RIWAYAT FIX TERAKHIR V95 - V105
+====================================================================
+
+V95 - Print Pesanan Fix
+- Nama Pemesan tidak muncul karena sheet lama memakai header Nama Pesanan.
+- Backend membaca dan menyelaraskan Nama Pesanan / Nama Pemesan.
+- Print 58mm pesanan pindah ke popup print agar tidak blank saat cetak fisik.
+
+V96 - Font Pesanan 14px
+- Print pesanan 58mm font utama 14px.
+- Tidak bold semua.
+- Label penting tetap tebal.
+
+V97 - Lauk Qty Catatan
+- Form Pesanan Outlet: Lauk | Qty | Catatan.
+- Print Pesanan menampilkan Lauk | Qty | Catatan.
+- PESANAN_OUTLET_DETAIL mendukung Qty Lauk dan Catatan Lauk.
+
+V98 - Rekap Print 58mm Fix
+- Tombol Cetak 58mm pada rekap diganti menjadi Cetak Rekap.
+- Print rekap tidak lagi via iframe tersembunyi.
+- Popup print dipakai untuk menghindari preview ada tetapi hasil print kosong.
+
+V99 - Rekap Font Besar
+- Font Cetak Rekap 58mm diperbesar.
+- Layout rekap dibuat model kartu produk agar terbaca di thermal 58mm.
+
+V100 - Output PIC & Preparasi Sisa Logic
+- Percobaan memperbaiki PIC Output.
+- Logika sisa otomatis preparasi dimatikan karena salah bila beda satuan/multi bahan.
+- Sisa/susut menjadi catatan manual.
+
+V101 - PIC All & Satuan Dropdown
+- Satuan Selisih Preparasi menjadi dropdown.
+- Percobaan PIC via backend proxy ternyata berisiko izin UrlFetchApp.
+
+V102 - Output Safe PIC Manual
+- UrlFetchApp backend dimatikan agar Output tidak error script.external_request.
+- PIC Output dibuat input dengan datalist/manual fallback.
+
+V103 - PIC Karyawan Master
+- Sempat dibuat fallback MASTER_PIC.
+- Kemudian dikoreksi karena sumber resmi PIC harus APJ_CORE_USER.
+
+V104 - PIC Direct Core User
+- CORE_USER.SPREADSHEET_ID diisi ID APJ_CORE_USER.
+- Backend Inventory membaca APJ_CORE_USER.USER langsung via SpreadsheetApp.openById.
+- Tidak pakai UrlFetchApp.
+
+V105 - Transfer & Lihat Stok PIC Fix
+- Transfer Produk: dropdown Penanggung Jawab Penerima tidak disabled.
+- Lihat Stok: Cetak Rekap mengambil PIC dari APJ_CORE_USER.USER melalui backend Inventory.
+- Modul lain tidak disentuh logikanya.
+
+====================================================================
+18. CARA PASANG / DEPLOY
+====================================================================
+
+1. Extract ZIP final.
+2. Upload/replace semua frontend ke hosting/static site/GitHub Pages sesuai cara kerja saat ini.
+3. Buka file CODE_GS_APJ_INVENTORI_MASTER.txt.
+4. Copy seluruh isi file tersebut.
+5. Paste ke Apps Script Inventory.
+6. Simpan.
+7. Deploy ulang Web App Inventory.
+8. Pastikan deploy URL Inventory tetap sama atau update assets/js/apj-config.js jika deploy URL berubah.
+9. Dari editor Apps Script, jalankan:
+   cekPicCoreUserV104
+10. Beri izin akses Spreadsheet jika diminta.
+11. Hasil cek harus menampilkan daftar PIC lebih dari satu.
+12. Di browser, tekan Ctrl + F5.
+
+====================================================================
+19. CHECKLIST TESTING SETELAH PASANG
+====================================================================
+
+Login:
+[ ] Login berhasil.
+[ ] Nama user tampil di kanan atas.
+
+Output Stok:
+[ ] Kategori barang muncul.
+[ ] Barang muncul sesuai kategori.
+[ ] Tujuan Transfer Outlet memunculkan Outlet dan PIC.
+[ ] Simpan output bisa masuk jurnal.
+
+Preparasi:
+[ ] Pilih resep menampilkan Bahan Keluar dan Hasil Masuk.
+[ ] Satuan Selisih dropdown muncul.
+[ ] Simpan preparasi tidak membuat sisa minus otomatis.
+
+Transfer Produk:
+[ ] Outlet tujuan bisa dipilih.
+[ ] Penanggung Jawab Penerima aktif/tidak disabled.
+[ ] Nama PIC dari APJ_CORE_USER.USER muncul.
+[ ] Produk outlet muncul.
+[ ] Simpan transfer membuat stok pusat berkurang dan outlet bertambah.
+[ ] Cetak Surat Jalan bisa dibuka.
+
+Produk Outlet:
+[ ] Rekap produk outlet muncul.
+[ ] Cetak Rekap 58mm terbaca besar.
+[ ] Pesanan Outlet bisa disimpan.
+[ ] Print Pesanan 58mm menampilkan Nama Pemesan.
+[ ] Print Pesanan menampilkan Lauk | Qty | Catatan.
+
+Lihat Stok:
+[ ] Data stok muncul.
+[ ] Cetak Rekap membuka modal PIC.
+[ ] Supervisor/PIC muncul dari APJ_CORE_USER.USER.
+
+====================================================================
+20. CATATAN KERJA LANJUTAN
+====================================================================
+
+1. Jangan hapus baris master secara fisik.
+   Gunakan soft delete/nonaktif agar ID dan referensi tidak rusak.
+
+2. MASTER_ITEM adalah pusat item.
+   Kode item baru memakai prefix ITM.
+
+3. STOK_AKHIR jangan diinput manual dari frontend.
+   Semua perubahan stok harus lewat JURNAL_STOK.
+
+4. PIC resmi tetap APJ_CORE_USER.USER.
+   Jangan jadikan MASTER_PIC sebagai sumber utama lagi.
+
+5. Jika daftar PIC kembali hanya menampilkan user login:
+   - Jalankan cekPicCoreUserV104.
+   - Pastikan Apps Script Inventory punya akses ke spreadsheet APJ_CORE_USER.
+   - Pastikan header nama/status di sheet USER bisa dibaca.
+
+6. Jika print 58mm preview muncul tetapi printer kosong:
+   - Gunakan popup print, bukan iframe tersembunyi.
+   - Gunakan @page size eksplisit 58mm x 297mm.
+   - Tunggu render sebelum window.print().
+
+7. Untuk preparasi multi bahan:
+   - Semua bahan yang benar-benar dipakai dimasukkan sebagai Bahan Keluar.
+   - Semua hasil yang benar-benar jadi dimasukkan sebagai Hasil Masuk.
+   - Sisa/susut/rusak/hilang dicatat manual, bukan dihitung otomatis global.
+
+8. Untuk barang operasional/kemasan:
+   - Tidak perlu stok outlet bila tidak dijual.
+   - Cukup Output dari pusat.
+
+9. Untuk barang dagang yang dijual di outlet:
+   - Output dengan tujuan Transfer Outlet dapat menambah stok outlet jika item eligible.
+
+10. Untuk setengah jadi yang dibawa ke outlet:
+   - Transfer Produk masuk ke stok outlet.
+   - Olah/Goreng outlet mengubah setengah jadi menjadi produk siap jual.
+
+====================================================================
+21. PENANDA FINAL SEMENTARA
+====================================================================
+
+Kode kerja terakhir yang harus dipakai ke depan:
+APJ_PRODUK_OUTLET_V105_FINAL_FULL_CODE_DOKUMENTASI.zip
+
+Milestone:
+APJ Produk Outlet V105 - Transfer & Lihat Stok PIC Fix + Dokumentasi Final Sementara
+
+Status:
+AMAN SAMPAI TITIK INI.
+
+====================================================================
+
+
+====================================================================
+22. UPDATE V106 - SETUP INVENTORY HTML
+====================================================================
+
+V106 menambahkan halaman setup-inventory.html.
+
+File baru:
+- setup-inventory.html
+- assets/css/pages/apj-setup-inventory.css
+- assets/js/pages/apj-setup-inventory.js
+- DOKUMENTASI_APJ_V106_SETUP_INVENTORY.txt
+
+Isi Setup Inventory:
+1. Kategori: tambah, edit, hapus/nonaktif.
+2. Item: tambah, edit, hapus/nonaktif, atur satuan dan hak pakai modul.
+3. Resep Produksi: tambah/edit resep header dan detail bahan.
+4. Resep Preparasi: tambah, edit, hapus/nonaktif.
+
+Catatan:
+- Hapus master tetap soft delete agar histori JURNAL_STOK aman.
+- Jurnal/Riwayat Inventory belum dibuat di V106.
+- Setelah Setup aman, lanjut ke riwayat-inventory.html.
+
+Kode kerja terbaru setelah update ini:
+APP_V10_1_SETUP_INVENTORY_V106.zip
+
+
+23. UPDATE V107 - SETUP INVENTORY FIX
+------------------------------------------------------------
+V107 memperbaiki Setup Inventory tanpa mengubah modul lain.
+- Modal Panduan Setup solid/tidak transparan.
+- Light mode Setup Inventory dibuat lebih nyaman dibaca.
+- Resep Preparasi mendukung banyak bahan seperti Resep Produksi.
+- Tambah Item: Urutan otomatis dari kategori terpilih.
+- Baris bahan Resep Produksi/Preparasi bernomor otomatis.
+- Backend RESEP_PREPARASI mendukung 1 ID resep dengan banyak baris bahan.
+
+Kode kerja:
+APP_V10_2_SETUP_INVENTORY_V107.zip

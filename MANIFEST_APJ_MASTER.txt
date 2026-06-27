@@ -1,30 +1,113 @@
-APJ Produk Outlet V105 - Transfer & Lihat Stok PIC Fix
+APJ V10.2 / V108 - Setup Inventory Fix
 
-File penting:
+Basis kerja:
+- APP_V.10.0 / V105 final yang sudah beres.
+- V106 hanya menambahkan modul Setup Inventory.
+- Modul Output, Preparasi, Produk Outlet, Transfer Produk, dan Lihat Stok tidak diubah logika terakhirnya selain membawa file dari baseline.
+
+File master:
 - CODE_GS_APJ_INVENTORI_MASTER.txt
-- transfer-produksi.html
-- lihat-stok.html
-- assets/js/pages/apj-transfer-produksi.js
-- assets/js/pages/apj-lihat-stok.js
+- DOKUMENTASI_APJ_V105_ALUR_LOGIC_ID_LENGKAP.txt
+- DOKUMENTASI_APJ_V106_SETUP_INVENTORY.txt
 - README_APJ_MASTER.txt
+- MANIFEST_APJ_MASTER.txt
 - PIC_CORE_USER_SETUP_V104.txt
 
-Perubahan utama V105:
-- Transfer Produk: dropdown Penanggung Jawab Penerima tidak lagi terkunci/disabled saat data PIC tambahan masih dimuat.
-- Transfer Produk: sumber utama PIC tetap dari backend Inventory yang membaca APJ_CORE_USER.USER.
-- Lihat Stok: modal Cetak Rekap sekarang mengambil PIC/Penanggung Jawab dari backend Inventory, bukan hanya Core API frontend.
-- Lihat Stok: pilihan Supervisor/PIC membaca daftar dari APJ_CORE_USER.USER melalui Code.gs Inventory.
-- Cache Transfer dan Lihat Stok dinaikkan ke v105.
+File frontend utama:
+- index.html
+- dashboard.html
+- dashboard-inventory.html
+- dashboard-absensi.html
+- input-stok.html
+- output-stok.html
+- preparasi.html
+- produksi.html
+- transfer-produksi.html
+- produk-outlet.html
+- stok-opname.html
+- lihat-stok.html
+- setup-inventory.html  [BARU V106]
 
-Yang tidak diubah:
-- Modul Produk Outlet, Output Stok, Preparasi, Produksi, Input, Opname tidak disentuh logikanya.
-- Sumber resmi PIC tetap APJ_CORE_USER.USER dengan Spreadsheet ID 1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk.
+File baru V106:
+- setup-inventory.html
+- assets/css/pages/apj-setup-inventory.css
+- assets/js/pages/apj-setup-inventory.js
+- DOKUMENTASI_APJ_V106_SETUP_INVENTORY.txt
 
-Warisan fix tetap ada:
-- V104: PIC Direct dari APJ_CORE_USER.USER.
-- V102: Output aman dari error UrlFetchApp.
-- V101: Satuan Selisih Preparasi dropdown.
-- V99: Cetak Rekap font besar.
-- V97: Pesanan Lauk | Qty | Catatan.
-- V96: Font Print Pesanan 14px.
-- V95: Nama Pemesan / Nama Pesanan.
+Fitur Setup Inventory V106:
+1. Kategori
+   - Tambah
+   - Edit
+   - Hapus/nonaktifkan
+
+2. Item
+   - Tambah
+   - Edit
+   - Hapus/nonaktifkan
+   - Atur satuan, tipe item, stok minimum, dan hak tampil modul.
+
+3. Resep Produksi
+   - Tambah resep header.
+   - Edit resep header.
+   - Tambah/edit detail bahan resep.
+   - Hapus/nonaktifkan resep.
+
+4. Resep Preparasi
+   - Tambah.
+   - Edit.
+   - Hapus/nonaktifkan.
+
+Backend yang dipakai:
+- getSetupInventoryData
+- saveKategoriInventory / deleteKategoriInventory
+- saveItemInventory / deleteItemInventory
+- saveResepInventory / deleteResepInventory
+- saveResepDetailInventory / deleteResepDetailInventory
+- saveResepPreparasiInventory / deleteResepPreparasiInventory
+
+ID penting:
+Spreadsheet Inventory:
+1F02isprz0K-sPO0GfoA73ZICqZD-Swzt9xXkOsz7lPI
+
+Spreadsheet APJ_CORE_USER:
+1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk
+
+Deploy URL Inventory:
+https://script.google.com/macros/s/AKfycbzisWWG4QzlI2_xB9arSGLAx0zn3Rgcu_Jt9tFXpJZTcXohFXwmE0sDTGCxf-i2OL0k/exec
+
+Deploy URL Core User:
+https://script.google.com/macros/s/AKfycbwXjexCdYXsygij_WdgA6H26Xp__GCpRbLk1oxpocnvmOvyy8_9G2lVKW_6wr2qV19YkQ/exec
+
+Catatan penting:
+- Hapus master bukan delete permanen, tetapi soft delete/nonaktif.
+- Ini menjaga histori JURNAL_STOK tetap aman.
+- Resep adalah standar. Qty fisik tetap bisa disesuaikan saat transaksi.
+- File .sidebar.html cadangan sudah tidak disertakan.
+
+Kode kerja terakhir:
+APP_V10_1_SETUP_INVENTORY_V106.zip
+
+============================================================
+V108 - APP V10.2 SETUP INVENTORY FIX
+============================================================
+Tanggal: 2026-06-27
+Paket: APP_V10_2_SETUP_INVENTORY_V108.zip
+Perubahan utama:
+1. setup-inventory.html cache v107.
+2. CSS Setup Inventory: panduan solid + light mode nyaman.
+3. JS Setup Inventory: Resep Preparasi multi bahan + nomor baris otomatis + urutan item otomatis.
+4. Code.gs Inventory: save/delete Resep Preparasi multi bahan.
+5. Dokumentasi tambahan: DOKUMENTASI_APJ_V108_SETUP_INVENTORY_FIX.txt
+
+
+[APJ V108]
+- Setup Inventory: kartu ringkasan Kategori/Item/Resep Produksi/Resep Preparasi dirapikan khusus light mode dan dark mode.
+- CSS halaman Setup sekarang dimuat setelah apj-theme.css agar patch halaman tidak kalah oleh tema global.
+
+
+=== V109 RIWAYAT INVENTORY ===
+- Menambahkan riwayat-inventory.html untuk audit JURNAL_STOK.
+- Menambahkan CSS/JS halaman: apj-riwayat-inventory.css dan apj-riwayat-inventory.js.
+- Link menu Jurnal Stok / Audit diarahkan ke riwayat-inventory.html.
+- riwayat-transaksi.html dibuat sebagai redirect kompatibilitas.
+- Fitur: filter tanggal, jenis, arah, lokasi/outlet, keyword, limit, summary, export CSV, dan cetak rekap A4.

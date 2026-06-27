@@ -1,0 +1,28 @@
+APJ SETUP INVENTORY V108 - CSS RINGKASAN RAPI FIX
+
+Basis: APP_V10_2_SETUP_INVENTORY_V107
+Fokus perubahan: Setup Inventory saja.
+
+Perbaikan:
+1. Kartu ringkasan Kategori, Item, Resep Produksi, dan Resep Preparasi dirapikan.
+   - Tinggi kartu dibuat konsisten.
+   - Padding diperbesar.
+   - Font angka diperbesar dan disejajarkan.
+   - Background dibuat lebih bersih untuk light mode.
+   - Border dan shadow dibuat lebih halus.
+
+2. CSS halaman Setup Inventory sekarang dipanggil setelah apj-theme.css.
+   Alasan:
+   - Di V107 beberapa style light mode kalah oleh tema global.
+   - Di V108 style khusus Setup menjadi prioritas akhir sehingga tampilan lebih stabil.
+
+3. Tidak ada perubahan logic backend, sheet, dan modul lain.
+   Yang disentuh hanya:
+   - setup-inventory.html
+   - assets/css/pages/apj-setup-inventory.css
+   - README_APJ_MASTER.txt
+   - MANIFEST_APJ_MASTER.txt
+
+Catatan:
+- Setelah upload frontend, lakukan Ctrl + F5.
+- Code.gs tidak perlu redeploy jika sebelumnya sudah pakai V107, karena V108 ini hanya perapian visual Setup Inventory.

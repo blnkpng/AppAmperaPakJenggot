@@ -1,16 +1,15 @@
 <!DOCTYPE html>
-
 <html lang="id">
-<head><meta content="produksi-v71-manual-orange" name="apj-migration"/>
+<head><meta content="riwayat-inventory-v109" name="apj-migration"/>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Produksi | APJ Inventori</title>
+<title>Riwayat Inventory | APJ Inventori</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<script src="assets/js/apj-theme.js"></script><link href="assets/css/apj-core.css" rel="stylesheet"/><link href="assets/css/apj-inventory.css" rel="stylesheet"/><link href="assets/css/apj-legacy-inventory.css" rel="stylesheet"/><link href="assets/css/pages/apj-produksi.css?v=73" rel="stylesheet"/><link href="assets/css/apj-theme.css" rel="stylesheet"/></head>
-<body class="apj-dashboard-v3 apj-preparasi-v58 apj-produksi-v70 apj-produksi-v72 apj-produksi-v73 flex h-[100dvh] lg:h-screen antialiased" data-page="produksi">
+<script src="assets/js/apj-theme.js"></script><link href="assets/css/apj-core.css" rel="stylesheet"/><link href="assets/css/apj-inventory.css" rel="stylesheet"/><link href="assets/css/apj-legacy-inventory.css" rel="stylesheet"/><link href="assets/css/apj-theme.css" rel="stylesheet"/><link href="assets/css/pages/apj-riwayat-inventory.css?v=109" rel="stylesheet"/></head>
+<body class="apj-dashboard-v3 apj-riwayat-inventory-v109 flex h-[100dvh] lg:h-screen antialiased" data-page="riwayat-inventory">
 <div class="toast border backdrop-blur-xl p-4" id="customToast" role="alert">
 <div class="flex items-start gap-3"><div class="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-300">i</div><div class="min-w-0"><p class="text-sm font-extrabold text-white">Notifikasi</p><p class="mt-1 text-sm leading-relaxed" id="toastMessage"></p></div></div>
 </div>
@@ -76,11 +75,11 @@
 <a class="nav-item" data-permission="lihatStok" href="lihat-stok.html" title="Lihat Stok"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Lihat Stok</span></a>
 </div>
 </div>
-<div class="nav-second-group nav-group open" data-menu-group="inventory-production">
-<button aria-expanded="true" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-production" title="Dapur Produksi" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dapur Produksi</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-second-group nav-group" data-menu-group="inventory-production">
+<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-production" title="Dapur Produksi" type="button"><span class="nav-second-dot"></span><span class="nav-text">Dapur Produksi</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
 <div class="nav-submenu nav-leaf-submenu">
 <a class="nav-item" data-permission="preparasi" href="preparasi.html" title="Preparasi"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 4h14v6H5V4Zm2 9h10M7 17h10M9 21h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Preparasi</span></a>
-<a class="nav-item active" data-permission="produksi" href="produksi.html" title="Produksi"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 3v3M8 7l-2-2M16 7l2-2M5 12h14M7 12v7h10v-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Produksi</span></a>
+<a class="nav-item" data-permission="produksi" href="produksi.html" title="Produksi"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 3v3M8 7l-2-2M16 7l2-2M5 12h14M7 12v7h10v-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Produksi</span></a>
 <a class="nav-item" data-permission="transferProduksi,transferProduk" href="transfer-produksi.html" title="Transfer Produk"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Transfer Produk</span></a>
 </div>
 </div>
@@ -88,11 +87,11 @@
 <button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-outlet" title="Outlet" type="button"><span class="nav-second-dot"></span><span class="nav-text">Outlet</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
 <div class="nav-submenu nav-leaf-submenu"><a class="nav-item" data-permission="produkOutlet" href="produk-outlet.html" title="Produk Outlet"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 7h16v13H4V7Zm2-3h12l2 3H4l2-3Zm3 8h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Produk Outlet</span></a></div>
 </div>
-<div class="nav-second-group nav-group" data-menu-group="inventory-setup">
-<button aria-expanded="false" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-setup" title="Setup &amp; Audit" type="button"><span class="nav-second-dot"></span><span class="nav-text">Setup &amp; Audit</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
+<div class="nav-second-group nav-group open" data-menu-group="inventory-setup">
+<button aria-expanded="true" class="nav-group-toggle nav-second-toggle" data-menu-toggle="inventory-setup" title="Setup &amp; Audit" type="button"><span class="nav-second-dot"></span><span class="nav-text">Setup &amp; Audit</span><span class="nav-chevron"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></button>
 <div class="nav-submenu nav-leaf-submenu">
 <a class="nav-item" data-permission="setupInventory,admin" href="setup-inventory.html" title="Setup Inventory"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.03.03a2 2 0 0 1-2.83 2.83l-.03-.03A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.02.02a2 2 0 0 1-3.96 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.03.03a2 2 0 0 1-2.83-2.83l.03-.03A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.02-.02a2 2 0 0 1 0-3.96L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.03-.03a2 2 0 0 1 2.83-2.83l.03.03A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.02-.02a2 2 0 0 1 3.96 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.03-.03A2 2 0 0 1 22.6 7.1l-.03.03A1.7 1.7 0 0 0 19.4 9c.1.36.3.7.6 1l.02.02a2 2 0 0 1 0 3.96L20 14c-.3.3-.5.64-.6 1Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Setup Inventory</span></a>
-<a class="nav-item" data-permission="riwayatTransaksi" href="riwayat-inventory.html" title="Jurnal Stok / Audit"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v5l3 2M4 4v5h5M4.6 15A8 8 0 1 0 5.7 6.3L4 9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Jurnal Stok / Audit</span></a>
+<a class="nav-item active" data-permission="riwayatTransaksi" href="riwayat-inventory.html" title="Riwayat Inventory / Jurnal Stok"><span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v5l3 2M4 4v5h5M4.6 15A8 8 0 1 0 5.7 6.3L4 9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="nav-text">Riwayat Inventory</span></a>
 </div>
 </div>
 </div>
@@ -119,9 +118,9 @@
 </div>
 </div>
 </nav>
-<div class="sidebar-footer"><button aria-label="Buka panduan produksi" class="sidebar-help-button" onclick="openProduksiHelpModal(false); closeMobileSidebar();" title="Panduan Produksi" type="button">
+<div class="sidebar-footer"><button aria-label="Buka panduan riwayat inventory" class="sidebar-help-button" onclick="openRiwayatHelpModal(false)" title="Panduan Riwayat Inventory" type="button">
 <span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8.2 9a4 4 0 1 1 6.8 2.8c-.9.6-1.5 1.2-1.5 2.2M12 18h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
-<span class="help-text">Panduan Produksi</span>
+<span class="help-text">Panduan Riwayat</span>
 </button>
 <button class="logout-button" onclick="showLogoutModal()" title="Logout Sistem">
 <span class="nav-icon"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M16 17l5-5-5-5M21 12H9M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
@@ -131,162 +130,113 @@
 </aside>
 <main class="apj-main flex-1 flex flex-col">
 <header class="topbar">
-<div class="topbar-title">
-<div class="topbar-title-mark"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 3v3M8 7l-2-2M16 7l2-2M5 12h14M7 12v7h10v-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div>
-<div class="min-w-0">
-<h2>Produksi</h2>
-<p>Catat proses bahan siap olah menjadi produk jadi.</p>
-</div>
-</div>
-<div class="flex items-center gap-3 ml-auto">
-<button aria-label="Ganti mode tema" class="icon-button apj-theme-toggle hide-xs" data-apj-theme-toggle="" title="Ganti mode terang/gelap" type="button"><span class="apj-theme-toggle-icon" data-apj-theme-icon="">☾</span></button>
-<button class="icon-button hide-xs" title="Notifikasi" type="button"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 0 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
-<div class="user-chip">
-<div class="user-meta hidden sm:block text-right"><p class="text-sm font-extrabold clamp-1" id="displayNama">Memuat...</p><p class="text-xs font-bold uppercase tracking-wide" id="displayLevel">--</p></div>
-<div class="user-avatar"><span id="displayInisial">U</span></div>
-</div>
-</div>
+  <div class="topbar-title">
+    <div class="topbar-title-mark"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v5l3 2M4 4v5h5M4.6 15A8 8 0 1 0 5.7 6.3L4 9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div>
+    <div class="min-w-0"><h2>Riwayat Inventory</h2><p>Audit transaksi stok dari JURNAL_STOK.</p></div>
+  </div>
+  <div class="flex items-center gap-3 ml-auto">
+    <button aria-label="Ganti mode tema" class="icon-button apj-theme-toggle hide-xs" data-apj-theme-toggle="" title="Ganti mode terang/gelap" type="button"><span class="apj-theme-toggle-icon" data-apj-theme-icon="">☾</span></button>
+    <button class="icon-button hide-xs" title="Notifikasi" type="button"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 0 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
+    <div class="user-chip"><div class="user-meta hidden sm:block text-right"><p class="text-sm font-extrabold clamp-1" id="displayNama">Memuat...</p><p class="text-xs font-bold text-slate-400 uppercase" id="displayLevel">-</p></div><div class="user-avatar" id="displayInisial">AP</div></div>
+  </div>
 </header>
 <section class="page-scroll">
-<div class="page-wrap">
-<div class="hero-card">
-<div class="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-<div>
-<div class="soft-badge mb-4"><span class="h-2 w-2 rounded-full bg-amber-300"></span><span>Produksi Dapur</span></div>
-<h1 class="hero-title">Produksi Harian</h1>
-<p class="hero-desc">Catat beberapa proses produksi dapur dalam satu kali simpan. Stok bahan pada daftar produksi akan menyesuaikan sementara sebelum data disimpan.</p>
-</div>
-<div class="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
-Petugas: <span class="font-extrabold text-white" id="namaPetugas">Memuat...</span>
-</div>
-</div>
-</div>
-<div class="hidden rounded-2xl border border-rose-800 bg-rose-950/30 p-5 text-rose-300" id="accessDeniedBox">
-<h3 class="font-bold text-white mb-1">Akses Ditolak</h3>
-<p class="text-sm">Menu ini hanya tersedia untuk pengguna yang memiliki izin produksi.</p>
-</div>
-<div class="prep-kpi-grid produksi-kpi-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-<div class="mini-stat"><p>Produksi Dipilih</p><strong id="kpiResep">0</strong></div>
-<div class="mini-stat"><p>Total Bahan Dipakai</p><strong class="text-amber-300" id="kpiBahan">0</strong></div>
-<div class="mini-stat"><p>Total Produk Jadi</p><strong class="text-emerald-300" id="kpiHasil">0</strong></div>
-<div class="mini-stat"><p>Catatan Proses</p><strong class="text-blue-300" id="kpiCatatan">Normal</strong></div>
-<div class="mini-stat"><p>Status</p><strong class="text-cyan-300" id="kpiStatus">Siap</strong></div>
-</div>
-<div class="panel produksi-panel">
-<div class="prep-form-grid produksi-form-grid produksi-batch-form grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-5">
-<div>
-<label class="form-label">Tanggal Produksi</label>
-<input class="form-control" id="tanggalInput" type="date"/>
-</div>
-<div class="xl:col-span-2" id="resepWrap">
-<label class="form-label">Resep Produksi</label>
-<select class="form-control" id="resepSelect"><option value="">Memuat resep...</option></select>
-</div>
-<div class="produksi-add-actions">
-<label class="form-label">Tambah Produksi</label>
-<button class="btn-primary produksi-add-btn" onclick="addSelectedRecipeBatch()" type="button">+ Tambah Produksi</button>
-</div>
-<div class="produksi-add-actions">
-<label class="form-label">Tambah Manual</label>
-<button class="btn-orange produksi-add-btn produksi-manual-btn" onclick="addManualBatch()" type="button">+ Tambah Manual</button>
-</div>
-</div>
-<div class="prep-form-grid produksi-form-grid grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-<div>
-<label class="form-label">Keterangan Proses</label>
-<select class="form-control" id="keteranganProsesSelect" onchange="handleKeteranganChange()">
-<option value="NORMAL">Normal</option>
-<option value="RUSAK">Rusak</option>
-<option value="GOSONG">Gosong</option>
-<option value="HILANG">Hilang</option>
-<option value="KURANG">Hasil kurang</option>
-<option value="LAINNYA">Lainnya</option>
-</select>
-</div>
-<div>
-<label class="form-label">Jumlah Tidak Layak</label>
-<input class="form-control" id="qtyTidakLayakInput" oninput="updateKpi()" placeholder="Opsional" step="0.01" type="number" min="0"/>
-</div>
-<div>
-<label class="form-label">Keterangan Tambahan</label>
-<input class="form-control" id="keteranganTambahanInput" oninput="updateKpi()" placeholder="Opsional..." type="text"/>
-</div>
-</div>
-<div class="info-card mb-5" id="infoBox">
-Pilih resep lalu klik Tambah Produksi. Beberapa produksi dapat dimasukkan dalam satu proses simpan.
-</div>
-<div class="batch-toolbar mb-5">
-<div>
-<p class="prep-section-label">Daftar Produksi Harian</p>
-<h3>Produksi yang akan disimpan</h3>
-<p>Stok bahan otomatis menyesuaikan pemakaian sementara antar produksi sebelum disimpan.</p>
-</div>
-</div>
-<div class="batch-container" id="batchContainer">
-<div class="batch-empty-card"><p>Memuat data produksi...</p><small>Mohon tunggu, data sedang disiapkan.</small></div>
-</div>
-<div class="prep-sisa-card produksi-note-card mt-5">
-<div class="prep-sisa-head">
-<div>
-<p class="prep-section-label">Catatan Produksi</p>
-<h3>Keterangan proses produksi</h3>
-<p>Keterangan berlaku untuk seluruh daftar produksi harian yang disimpan dalam satu proses.</p>
-</div>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-<div>
-<label class="form-label">Kondisi Produksi</label>
-<input class="form-control prep-auto-unit-input" id="kondisiLabelInput" readonly value="Normal" type="text"/>
-</div>
-<div>
-<label class="form-label">Status Stok Sementara</label>
-<input class="form-control prep-auto-unit-input" readonly value="Otomatis mengikuti daftar produksi" type="text"/>
-</div>
-</div>
-<p class="prep-sisa-note" id="produksiHint">Jika proses normal, kolom catatan bisa dibiarkan kosong.</p>
-</div>
-<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mt-5">
-<p class="text-xs text-slate-500" id="ringkasanProduksi">Belum ada bahan atau hasil yang diisi.</p>
-<button class="btn-primary px-8 py-3 text-sm disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto" id="btnSimpan" onclick="simpanProduksi()" type="button">Simpan Produksi Harian</button>
-</div>
-</div>
-</div>
+  <div class="page-wrap riwayat-wrap">
+    <div class="hero-card riwayat-hero">
+      <div class="relative z-10 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
+        <div>
+          <p class="soft-badge"><span class="h-1.5 w-1.5 rounded-full bg-sky-300"></span> JURNAL STOK</p>
+          <h1 class="hero-title mt-4">Riwayat Inventory</h1>
+          <p class="hero-desc">Pantau semua transaksi yang masuk ke <b>JURNAL_STOK</b>: Input, Output, Preparasi, Produksi, Transfer Produk, dan Stok Opname. Halaman ini untuk audit, bukan untuk edit transaksi.</p>
+        </div>
+        <div class="riwayat-actions">
+          <button id="btnRefresh" class="btn-ghost px-5 py-3" type="button">Refresh</button>
+          <button id="btnExportCsv" class="btn-ghost px-5 py-3" type="button">Export CSV</button>
+          <button id="btnPrint" class="btn-primary px-5 py-3" type="button">Cetak Rekap</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="riwayat-filter panel">
+      <div class="filter-grid">
+        <label><span>Tanggal Dari</span><input id="tanggalDari" class="form-control" type="date"/></label>
+        <label><span>Tanggal Sampai</span><input id="tanggalSampai" class="form-control" type="date"/></label>
+        <label><span>Jenis Transaksi</span><select id="jenisSelect" class="form-control"><option value="">Semua Jenis</option><option value="Input">Input</option><option value="Output">Output</option><option value="Preparasi">Preparasi</option><option value="Produksi">Produksi</option><option value="Transfer">Transfer</option><option value="Opname">Stok Opname</option></select></label>
+        <label><span>Arah Stok</span><select id="arahSelect" class="form-control"><option value="">Semua Arah</option><option value="IN">Masuk / IN</option><option value="OUT">Keluar / OUT</option><option value="ADJ">Adjust / ADJ</option></select></label>
+        <label><span>Lokasi / Outlet</span><input id="lokasiInput" class="form-control" placeholder="Contoh: PUSAT / LAHOR" type="search"/></label>
+        <label><span>Kata Kunci</span><input id="keywordInput" class="form-control" placeholder="Cari dokumen, item, petugas..." type="search"/></label>
+        <label><span>Limit Data</span><select id="limitSelect" class="form-control"><option value="500">500 baris</option><option value="1500" selected>1.500 baris</option><option value="3000">3.000 baris</option><option value="5000">5.000 baris</option></select></label>
+        <div class="filter-buttons"><button id="btnLoad" class="btn-primary px-5 py-3" type="button">Muat Riwayat</button><button id="btnReset" class="btn-slate px-5 py-3" type="button">Reset</button></div>
+      </div>
+      <div class="filter-note">Gunakan filter tanggal agar load tetap ringan. Data diambil dari jurnal stok utama dan ditampilkan dari transaksi terbaru.</div>
+    </div>
+
+    <div class="riwayat-stat-grid">
+      <div class="mini-stat riwayat-stat"><p>Total Baris</p><strong id="cardRows">0</strong><span>Baris jurnal tampil</span></div>
+      <div class="mini-stat riwayat-stat"><p>Dokumen</p><strong id="cardTx">0</strong><span>No transaksi unik</span></div>
+      <div class="mini-stat riwayat-stat"><p>Qty Masuk</p><strong id="cardMasuk">0</strong><span>Total IN</span></div>
+      <div class="mini-stat riwayat-stat"><p>Qty Keluar</p><strong id="cardKeluar">0</strong><span>Total OUT</span></div>
+      <div class="mini-stat riwayat-stat"><p>Adjust</p><strong id="cardAdjust">0</strong><span>Total koreksi</span></div>
+      <div class="mini-stat riwayat-stat"><p>Petugas</p><strong id="cardPetugas">0</strong><span>User terlibat</span></div>
+    </div>
+
+    <div class="panel riwayat-table-panel">
+      <div class="riwayat-table-head">
+        <div><p class="riwayat-section-label">Audit Log</p><h3>Jurnal Transaksi Inventory</h3><p id="tableInfo">Belum memuat data.</p></div>
+        <div class="jenis-badges" id="jenisBadges"></div>
+      </div>
+      <div class="table-shell riwayat-table-shell">
+        <div class="table-scroll overflow-x-auto">
+          <table class="riwayat-table min-w-full">
+            <thead><tr><th>No</th><th>Waktu</th><th>Jenis</th><th>Arah</th><th>No Dokumen</th><th>Item</th><th>Kategori</th><th>Masuk</th><th>Keluar</th><th>Adjust</th><th>Lokasi / Outlet</th><th>Petugas</th><th>Keterangan</th></tr></thead>
+            <tbody id="tbodyRiwayat"><tr><td colspan="13" class="empty-cell">Klik Muat Riwayat untuk melihat jurnal.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel riwayat-advice">
+      <p class="riwayat-section-label">Catatan Operasional</p>
+      <div class="riwayat-advice-grid">
+        <div><strong>Jurnal bukan tempat edit</strong><span>Kalau ada salah stok, pakai Stok Opname atau transaksi koreksi. Jangan hapus baris jurnal manual.</span></div>
+        <div><strong>Arah IN / OUT / ADJ</strong><span>IN menambah stok, OUT mengurangi stok, ADJ untuk koreksi opname.</span></div>
+        <div><strong>Dokumen unik</strong><span>Satu No Dokumen bisa punya banyak baris item. Ini normal untuk transaksi multi barang.</span></div>
+      </div>
+    </div>
+  </div>
 </section>
 </main>
-<div class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none p-4" id="produksiHelpModal">
-<div class="absolute inset-0 bg-slate-950/78 backdrop-blur-sm opacity-0 modal-overlay pointer-events-auto" onclick="closeProduksiHelpModal()"></div>
-<div class="help-modal-card modal-content apj-guide-fit pointer-events-auto w-full max-w-4xl transform scale-95 opacity-0">
-<div class="relative z-10">
-<div class="flex items-start justify-between gap-4 mb-5">
-<div>
-<p class="inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-blue-200"><span class="h-1.5 w-1.5 rounded-full bg-amber-300"></span> Panduan Modul</p>
-<h3 class="mt-4 text-2xl sm:text-3xl font-black tracking-tight text-white">Cara pakai Produksi Harian</h3>
-<p class="mt-2 text-sm leading-6 text-slate-400">Panduan ini membantu petugas mencatat beberapa produksi dapur dalam satu kali simpan agar stok bahan dan produk tetap rapi.</p>
-</div>
-<button aria-label="Tutup panduan" class="w-11 h-11 rounded-2xl border border-slate-700 bg-slate-950/70 text-slate-300 hover:text-white hover:bg-slate-800 transition" onclick="closeProduksiHelpModal()" type="button">×</button>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-<div class="help-step flex gap-3"><div class="help-step-number">1</div><div><p class="text-sm font-black text-white">Pilih tanggal dan resep</p><p class="mt-1 text-xs leading-5 text-slate-400">Pilih resep produksi lalu klik Tambah Produksi. Ulangi untuk produk lain yang dibuat hari itu.</p></div></div>
-<div class="help-step flex gap-3"><div class="help-step-number">2</div><div><p class="text-sm font-black text-white">Cek sisa stok sementara</p><p class="mt-1 text-xs leading-5 text-slate-400">Jika bahan yang sama dipakai lagi, stok pada daftar akan otomatis mengikuti pemakaian sebelumnya.</p></div></div>
-<div class="help-step flex gap-3"><div class="help-step-number">3</div><div><p class="text-sm font-black text-white">Isi hasil produksi</p><p class="mt-1 text-xs leading-5 text-slate-400">Jumlah dari resep boleh diedit sesuai hasil nyata di dapur.</p></div></div>
-<div class="help-step flex gap-3"><div class="help-step-number">4</div><div><p class="text-sm font-black text-white">Simpan sekali</p><p class="mt-1 text-xs leading-5 text-slate-400">Setelah disimpan, semua bahan keluar dan hasil masuk dicatat dalam satu proses produksi harian.</p></div></div>
-</div>
-<div class="rounded-2xl border border-cyan-500/22 bg-cyan-500/10 p-4 mb-5"><p class="text-sm font-black text-cyan-100">Keterangan lapangan</p><p class="mt-1 text-xs sm:text-sm leading-6 text-cyan-100/75">Produksi harian bisa berisi beberapa resep sekaligus. Contoh: Begedel, ayam goreng, dan lauk lain dapat dimasukkan dulu ke daftar, lalu disimpan satu kali setelah jumlahnya benar.</p></div>
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><p class="text-xs text-slate-500">Panduan bisa dibuka kembali dari sidebar, tepat di atas tombol Logout Sistem.</p><button class="btn-primary px-5 py-3 text-sm" onclick="closeProduksiHelpModal()" type="button">Mengerti, lanjut produksi</button></div>
-</div>
-</div>
-</div>
-<div class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none" id="logoutModal">
-<div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm opacity-0 modal-overlay pointer-events-auto" onclick="closeLogoutModal()"></div>
-<div class="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 sm:p-6 w-[calc(100%-2rem)] max-w-sm transform scale-95 opacity-0 modal-content pointer-events-auto">
-<div class="flex items-center justify-center w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 mb-4 mx-auto border border-rose-500/20"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div>
-<h3 class="text-lg font-bold text-white text-center mb-2">Konfirmasi Keluar</h3>
-<p class="text-sm text-slate-400 text-center mb-6">Apakah Anda yakin ingin keluar dari Sistem Inventori APJ? Sesi Anda akan diakhiri.</p>
-<div class="flex gap-3"><button class="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors border border-slate-600" onclick="closeLogoutModal()" type="button">Batal</button><button class="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-rose-600/20" onclick="executeLogout()" type="button">Ya, Keluar</button></div>
-</div>
+
+<div class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none p-4" id="riwayatHelpModal">
+  <div class="absolute inset-0 bg-slate-950/78 backdrop-blur-sm opacity-0 modal-overlay pointer-events-auto" onclick="closeRiwayatHelpModal()"></div>
+  <div class="help-modal-card modal-content pointer-events-auto w-full max-w-4xl transform scale-95 opacity-0">
+    <div class="relative z-10">
+      <div class="flex items-start justify-between gap-4 mb-5">
+        <div><p class="inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-blue-200"><span class="h-1.5 w-1.5 rounded-full bg-blue-300"></span> Panduan Modul</p><h3 class="mt-4 text-2xl sm:text-3xl font-black tracking-tight text-white">Cara pakai Riwayat Inventory</h3><p class="mt-2 text-sm leading-6 text-slate-400">Gunakan halaman ini untuk audit transaksi stok. Data berasal dari JURNAL_STOK.</p></div>
+        <button aria-label="Tutup panduan" class="w-11 h-11 rounded-2xl border border-slate-700 bg-slate-950/70 text-slate-300 hover:text-white hover:bg-slate-800 transition" onclick="closeRiwayatHelpModal()" type="button">×</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+        <div class="help-step flex gap-3"><div class="help-step-number">1</div><div><p class="text-sm font-black text-white">Pilih rentang tanggal</p><p class="mt-1 text-xs leading-5 text-slate-400">Default bulan berjalan. Persempit tanggal kalau data sudah besar.</p></div></div>
+        <div class="help-step flex gap-3"><div class="help-step-number">2</div><div><p class="text-sm font-black text-white">Filter jenis / arah</p><p class="mt-1 text-xs leading-5 text-slate-400">Pilih Input, Output, Preparasi, Produksi, Transfer, atau Opname.</p></div></div>
+        <div class="help-step flex gap-3"><div class="help-step-number">3</div><div><p class="text-sm font-black text-white">Cari dokumen atau item</p><p class="mt-1 text-xs leading-5 text-slate-400">Kolom kata kunci bisa mencari No Dokumen, nama barang, outlet, dan petugas.</p></div></div>
+        <div class="help-step flex gap-3"><div class="help-step-number">4</div><div><p class="text-sm font-black text-white">Export atau cetak</p><p class="mt-1 text-xs leading-5 text-slate-400">CSV untuk arsip digital. Cetak Rekap untuk pemeriksaan manual.</p></div></div>
+      </div>
+      <div class="rounded-2xl border border-amber-500/22 bg-amber-500/10 p-4 mb-5"><p class="text-sm font-black text-amber-100">Prinsip audit</p><p class="mt-1 text-xs sm:text-sm leading-6 text-amber-100/75">Jurnal adalah jejak transaksi. Koreksi dilakukan lewat transaksi baru, bukan dengan menghapus histori.</p></div>
+      <div class="flex justify-end"><button class="btn-primary px-5 py-3 text-sm" onclick="closeRiwayatHelpModal()" type="button">Mengerti</button></div>
+    </div>
+  </div>
 </div>
 
+<div class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none" id="logoutModal">
+  <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm opacity-0 modal-overlay pointer-events-auto" onclick="closeLogoutModal()"></div>
+  <div class="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 sm:p-6 w-[calc(100%-2rem)] max-w-sm transform scale-95 opacity-0 modal-content pointer-events-auto">
+    <div class="flex items-center justify-center w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 mb-4 mx-auto border border-rose-500/20"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></div>
+    <h3 class="text-lg font-bold text-white text-center mb-2">Konfirmasi Keluar</h3>
+    <p class="text-sm text-slate-400 text-center mb-6">Apakah Anda yakin ingin keluar dari Sistem Inventori APJ?</p>
+    <div class="flex gap-3"><button class="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors border border-slate-600" onclick="closeLogoutModal()" type="button">Batal</button><button class="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-rose-600/20" onclick="executeLogout()" type="button">Ya, Keluar</button></div>
+  </div>
+</div>
 <script src="assets/js/apj-config.js"></script>
-<script src="assets/js/pages/apj-produksi.js?v=73"></script>
+<script src="assets/js/pages/apj-riwayat-inventory.js?v=109"></script>
 </body>
 </html>

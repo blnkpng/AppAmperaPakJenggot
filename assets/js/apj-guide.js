@@ -38,7 +38,7 @@
       subtitle: 'Melihat stok akhir dan status barang.',
       items: ['Gunakan filter kategori/cari.', 'Perhatikan status stok.', 'Export/print untuk laporan.']
     },
-    'riwayat-transaksi.html': {
+    'riwayat-inventory.html': {
       title: 'Panduan Riwayat Transaksi',
       subtitle: 'Audit semua transaksi stok.',
       items: ['Filter tanggal, jenis transaksi, dan pencarian.', 'Cek ID/nama barang serta petugas.', 'Gunakan export/print bila perlu.']

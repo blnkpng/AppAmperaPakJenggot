@@ -1,4 +1,4 @@
-/* Extracted from riwayat-transaksi.html inline script 1 */
+/* Extracted from riwayat-inventory.html inline script 1 */
 const APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.inventoryApiUrl || (window.APJ_CONFIG.apis && window.APJ_CONFIG.apis.inventory))) || "https://script.google.com/macros/s/AKfycbx3sNyaAR5b1MZjpjzuCuyeYuVi-bL0k1Nb1MgI40l5kQmSWfmxXCSfTpBy7sQ-0oQ/exec";
     let currentRows = [];
 
@@ -285,7 +285,7 @@ const APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.inventoryApiUrl
       window.location.href = 'index.html';
     }
 
-/* Extracted from riwayat-transaksi.html inline script 2 */
+/* Extracted from riwayat-inventory.html inline script 2 */
 // APJ v14.6 - auto label tabel agar mobile tampil sebagai kartu, bukan scroll samping.
     (function(){
       function headersFor(table){
@@ -313,7 +313,7 @@ const APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.inventoryApiUrl
       });
     })();
 
-/* Extracted from riwayat-transaksi.html inline script 3 */
+/* Extracted from riwayat-inventory.html inline script 3 */
 (function showAdminMenuForAuthorizedRoles() {
       const adminMenuLink = document.getElementById('adminMenuLink');
       if (!adminMenuLink) return;
@@ -326,7 +326,7 @@ const APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.inventoryApiUrl
       }
     })();
 
-/* Extracted from riwayat-transaksi.html inline script 4 */
+/* Extracted from riwayat-inventory.html inline script 4 */
 function setupTopbarIdentityRiwayat() {
     const userName = localStorage.getItem('APJ_USER_NAME') || '-';
     const userLevel = localStorage.getItem('APJ_USER_LEVEL') || '-';

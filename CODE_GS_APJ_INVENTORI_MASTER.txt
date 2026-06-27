@@ -1,6 +1,6 @@
 /**
  * ================================================================
- * APJ INVENTORY V3 - CODE.GS MASTER - V104 PIC DIRECT CORE USER FIX
+ * APJ INVENTORY V3 - CODE.GS MASTER - V107 SETUP INVENTORY UX & PREP MULTI BAHAN
  * ================================================================
  * Target Spreadsheet:
  * APJ_INVENTORY V.3. Jika script bound ke spreadsheet, SPREADSHEET_ID boleh dikosongkan.
@@ -9,8 +9,8 @@
  * - MASTER_ITEM adalah pusat item stok.
  * - STOK_AKHIR dan VIEW_* dihitung otomatis oleh rumus sheet.
  * - Semua transaksi masuk ke JURNAL_STOK.
- * - Setup Inventory mendukung tambah/edit/nonaktif kategori, item, produk, resep,
- *   detail resep, dan resep preparasi.
+ * - Setup Inventory mendukung tambah/edit/nonaktif kategori, item, resep produksi,
+ *   detail resep produksi, dan resep preparasi multi bahan dari halaman setup-inventory.html.
  * - Kompatibel dengan payload APP-APJ V2.6 agar migrasi tidak brutal.
  * - USER/Login/Permission tetap milik APJ_CORE_USER, bukan milik sheet Inventory.
  *
@@ -287,6 +287,29 @@ function predictId_(sheetName, rowNumber) {
   const prefix = APJ_INV_V3.ID_PREFIX_BY_SHEET[sheetName] || 'ID';
   const digits = APJ_INV_V3.ID_DIGITS_BY_SHEET[sheetName] || 4;
   return prefix + '-' + pad_(Math.max(1, rowNumber - 1), digits);
+}
+
+function nextMasterId_(sheetName) {
+  const prefix = APJ_INV_V3.ID_PREFIX_BY_SHEET[sheetName] || 'ID';
+  const digits = APJ_INV_V3.ID_DIGITS_BY_SHEET[sheetName] || 4;
+  const idHeaderMap = {
+    MASTER_KATEGORI: 'ID Kategori',
+    MASTER_ITEM: 'ID Item',
+    MASTER_PRODUK: 'ID Produk',
+    MASTER_RESEP: 'ID Resep',
+    MASTER_RESEP_DETAIL: 'ID Detail',
+    RESEP_PREPARASI: 'ID Resep Preparasi'
+  };
+  const idHeader = idHeaderMap[sheetName] || 'ID';
+  const rows = readRows_(sheetName, false);
+  let max = 0;
+  rows.forEach(function(r) {
+    const id = normText_(r[idHeader]);
+    const m = id.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-?(\\d+)$', 'i'));
+    if (m) max = Math.max(max, Number(m[1]) || 0);
+  });
+  if (!max) max = Math.max(0, sh_(sheetName).getLastRow() - 1);
+  return prefix + '-' + pad_(max + 1, digits);
 }
 
 function cache_() { return CacheService.getScriptCache(); }
@@ -2323,23 +2346,93 @@ function saveResepDetailInventory(payload) {
 }
 function deleteResepDetailInventory(payload) { return softDeleteOrClearMaster_(APJ_INV_V3.SHEETS.RESEP_DETAIL, ['ID Detail'], payload.idDetail || payload.id, 'Detail resep'); }
 
+function writePrepRowsWithId_(objects) {
+  if (!objects || !objects.length) return 0;
+  const sheetName = APJ_INV_V3.SHEETS.PREP_RESEP;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(28000);
+  try {
+    const meta = headerMap_(sheetName);
+    const headers = ['ID Resep Preparasi', 'ID Item Hasil', 'Qty Hasil', 'ID Bahan', 'Qty Bahan', 'Yield %', 'Aktif', 'Catatan'];
+    const cols = headers.map(function(h) { return { header: h, col: meta.map[h] }; }).filter(function(x) { return x.col; });
+    const emptyCols = cols.filter(function(x) { return x.header !== 'ID Resep Preparasi'; });
+    if (!cols.length || !emptyCols.length) throw new Error('Kolom RESEP_PREPARASI belum lengkap.');
+    const startRow = findFirstEmptyWritableRow_(meta.sheet, emptyCols);
+    ensureRowsAvailable_(meta.sheet, startRow + objects.length - 1);
+    groupConsecutiveCols_(cols).forEach(function(group) {
+      const values = objects.map(function(obj) { return group.map(function(x) { return obj[x.header] !== undefined ? obj[x.header] : ''; }); });
+      meta.sheet.getRange(startRow, group[0].col, values.length, group.length).setValues(values);
+    });
+    clearSheetCache_(sheetName);
+    clearSheetCache_(APJ_INV_V3.SHEETS.STOK);
+    return objects.length;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function saveResepPreparasiInventory(payload) {
   const data = payload.data || payload.resepPreparasi || payload;
-  const id = normText_(data.idResepPreparasi || data['ID Resep Preparasi']);
-  const obj = {
-    'ID Item Hasil': data.idItemHasil || data['ID Item Hasil'] || data.idHasil,
-    'Qty Hasil': data.qtyHasil || data['Qty Hasil'] || 1,
-    'ID Bahan': data.idBahan || data['ID Bahan'],
-    'Qty Bahan': data.qtyBahan || data['Qty Bahan'] || 0,
-    'Yield %': data.yield || data.yieldPct || data['Yield %'] || 100,
-    'Aktif': data.aktif || data['Aktif'] || 'Y',
-    'Catatan': data.catatan || data['Catatan'] || ''
-  };
-  if (!obj['ID Item Hasil']) throw new Error('ID Item Hasil preparasi wajib diisi.');
-  if (!obj['ID Bahan']) throw new Error('ID Bahan preparasi wajib diisi.');
-  return upsertMaster_(APJ_INV_V3.SHEETS.PREP_RESEP, ['ID Resep Preparasi'], id, obj, 'Resep preparasi');
+  const sheetName = APJ_INV_V3.SHEETS.PREP_RESEP;
+  const id = normText_(data.idResepPreparasi || data['ID Resep Preparasi']) || nextMasterId_(sheetName);
+  const idHasil = data.idItemHasil || data['ID Item Hasil'] || data.idHasil;
+  const qtyHasil = data.qtyHasil || data['Qty Hasil'] || 1;
+  const yieldPct = data.yield || data.yieldPct || data['Yield %'] || 100;
+  const aktif = data.aktif || data['Aktif'] || 'Y';
+  const catatan = data.catatan || data['Catatan'] || '';
+  let bahanList = data.bahanList || data.details || data.bahan || data.bahanDipakai || [];
+  if (!Array.isArray(bahanList)) bahanList = [];
+  if (!bahanList.length && (data.idBahan || data['ID Bahan'])) {
+    bahanList = [{ idBahan: data.idBahan || data['ID Bahan'], qtyBahan: data.qtyBahan || data['Qty Bahan'] || 0, catatan: data.catatanBahan || '' }];
+  }
+  bahanList = bahanList.map(function(row) {
+    return {
+      idBahan: row.idBahan || row['ID Bahan'] || row.idItem || row.id || '',
+      qtyBahan: row.qtyBahan || row['Qty Bahan'] || row.qty || 0,
+      catatan: row.catatan || row['Catatan'] || row.catatanBahan || ''
+    };
+  }).filter(function(row) { return normText_(row.idBahan) && normNum_(row.qtyBahan) > 0; });
+
+  if (!idHasil) throw new Error('ID Item Hasil preparasi wajib diisi.');
+  if (!bahanList.length) throw new Error('Minimal 1 bahan preparasi wajib diisi.');
+
+  const existingRows = readRows_(sheetName, false).filter(function(r) { return normText_(r['ID Resep Preparasi']) === id; });
+  existingRows.forEach(function(r) {
+    updateRowObject_(sheetName, r._rowNumber, {
+      'Aktif': 'N',
+      'Catatan': (r['Catatan'] || '') + ' | Revisi ' + now_()
+    });
+  });
+
+  const objects = bahanList.map(function(row, idx) {
+    return {
+      'ID Resep Preparasi': id,
+      'ID Item Hasil': idHasil,
+      'Qty Hasil': qtyHasil,
+      'ID Bahan': row.idBahan,
+      'Qty Bahan': row.qtyBahan,
+      'Yield %': yieldPct,
+      'Aktif': aktif,
+      'Catatan': [catatan, row.catatan ? ('Bahan ' + (idx + 1) + ': ' + row.catatan) : ''].filter(Boolean).join(' | ')
+    };
+  });
+  writePrepRowsWithId_(objects);
+  return ok_({ message: 'Resep preparasi tersimpan. Total bahan: ' + objects.length + '.', mode: existingRows.length ? 'update' : 'insert', id: id, count: objects.length });
 }
-function deleteResepPreparasiInventory(payload) { return softDeleteMaster_(APJ_INV_V3.SHEETS.PREP_RESEP, ['ID Resep Preparasi'], payload.idResepPreparasi || payload.id, 'Resep preparasi'); }
+function deleteResepPreparasiInventory(payload) {
+  const sheetName = APJ_INV_V3.SHEETS.PREP_RESEP;
+  const id = normText_(payload.idResepPreparasi || payload.id);
+  if (!id) throw new Error('ID resep preparasi wajib diisi.');
+  const rows = readRows_(sheetName, false).filter(function(r) { return normText_(r['ID Resep Preparasi']) === id; });
+  if (!rows.length) throw new Error('Resep preparasi tidak ditemukan: ' + id);
+  rows.forEach(function(r) {
+    updateRowObject_(sheetName, r._rowNumber, {
+      'Aktif': 'N',
+      'Catatan': (r['Catatan'] || '') + ' | Dinonaktifkan ' + now_()
+    });
+  });
+  return ok_({ message: 'Resep preparasi dinonaktifkan. Total baris bahan: ' + rows.length + '.', id: id, count: rows.length });
+}
 
 function upsertMaster_(sheetName, idHeaders, idValue, obj, label) {
   const existing = idValue ? findMasterRow_(sheetName, idHeaders, idValue) : null;

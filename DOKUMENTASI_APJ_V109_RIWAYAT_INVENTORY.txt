@@ -1,0 +1,57 @@
+DOKUMENTASI APJ V109 - RIWAYAT INVENTORY / JURNAL STOK
+
+VERSI
+- Nama paket: APP_V10_4_RIWAYAT_INVENTORY_V109
+- Basis: APP_V10_3_SETUP_INVENTORY_V108
+- Fokus: menambahkan halaman riwayat-inventory.html untuk audit JURNAL_STOK.
+
+FILE BARU
+1. riwayat-inventory.html
+2. riwayat-transaksi.html sebagai redirect kompatibilitas ke riwayat-inventory.html
+3. assets/css/pages/apj-riwayat-inventory.css
+4. assets/js/pages/apj-riwayat-inventory.js
+5. DOKUMENTASI_APJ_V109_RIWAYAT_INVENTORY.txt
+
+SUMBER DATA
+- Backend Apps Script Inventory: CODE_GS_APJ_INVENTORI_MASTER.txt
+- Spreadsheet Inventory ID: 1F02isprz0K-sPO0GfoA73ZICqZD-Swzt9xXkOsz7lPI
+- Sheet utama jurnal: JURNAL_STOK
+- Action backend yang dipakai: getRiwayatTransaksi
+- Alias backend tersedia: getJurnalStok
+
+KOLOM JURNAL_STOK TARGET
+Timestamp | Tanggal | No Dokumen | Modul | Arah | Lokasi | Outlet Tujuan | ID Item | Qty Masuk | Qty Keluar | Qty Adjust | Petugas | Keterangan | Ref ID | Batch/No Resep
+
+ALUR LOGIKA
+1. User membuka riwayat-inventory.html.
+2. Halaman cek session login dari localStorage APJ_SESSION_ACTIVE dan APJ_SESSION_TOKEN.
+3. Filter default adalah tanggal awal bulan berjalan sampai hari ini.
+4. Frontend mengirim request ke action getRiwayatTransaksi.
+5. Backend membaca JURNAL_STOK, mapping ID Item ke MASTER_ITEM, lalu mengembalikan data legacy: jenis, modul, arah, idBarang, namaBarang, kategori, qtyMasuk, qtyKeluar, qtyAdjust, satuan, petugas, keterangan.
+6. Frontend menampilkan kartu ringkasan, badge jenis transaksi, dan tabel audit.
+7. Filter Arah dan Lokasi/Outlet diterapkan lokal di browser agar tidak perlu request ulang.
+8. Export CSV mengambil data yang sedang tampil.
+9. Cetak Rekap mencetak maksimal 800 baris pertama agar A4 tetap aman. Arsip penuh disarankan pakai CSV.
+
+FILTER HALAMAN
+- Tanggal Dari
+- Tanggal Sampai
+- Jenis Transaksi: Semua, Input, Output, Preparasi, Produksi, Transfer, Opname
+- Arah Stok: IN, OUT, ADJ
+- Lokasi / Outlet
+- Kata Kunci
+- Limit data: 500, 1500, 3000, 5000
+
+ATURAN AUDIT
+- Jurnal bukan tempat edit transaksi.
+- Jika ada kesalahan stok, buat transaksi koreksi atau Stok Opname.
+- Jangan hapus baris JURNAL_STOK secara manual karena akan merusak histori.
+
+MENU
+- Link menu lama riwayat-transaksi.html diarahkan ke riwayat-inventory.html.
+- apj-config.js dan apj-sidebar.js sudah diarahkan ke riwayat-inventory.html.
+
+CATATAN DEPLOY
+- Karena backend getRiwayatTransaksi sudah ada, Code.gs tidak wajib berubah dari V108.
+- Tetap aman upload ulang CODE_GS_APJ_INVENTORI_MASTER.txt jika ingin semua file satu versi.
+- Setelah replace frontend, tekan Ctrl + F5.

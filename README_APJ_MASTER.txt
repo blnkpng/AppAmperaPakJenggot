@@ -1,53 +1,117 @@
-# APJ Produk Outlet V105 - Transfer & Lihat Stok PIC Fix
+# APJ V10.2 / V108 - Setup Inventory Fix
 
-Fokus versi ini hanya dua halaman:
+Paket ini melanjutkan APP_V.10.0 / V105 final.
 
-1. `transfer-produksi.html`
-2. `lihat-stok.html`
+Fokus V106:
+- Membuat halaman `setup-inventory.html` yang sebelumnya belum ada.
+- Menambahkan CSS selaras tampilan APJ.
+- Menambahkan JS CRUD Setup Inventory.
+- Setup dipakai agar admin tidak perlu bolak-balik buka Google Sheet untuk master dasar.
 
-## Perbaikan Transfer Produk
+## Menu Setup Inventory berisi apa?
 
-Dropdown `Penanggung Jawab Penerima` sebelumnya sudah mulai membaca daftar PIC, tetapi tombol/select bisa tetap dalam kondisi disabled karena halaman masih menunggu proses tambahan memuat PIC.
+### 1. Kategori
+Untuk mengatur kelompok stok:
+- Bahan Utama
+- Bahan Baku/Bumbu
+- Bahan Preparasi
+- Produk Jadi
+- Kemasan
+- Minuman & Barang Dagang
+- Kebersihan/Operasional
 
-Di V105:
+Aksi:
+- Tambah kategori
+- Edit kategori
+- Hapus/nonaktifkan kategori
 
-- Dropdown langsung aktif setelah data awal dari backend Inventory masuk.
-- Proses tambahan memuat PIC berjalan di background.
-- Kalau data tambahan berhasil, dropdown diperbarui tanpa mengunci form.
-- Sumber resmi tetap APJ_CORE_USER sheet `USER` melalui backend Inventory.
+### 2. Item
+Untuk mengatur semua barang yang dihitung stoknya:
+- Bahan mentah
+- Bumbu
+- Barang preparasi/setengah jadi
+- Produk jadi
+- Barang dagang
+- Kemasan
+- Operasional
 
-## Perbaikan Lihat Stok → Cetak Rekap
+Aksi:
+- Tambah item
+- Edit item
+- Hapus/nonaktifkan item
+- Atur satuan
+- Atur item tampil di modul Input, Output, Preparasi, Produksi, Transfer Produk
 
-Modal Cetak Rekap sebelumnya masih mengambil PIC dari jalur lama, sehingga yang muncul hanya user login.
+### 3. Resep Produksi
+Untuk mengatur resep dari bahan/setengah jadi menjadi produk jadi.
 
-Di V105:
+Contoh:
+- Ayam Kremes 8 -> Ayam Goreng 8
+- Begedel Setengah Jadi + Telur -> Begedel Goreng
 
-- Supervisor/PIC di modal Cetak Rekap mengambil daftar dari backend Inventory.
-- Backend Inventory membaca langsung APJ_CORE_USER sheet `USER`.
-- Field Supervisor, PIC 1, dan PIC 2 memakai daftar karyawan yang sama.
+Aksi:
+- Tambah resep produksi
+- Edit resep produksi
+- Tambah bahan resep lebih dari satu
+- Hapus/nonaktifkan resep
 
-## Sumber PIC resmi
+### 4. Resep Preparasi
+Untuk mengatur standar bahan mentah menjadi bahan siap olah.
 
-Spreadsheet APJ_CORE_USER:
-`1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk`
+Contoh:
+- Ayam Potong -> Ayam Kremes / Ayam Premix
+- Kentang + bumbu -> Begedel Setengah Jadi
+- Kikil mentah -> Kikil siap olah
 
-Sheet:
-`USER`
+Aksi:
+- Tambah resep preparasi
+- Edit resep preparasi
+- Hapus/nonaktifkan resep preparasi
 
-Backend Inventory membaca langsung dengan:
-`SpreadsheetApp.openById(APJ_INV_V3.CORE_USER.SPREADSHEET_ID)`
+## Logika penting
 
-Tidak memakai `UrlFetchApp`, jadi tidak memicu izin `script.external_request`.
+Hapus data master tidak menghapus baris permanen. Sistem menandai data sebagai nonaktif agar histori transaksi tidak rusak.
+
+Resep hanya standar. Jumlah nyata tetap bisa disesuaikan pada transaksi Preparasi/Produksi. Sisa, susut, rusak, atau hilang dicatat saat transaksi, bukan dihitung otomatis di master.
+
+## File baru V106
+
+- `setup-inventory.html`
+- `assets/css/pages/apj-setup-inventory.css`
+- `assets/js/pages/apj-setup-inventory.js`
+- `DOKUMENTASI_APJ_V106_SETUP_INVENTORY.txt`
 
 ## Cara pasang
 
-1. Replace frontend dari paket V105.
-2. Upload `CODE_GS_APJ_INVENTORI_MASTER.txt` ke Apps Script Inventory.
-3. Deploy ulang.
-4. Jalankan function `cekPicCoreUserV104` dari editor Apps Script untuk cek daftar PIC.
+1. Replace frontend dari paket ini.
+2. Upload ulang `CODE_GS_APJ_INVENTORI_MASTER.txt` ke Apps Script Inventory.
+3. Deploy ulang Apps Script Inventory.
+4. Buka `setup-inventory.html`.
 5. Refresh browser dengan `Ctrl + F5`.
 
-## Cek sukses
+## Catatan
 
-- Transfer Produk: dropdown Penanggung Jawab Penerima bisa diklik dan tidak disabled.
-- Lihat Stok → Cetak Rekap: pilihan Supervisor/PIC menampilkan semua karyawan aktif dari APJ_CORE_USER.USER.
+Module Jurnal/Riwayat belum dibuat di V106. Setelah halaman Setup aman, lanjut ke `riwayat-inventory.html`.
+
+============================================================
+UPDATE V108 - SETUP INVENTORY FIX
+============================================================
+- Panduan Setup Inventory dibuat solid/tidak transparan.
+- Light mode Setup Inventory dirapikan agar nyaman dibaca.
+- Resep Preparasi sekarang mendukung banyak bahan seperti Resep Produksi.
+- Tambah Item: Urutan otomatis dari kategori terpilih.
+- Baris bahan Resep Produksi/Preparasi diberi nomor otomatis.
+- Backend RESEP_PREPARASI mendukung 1 ID resep dengan banyak baris bahan.
+
+
+[APJ V108]
+- Setup Inventory: kartu ringkasan Kategori/Item/Resep Produksi/Resep Preparasi dirapikan khusus light mode dan dark mode.
+- CSS halaman Setup sekarang dimuat setelah apj-theme.css agar patch halaman tidak kalah oleh tema global.
+
+
+=== V109 RIWAYAT INVENTORY ===
+- Menambahkan riwayat-inventory.html untuk audit JURNAL_STOK.
+- Menambahkan CSS/JS halaman: apj-riwayat-inventory.css dan apj-riwayat-inventory.js.
+- Link menu Jurnal Stok / Audit diarahkan ke riwayat-inventory.html.
+- riwayat-transaksi.html dibuat sebagai redirect kompatibilitas.
+- Fitur: filter tanggal, jenis, arah, lokasi/outlet, keyword, limit, summary, export CSV, dan cetak rekap A4.

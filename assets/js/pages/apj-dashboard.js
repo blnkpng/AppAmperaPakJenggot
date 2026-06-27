@@ -47,7 +47,7 @@
     { module:'Inventori', group:'Inventori / Stok Gudang', label:'Stok Opname', href:'stok-opname.html', permission:['stokOpname'], desc:'Koreksi stok fisik.', tone:'blue' },
     { module:'Inventori', group:'Inventori / Stok Gudang', label:'Lihat Stok', href:'lihat-stok.html', permission:['lihatStok'], desc:'Monitoring STOK_AKHIR.', tone:'slate' },
     { module:'Inventori', group:'Inventori / Setup & Audit', label:'Setup Inventory', href:'setup-inventory.html', permission:['setupInventory','admin'], desc:'Master kategori, item, produk, resep.', tone:'violet', admin:true },
-    { module:'Inventori', group:'Inventori / Setup & Audit', label:'Jurnal Stok / Audit', href:'riwayat-transaksi.html', permission:['riwayatTransaksi'], desc:'Audit dari JURNAL_STOK.', tone:'blue' },
+    { module:'Inventori', group:'Inventori / Setup & Audit', label:'Jurnal Stok / Audit', href:'riwayat-inventory.html', permission:['riwayatTransaksi'], desc:'Audit dari JURNAL_STOK.', tone:'blue' },
     { module:'HR / Absensi', group:'HR / Absensi / Dashboard', label:'Dashboard Absensi', href:'dashboard-absensi.html', permission:['dashboardAbsensi','absensiAdmin','absensiDiri'], desc:'Kehadiran, belum absen, checkout, dan shift.', tone:'sky' },
     { module:'HR / Absensi', group:'HR / Absensi / Absensi', label:'Check In / Check Out', href:'#', permission:['absensiDiri'], desc:'Absensi mandiri karyawan.', tone:'emerald', comingSoon:true },
     { module:'HR / Absensi', group:'HR / Absensi / Absensi', label:'Rekap Absensi', href:'#', permission:['absensiAdmin'], desc:'Rekap hadir, terlambat, dan belum checkout.', tone:'blue', comingSoon:true },
