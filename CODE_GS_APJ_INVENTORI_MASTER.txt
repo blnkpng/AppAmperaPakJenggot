@@ -1,6 +1,6 @@
 /**
  * ================================================================
- * APJ INVENTORY V3 - CODE.GS MASTER - V100 OUTPUT PIC & PREPARASI SISA LOGIC FIX
+ * APJ INVENTORY V3 - CODE.GS MASTER - V101 OUTPUT PIC ALL & PREPARASI SATUAN DROPDOWN FIX
  * ================================================================
  * Target Spreadsheet:
  * APJ_INVENTORY V.3. Jika script bound ke spreadsheet, SPREADSHEET_ID boleh dikosongkan.
@@ -32,9 +32,11 @@ const APJ_INV_V3 = {
    * dan memakai payload petugas/level/outlet dari frontend sebagai fallback.
    */
   CORE_USER: {
-    API_URL: '',
+    API_URL: 'https://script.google.com/macros/s/AKfycbwXjexCdYXsygij_WdgA6H26Xp__GCpRbLk1oxpocnvmOvyy8_9G2lVKW_6wr2qV19YkQ/exec',
     REQUIRE_SESSION: false,
     CACHE_SECONDS: 300,
+    SPREADSHEET_ID: '',
+    USER_SHEET: 'USER',
     ADMIN_LEVELS: ['OWNER', 'SUPERADMIN', 'SUPERVISOR'],
     FULL_ACCESS_LEVELS: ['OWNER', 'SUPERADMIN']
   },
@@ -105,6 +107,7 @@ function doPost(e) {
       getProduksiInit: getBarangProduksi,
       getResepProduksi: getBarangProduksi,
       getOutputInit: getOutputInit,
+      getOutputPicList: getOutputPicList,
       getTransferProduksiInit: getTransferProduksiInit,
       getPreparasiInit: getPreparasiInit,
       getResepPreparasi: getPreparasiInit,
@@ -1102,7 +1105,11 @@ function setupResepProduksiV61() {
 }
 
 function getOutputInit(payload) {
-  return ok_({ outlets: getOutlets_(), pics: getPics_() });
+  return ok_({ outlets: getOutlets_(), pics: getPics_(payload) });
+}
+
+function getOutputPicList(payload) {
+  return ok_({ pics: getPics_(payload), karyawan: getPics_(payload), users: getPics_(payload) });
 }
 
 function getTransferProduksiInit(payload) {
@@ -2576,17 +2583,160 @@ function getOutlets_(payload) {
 }
 
 function getPics_(payload) {
-  const names = [];
-  if (payload && payload._auth && payload._auth.nama) names.push(payload._auth.nama);
-  if (payload && payload.petugas) names.push(payload.petugas);
-  if (payload && payload.userName) names.push(payload.userName);
-  const seen = {};
-  return names.filter(n => {
-    n = normText_(n);
-    if (!n || seen[n]) return false;
-    seen[n] = true;
-    return true;
+  const rows = [];
+  const currentNames = [];
+  if (payload && payload._auth && payload._auth.nama) currentNames.push(payload._auth.nama);
+  if (payload && payload.petugas) currentNames.push(payload.petugas);
+  if (payload && payload.userName) currentNames.push(payload.userName);
+  if (payload && payload.nama) currentNames.push(payload.nama);
+
+  // V101: sumber utama PIC Transfer Outlet adalah semua karyawan aktif di APJ_CORE_USER.
+  // Jika Core belum membuka action daftar karyawan, fallback tetap petugas login supaya form tidak mati.
+  rows.push.apply(rows, getPicsFromCoreUserSheet_());
+  rows.push.apply(rows, getPicsFromCoreUserApi_(payload));
+  rows.push.apply(rows, normalizePicRows_(payload && (payload.pics || payload.karyawan || payload.users || payload.employees || payload.rows || payload.list)));
+  currentNames.forEach(function(n) { if (normText_(n)) rows.push({ nama: normText_(n), status: 'AKTIF' }); });
+
+  return normalizePicRows_(rows).map(function(r) { return r.nama; });
+}
+
+function getPicsFromCoreUserSheet_() {
+  const out = [];
+  try {
+    const id = normText_(APJ_INV_V3.CORE_USER && APJ_INV_V3.CORE_USER.SPREADSHEET_ID);
+    if (!id) return out;
+    const ss = SpreadsheetApp.openById(id);
+    const sh = ss.getSheetByName((APJ_INV_V3.CORE_USER && APJ_INV_V3.CORE_USER.USER_SHEET) || 'USER');
+    if (!sh) return out;
+    const values = sh.getDataRange().getValues();
+    if (values.length < 2) return out;
+    const headers = values[0].map(function(h) { return normText_(h); });
+    for (let i = 1; i < values.length; i++) {
+      const obj = {};
+      for (let c = 0; c < headers.length; c++) obj[headers[c]] = values[i][c];
+      out.push(obj);
+    }
+  } catch (err) {}
+  return normalizePicRows_(out);
+}
+
+function getPicsFromCoreUserApi_(payload) {
+  const apiUrl = normText_(APJ_INV_V3.CORE_USER && APJ_INV_V3.CORE_USER.API_URL);
+  if (!apiUrl) return [];
+  const token = normText_(payload && (payload.sessionToken || payload.token || payload.authToken));
+  const actions = [
+    'getTransferSignatureUsers', 'getSignatureUsers', 'getDaftarPenandatangan',
+    'getActiveUsers', 'getKaryawanAktif', 'getAllKaryawan', 'getKaryawan',
+    'getEmployees', 'getEmployeeList', 'getAllUsers', 'getUsers', 'listUsers',
+    'getUserList', 'adminGetUsers', 'getAdminData', 'getBootstrap'
+  ];
+  let best = [];
+  actions.forEach(function(action) {
+    try {
+      const body = {
+        action: action,
+        sessionToken: token,
+        token: token,
+        appName: 'APJ_INVENTORY',
+        sourceApp: 'APJ_INVENTORY',
+        requesterApp: 'APJ_INVENTORY',
+        includeInactive: false,
+        aktifOnly: true,
+        forDropdown: true,
+        context: 'OUTPUT_STOK_TRANSFER_OUTLET'
+      };
+      const response = UrlFetchApp.fetch(apiUrl, {
+        method: 'post',
+        contentType: 'text/plain;charset=utf-8',
+        payload: JSON.stringify(body),
+        followRedirects: true,
+        muteHttpExceptions: true
+      });
+      const json = parseJsonLoose_(response.getContentText());
+      const rows = normalizePicRows_(extractEmployeeRowsLoose_(json));
+      if (rows.length > best.length) best = rows;
+    } catch (err) {}
   });
+  return best;
+}
+
+function normalizePicRows_(items) {
+  const seen = {};
+  const rows = [];
+  const arr = Array.isArray(items) ? items : [];
+  arr.forEach(function(row) {
+    let nama = '';
+    let status = 'AKTIF';
+    if (typeof row === 'string') {
+      nama = row;
+    } else if (row && typeof row === 'object') {
+      nama = firstNonEmpty_(
+        row.nama, row.NAMA, row['Nama'], row['Nama Karyawan'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
+        row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
+        row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
+        row.namaUser, row.NAMA_USER, row['NAMA USER'], row.namaPegawai, row.NAMA_PEGAWAI,
+        row.username, row.USERNAME, row.email, row.EMAIL, row.value, row.label
+      );
+      status = firstNonEmpty_(row.status, row.STATUS, row.aktif, row.AKTIF, row.active, row.ACTIVE, row.isActive, row.IS_ACTIVE, row.statusAktif, row.STATUS_AKTIF, row.statusUser, row.STATUS_USER, 'AKTIF');
+    }
+    nama = normText_(nama);
+    if (!nama || !isActivePicStatus_(status)) return;
+    const key = nama.toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    rows.push({ nama: nama, status: 'AKTIF' });
+  });
+  rows.sort(function(a, b) { return String(a.nama).localeCompare(String(b.nama), 'id'); });
+  return rows;
+}
+
+function extractEmployeeRowsLoose_(value, depth) {
+  depth = depth || 0;
+  if (!value || depth > 4) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'object') return [];
+  const keys = ['users','user','karyawan','pegawai','staff','employees','employee','penandatangan','signers','signatureUsers','daftarKaryawan','daftarUser','rows','items','list','dataRows','records','allUsers','activeUsers','usersActive','karyawanAktif'];
+  for (let i = 0; i < keys.length; i++) {
+    if (Array.isArray(value[keys[i]])) return value[keys[i]];
+  }
+  if (value.data) {
+    const nested = extractEmployeeRowsLoose_(value.data, depth + 1);
+    if (nested.length) return nested;
+  }
+  let best = [];
+  Object.keys(value).forEach(function(k) {
+    const candidate = extractEmployeeRowsLoose_(value[k], depth + 1);
+    if (normalizePicRows_(candidate).length > normalizePicRows_(best).length) best = candidate;
+  });
+  return best;
+}
+
+function parseJsonLoose_(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  try { return JSON.parse(raw); }
+  catch (err) {
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      try { return JSON.parse(raw.slice(start, end + 1)); } catch (ignore) {}
+    }
+  }
+  return null;
+}
+
+function firstNonEmpty_() {
+  for (let i = 0; i < arguments.length; i++) {
+    const text = normText_(arguments[i]);
+    if (text) return text;
+  }
+  return '';
+}
+
+function isActivePicStatus_(value) {
+  const text = normUpper_(value || 'AKTIF');
+  if (!text) return true;
+  return ['N', 'NO', 'NONAKTIF', 'NON AKTIF', 'INACTIVE', 'TIDAK AKTIF', 'FALSE', '0', 'DELETED', 'HAPUS'].indexOf(text) < 0;
 }
 
 

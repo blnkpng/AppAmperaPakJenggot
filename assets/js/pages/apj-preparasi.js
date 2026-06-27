@@ -1,4 +1,4 @@
-/* APJ PREPARASI V100
+/* APJ PREPARASI V101
  * - Halaman preparasi bahan: resep atau manual.
  * - Tidak menampilkan kode teknis item kepada petugas.
  * - Menyimpan ke backend action simpanPreparasi.
