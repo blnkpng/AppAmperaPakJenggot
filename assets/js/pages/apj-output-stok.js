@@ -1,6 +1,6 @@
 
 /*
- * APJ OUTPUT STOK V101 - PIC ALL KARYAWAN ROBUST FIX
+ * APJ OUTPUT STOK V104 - PIC DIRECT CORE USER FIX
  * - Output Stok hanya untuk barang keluar dari gudang.
  * - Produksi dipisahkan ke modul Produksi.
  * - Data teknis ID item tetap dipakai di belakang layar, tidak ditampilkan ke petugas.
@@ -48,10 +48,11 @@
     if (btnSimpan) btnSimpan.addEventListener('click', saveOutputStok);
 
     await Promise.all([loadKategoriV3(), loadOutputInit()]);
+    await loadInventoryPicList();
     await loadCoreEmployeePics();
 
     setTimeout(() => {
-      if (sessionStorage.getItem('APJ_OUTPUT_HELP_SEEN_V102') !== 'true') openOutputHelpModal(true);
+      if (sessionStorage.getItem('APJ_OUTPUT_HELP_SEEN_V104') !== 'true') openOutputHelpModal(true);
     }, 450);
   }
 
@@ -98,6 +99,16 @@
       appName: 'APJ_INVENTORY',
       sourceApp: 'APJ_INVENTORY',
       requesterApp: 'APJ_INVENTORY',
+      username: localStorage.getItem('APJ_USER_USERNAME') || '',
+      requesterUsername: localStorage.getItem('APJ_USER_USERNAME') || '',
+      requesterName: getPetugas(),
+      nama: getPetugas(),
+      level: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
+      role: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
+      allowAllUsers: true,
+      includeAllUsers: true,
+      forPicDropdown: true,
+      mode: 'ALL_KARYAWAN',
       userLevel: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
       userOutlet: localStorage.getItem(STORAGE_KEYS.outlet) || localStorage.getItem('APJ_USER_OUTLET') || '',
       _clientTs: Date.now(),
@@ -235,6 +246,37 @@
   }
 
 
+
+  async function loadInventoryPicList() {
+    const current = getPetugas();
+    const actions = ['getOutputPicList', 'getPicKaryawanList', 'getInventoryPicList', 'getAllPicKaryawan', 'getTransferPicList', 'getTransferProduksiInit'];
+    let best = normalizePicOptions(STATE.pics || []);
+    for (const action of actions) {
+      try {
+        const result = await callInventory(action, {
+          includeInactive: false,
+          aktifOnly: true,
+          forDropdown: true,
+          forPicDropdown: true,
+          includeAllUsers: true,
+          allowAllUsers: true,
+          context: 'OUTPUT_STOK_TRANSFER_OUTLET',
+          petugas: current,
+          requesterName: current,
+          username: localStorage.getItem('APJ_USER_USERNAME') || '',
+          requesterUsername: localStorage.getItem('APJ_USER_USERNAME') || ''
+        });
+        const rows = extractEmployeeRows(result);
+        const names = normalizePicOptions(rows);
+        if (names.length > best.length) best = names;
+        if (result && result.success && names.length > 1) break;
+      } catch (err) {}
+    }
+    STATE.pics = ensureCurrentPic(best, current);
+    refreshPicSelectOptions();
+    markPicLoadInfo(STATE.pics.length, STATE.pics.length <= 1);
+  }
+
   async function callCore(action, payload) {
     if (!CORE_API_URL) return null;
     const body = Object.assign({}, payload || {}, {
@@ -244,6 +286,16 @@
       appName: 'APJ_INVENTORY',
       sourceApp: 'APJ_INVENTORY',
       requesterApp: 'APJ_INVENTORY',
+      username: localStorage.getItem('APJ_USER_USERNAME') || '',
+      requesterUsername: localStorage.getItem('APJ_USER_USERNAME') || '',
+      requesterName: getPetugas(),
+      nama: getPetugas(),
+      level: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
+      role: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
+      allowAllUsers: true,
+      includeAllUsers: true,
+      forPicDropdown: true,
+      mode: 'ALL_KARYAWAN',
       userLevel: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
       userOutlet: localStorage.getItem(STORAGE_KEYS.outlet) || localStorage.getItem('APJ_USER_OUTLET') || '',
       _clientTs: Date.now(),
@@ -283,18 +335,41 @@
       'getTransferSignatureUsers',
       'getSignatureUsers',
       'getDaftarPenandatangan',
+      'getPicList',
+      'getPICList',
+      'getPenerimaList',
+      'getPenanggungJawabList',
+      'getUsersForDropdown',
+      'getKaryawanDropdown',
       'getActiveUsers',
       'getKaryawanAktif',
+      'getPegawaiAktif',
+      'getStaffAktif',
       'getAllKaryawan',
       'getKaryawan',
+      'getPegawai',
+      'getStaff',
+      'listKaryawan',
+      'getDaftarKaryawan',
+      'getDaftarUser',
+      'daftarUser',
       'getEmployees',
       'getEmployeeList',
+      'listEmployees',
       'getAllUsers',
       'getUsers',
       'listUsers',
       'getUserList',
+      'getUsersList',
+      'getDataUser',
+      'getUserData',
+      'getAdminUsers',
       'adminGetUsers',
+      'adminListUsers',
+      'getUserAdminData',
       'getAdminData',
+      'getAbsensiInit',
+      'getAbsensiBootstrap',
       'getBootstrap'
     ];
     let bestRows = [];
@@ -309,7 +384,16 @@
           context: 'OUTPUT_STOK_TRANSFER_OUTLET',
           source: 'output-stok',
           aktifOnly: true,
-          petugas: current
+          petugas: current,
+          requesterName: current,
+          username: localStorage.getItem('APJ_USER_USERNAME') || '',
+          requesterUsername: localStorage.getItem('APJ_USER_USERNAME') || '',
+          level: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
+          role: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
+          includeAllUsers: true,
+          allowAllUsers: true,
+          forPicDropdown: true,
+          mode: 'ALL_KARYAWAN'
         };
         const result = isInventoryAction ? await callInventory(cleanAction, payload) : await callCore(cleanAction, payload);
         const rows = extractEmployeeRows(result);
@@ -335,8 +419,8 @@
 
   function extractEmployeeRowsFromLocalStorage() {
     const keys = [
-      'APJ_ALL_USERS', 'APJ_USERS', 'APJ_KARYAWAN', 'APJ_DAFTAR_KARYAWAN',
-      'APJ_USER_DATA', 'APJ_BOOTSTRAP', 'APJ_CORE_BOOTSTRAP', 'APJ_ADMIN_DATA'
+      'APJ_ALL_USERS', 'APJ_USERS', 'APJ_KARYAWAN', 'APJ_DAFTAR_KARYAWAN', 'APJ_PIC_LIST',
+      'APJ_USER_DATA', 'APJ_BOOTSTRAP', 'APJ_CORE_BOOTSTRAP', 'APJ_ADMIN_DATA', 'APJ_ABSENSI_BOOTSTRAP', 'APJ_EMPLOYEES'
     ];
     let rows = [];
     keys.forEach(key => {
@@ -355,7 +439,7 @@
       select.dataset.totalKaryawan = String(total || 0);
       select.dataset.fallbackOnly = fallbackOnly ? 'true' : 'false';
       select.title = fallbackOnly
-        ? 'Daftar PIC belum lengkap dari Core User. Nama PIC bisa diketik manual.'
+        ? 'Daftar PIC belum lengkap. Cek APJ_CORE_USER sheet USER agar semua karyawan muncul.'
         : `Daftar PIC: ${total || 0} karyawan`;
     });
   }
@@ -374,7 +458,8 @@
     const keys = [
       'users', 'user', 'karyawan', 'pegawai', 'staff', 'employees', 'employee',
       'penandatangan', 'signers', 'signatureUsers', 'daftarKaryawan', 'daftarUser',
-      'rows', 'items', 'list', 'dataRows', 'result', 'records', 'allUsers', 'activeUsers', 'usersActive', 'karyawanAktif'
+      'pics', 'pic', 'daftarPic', 'daftarPIC', 'picList', 'penerima', 'penanggungJawab',
+      'rows', 'items', 'list', 'dataRows', 'result', 'records', 'allUsers', 'activeUsers', 'usersActive', 'karyawanAktif', 'pegawaiAktif', 'staffAktif', 'employeeList', 'userList'
     ];
     for (const key of keys) {
       if (Array.isArray(obj[key])) return obj[key];
@@ -402,6 +487,8 @@
         if (typeof row === 'string') return { value: row.trim(), label: row.trim(), status: 'AKTIF', outlet: '' };
         const name = firstText(
           row.value, row.label,
+          row.namaPic, row.NAMA_PIC, row['Nama PIC'], row['NAMA PIC'], row.pic, row.PIC,
+          row.penerima, row.PENERIMA, row['Penanggung Jawab'], row['PENANGGUNG JAWAB'], row.penanggungJawab, row.PENANGGUNG_JAWAB,
           row.nama, row.NAMA, row['Nama'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
           row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
           row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
@@ -410,6 +497,8 @@
         );
         const label = firstText(
           row.label, row.value,
+          row.namaPic, row.NAMA_PIC, row['Nama PIC'], row['NAMA PIC'], row.pic, row.PIC,
+          row.penerima, row.PENERIMA, row['Penanggung Jawab'], row['PENANGGUNG JAWAB'], row.penanggungJawab, row.PENANGGUNG_JAWAB,
           row.nama, row.NAMA, row['Nama'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
           row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
           row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
@@ -846,7 +935,7 @@
   }
 
   function closeOutputHelpModal() {
-    sessionStorage.setItem('APJ_OUTPUT_HELP_SEEN_V102', 'true');
+    sessionStorage.setItem('APJ_OUTPUT_HELP_SEEN_V104', 'true');
     closeModal('outputHelpModal');
   }
 

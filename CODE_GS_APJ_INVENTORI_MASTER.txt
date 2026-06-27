@@ -1,6 +1,6 @@
 /**
  * ================================================================
- * APJ INVENTORY V3 - CODE.GS MASTER - V102 OUTPUT SAFE PIC MANUAL FALLBACK FIX
+ * APJ INVENTORY V3 - CODE.GS MASTER - V104 PIC DIRECT CORE USER FIX
  * ================================================================
  * Target Spreadsheet:
  * APJ_INVENTORY V.3. Jika script bound ke spreadsheet, SPREADSHEET_ID boleh dikosongkan.
@@ -32,12 +32,13 @@ const APJ_INV_V3 = {
    * dan memakai payload petugas/level/outlet dari frontend sebagai fallback.
    */
   CORE_USER: {
-    API_URL: '', // V102: dikosongkan agar Inventory tidak memanggil UrlFetchApp ke Core User dan tidak memicu izin script.external_request
+    API_URL: '', // V104: tetap kosong. PIC dibaca langsung dari spreadsheet APJ_CORE_USER, bukan UrlFetchApp.
     REQUIRE_SESSION: false,
     CACHE_SECONDS: 300,
-    SPREADSHEET_ID: '',
+    // V104: sumber utama PIC/Penanggung Jawab adalah APJ_CORE_USER sheet USER.
+    SPREADSHEET_ID: '1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk',
     USER_SHEET: 'USER',
-    ADMIN_LEVELS: ['OWNER', 'SUPERADMIN', 'SUPERVISOR'],
+        ADMIN_LEVELS: ['OWNER', 'SUPERADMIN', 'SUPERVISOR'],
     FULL_ACCESS_LEVELS: ['OWNER', 'SUPERADMIN']
   },
   DEFAULT_OUTLETS: ['LAHOR', 'SENISONO', 'PUJON', 'NGUJUNG', 'POKOPEK'],
@@ -108,6 +109,12 @@ function doPost(e) {
       getResepProduksi: getBarangProduksi,
       getOutputInit: getOutputInit,
       getOutputPicList: getOutputPicList,
+      getTransferPicList: getOutputPicList,
+      getPicKaryawanList: getOutputPicList,
+      getInventoryPicList: getOutputPicList,
+      getAllPicKaryawan: getOutputPicList,
+      getKaryawanAktifInventory: getOutputPicList,
+      cekPicCoreUserV104: cekPicCoreUserV104,
       getTransferProduksiInit: getTransferProduksiInit,
       getPreparasiInit: getPreparasiInit,
       getResepPreparasi: getPreparasiInit,
@@ -1105,18 +1112,28 @@ function setupResepProduksiV61() {
 }
 
 function getOutputInit(payload) {
-  return ok_({ outlets: getOutlets_(), pics: getPics_(payload) });
+  const pics = getPics_(payload);
+  return ok_({ outlets: getOutlets_(payload), pics: pics, karyawan: pics, users: pics });
 }
 
 function getOutputPicList(payload) {
-  return ok_({ pics: getPics_(payload), karyawan: getPics_(payload), users: getPics_(payload) });
+  const pics = getPics_(payload);
+  return ok_({
+    pics: pics,
+    karyawan: pics,
+    users: pics,
+    employees: pics,
+    source: getPicSourceInfo_(payload),
+    message: pics.length > 1 ? 'Daftar PIC berhasil dimuat.' : 'Daftar PIC baru berisi petugas login. Periksa akses APJ_CORE_USER sheet USER dan SPREADSHEET_ID Core User.'
+  });
 }
 
 function getTransferProduksiInit(payload) {
-  const outlets = getOutlets_();
-  const pics = getPics_();
+  payload = payload || {};
+  const outlets = getOutlets_(payload);
+  const pics = getPics_(payload);
   const outlet = normUpper_(payload.outlet);
-  const response = { outlets: outlets, pics: pics, produk: [] };
+  const response = { outlets: outlets, pics: pics, karyawan: pics, users: pics, produk: [] };
   if (!outlet) return ok_(response);
 
   response.produk = buildTransferProdukListForOutlet_(outlet);
@@ -2593,21 +2610,76 @@ function getOutlets_(payload) {
 }
 
 function getPics_(payload) {
+  payload = payload || {};
   const rows = [];
   const currentNames = [];
   if (payload && payload._auth && payload._auth.nama) currentNames.push(payload._auth.nama);
   if (payload && payload.petugas) currentNames.push(payload.petugas);
   if (payload && payload.userName) currentNames.push(payload.userName);
   if (payload && payload.nama) currentNames.push(payload.nama);
+  if (payload && payload.requesterName) currentNames.push(payload.requesterName);
 
-  // V102: PIC Transfer Outlet di backend aman tanpa UrlFetchApp. Frontend tetap mencoba Core User langsung; backend dapat membaca sheet Core bila SPREADSHEET_ID diisi.
-  // Jika Core belum membuka action daftar karyawan, fallback tetap petugas login supaya form tidak mati.
+  // V104: sumber resmi PIC adalah APJ_CORE_USER sheet USER.
+  // Urutan sengaja dibuat Core User dulu, lalu payload/riwayat hanya sebagai fallback.
+  // Tidak memakai UrlFetchApp agar tidak muncul error izin script.external_request.
   rows.push.apply(rows, getPicsFromCoreUserSheet_());
-  rows.push.apply(rows, getPicsFromCoreUserApi_(payload));
-  rows.push.apply(rows, normalizePicRows_(payload && (payload.pics || payload.karyawan || payload.users || payload.employees || payload.rows || payload.list)));
+  rows.push.apply(rows, normalizePicRows_(payload && (payload.pics || payload.karyawan || payload.users || payload.employees || payload.rows || payload.list || payload.allUsers || payload.activeUsers || payload.karyawanAktif)));
+  rows.push.apply(rows, getPicsFromKnownTransactionSheets_());
+  // getPicsFromInventoryPicSheets_ sengaja tidak dipanggil sebagai sumber utama di V104.
   currentNames.forEach(function(n) { if (normText_(n)) rows.push({ nama: normText_(n), status: 'AKTIF' }); });
 
   return normalizePicRows_(rows).map(function(r) { return r.nama; });
+}
+
+function getPicSourceInfo_(payload) {
+  return {
+    sourceUtama: 'APJ_CORE_USER.USER',
+    coreSheet: getPicsFromCoreUserSheet_().length,
+    historyFallback: getPicsFromKnownTransactionSheets_().length,
+    payloadFallback: normalizePicRows_(payload && (payload.pics || payload.karyawan || payload.users || payload.employees || payload.rows || payload.list || payload.allUsers || payload.activeUsers || payload.karyawanAktif)).length
+  };
+}
+
+function cekPicCoreUserV104() {
+  const pics = getPicsFromCoreUserSheet_();
+  return ok_({
+    version: 'V104',
+    source: 'APJ_CORE_USER.USER',
+    spreadsheetId: APJ_INV_V3.CORE_USER.SPREADSHEET_ID,
+    total: pics.length,
+    pics: pics.map(function(r) { return r.nama; }),
+    message: pics.length ? 'PIC berhasil dibaca langsung dari APJ_CORE_USER.USER.' : 'PIC belum terbaca. Pastikan Apps Script Inventory punya akses ke spreadsheet APJ_CORE_USER dan header nama/status di sheet USER benar.'
+  });
+}
+
+function readPicRowsFromSheet_(sh) {
+  const out = [];
+  try {
+    const values = sh.getDataRange().getValues();
+    if (values.length < 2) return out;
+    const headers = values[0].map(function(h) { return normText_(h); });
+    for (let i = 1; i < values.length; i++) {
+      const obj = {};
+      for (let c = 0; c < headers.length; c++) {
+        if (headers[c]) obj[headers[c]] = values[i][c];
+      }
+      out.push(obj);
+    }
+  } catch (err) {}
+  return out;
+}
+
+function getPicsFromKnownTransactionSheets_() {
+  const out = [];
+  try {
+    const ss = ss_();
+    ['TRANSFER_PRODUK', 'TRANSAKSI_OUTPUT_STOK', 'PESANAN_OUTLET', 'JURNAL_STOK'].forEach(function(sheetName) {
+      const sh = ss.getSheetByName(sheetName);
+      if (!sh) return;
+      out.push.apply(out, readPicRowsFromSheet_(sh));
+    });
+  } catch (err) {}
+  return normalizePicRows_(out);
 }
 
 function getPicsFromCoreUserSheet_() {
@@ -2681,6 +2753,7 @@ function normalizePicRows_(items) {
       nama = row;
     } else if (row && typeof row === 'object') {
       nama = firstNonEmpty_(
+        row.namaPic, row.NAMA_PIC, row['Nama PIC'], row['NAMA PIC'], row.pic, row.PIC, row.penerima, row.PENERIMA, row['Penanggung Jawab'], row['PENANGGUNG JAWAB'], row.penanggungJawab, row.PENANGGUNG_JAWAB,
         row.nama, row.NAMA, row['Nama'], row['Nama Karyawan'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
         row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
         row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
@@ -2705,7 +2778,7 @@ function extractEmployeeRowsLoose_(value, depth) {
   if (!value || depth > 4) return [];
   if (Array.isArray(value)) return value;
   if (typeof value !== 'object') return [];
-  const keys = ['users','user','karyawan','pegawai','staff','employees','employee','penandatangan','signers','signatureUsers','daftarKaryawan','daftarUser','rows','items','list','dataRows','records','allUsers','activeUsers','usersActive','karyawanAktif'];
+  const keys = ['users','user','karyawan','pegawai','staff','employees','employee','penandatangan','signers','signatureUsers','daftarKaryawan','daftarUser','rows','items','list','dataRows','records','allUsers','activeUsers','usersActive','karyawanAktif','pic','pics','penerima','penanggungJawab','daftarPic','daftarPIC','picList','employeeList','userList'];
   for (let i = 0; i < keys.length; i++) {
     if (Array.isArray(value[keys[i]])) return value[keys[i]];
   }

@@ -1,29 +1,25 @@
-APJ Produk Outlet V102 - Output PIC semua karyawan & Preparasi satuan selisih dropdown
+APJ Produk Outlet V104 - PIC Direct Core User Fix
+
+File penting:
+- CODE_GS_APJ_INVENTORI_MASTER.txt
+- output-stok.html
+- transfer-produksi.html
+- assets/js/pages/apj-output-stok.js
+- assets/js/pages/apj-transfer-produksi.js
+- README_APJ_MASTER.txt
+- PIC_CORE_USER_SETUP_V104.txt
 
 Perubahan utama:
-- Output Stok: dropdown PIC Transfer Outlet memuat semua karyawan aktif dari Core User, bukan hanya petugas login.
-- Preparasi: auto sisa global dimatikan karena tidak valid untuk multi bahan / beda satuan.
-- Preparasi: sisa/susut/rusak/hilang menjadi catatan manual.
-- Preparasi: qty standar resep dipakai saat pilih resep, tetap bisa diedit petugas.
-- Fix V99 Cetak Rekap font besar tetap dibawa.
-- Fix V98 popup print rekap 58mm tetap dibawa.
-- Fix V97 Pesanan Lauk | Qty | Catatan tetap dibawa.
-- Fix V96/V95 Print Pesanan dan Nama Pemesan tetap dibawa.
+- PIC Output Stok dan Penanggung Jawab Transfer Produk diambil langsung dari APJ_CORE_USER sheet USER.
+- CORE_USER.SPREADSHEET_ID = 1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk.
+- Tidak memakai UrlFetchApp, aman dari error script.external_request.
+- Ditambahkan checker: cekPicCoreUserV104.
+- Cache Output/Transfer dinaikkan ke v104.
 
-File utama yang berubah:
-- output-stok.html
-- preparasi.html
-- assets/js/pages/apj-output-stok.js
-- assets/js/pages/apj-preparasi.js
-- README_APJ_MASTER.txt
-- MANIFEST_APJ_MASTER.txt
-
-
-V102:
-- Output Stok: PIC Transfer Outlet diperbaiki lagi; backend Inventory sekarang proxy ke Core User untuk mengambil semua karyawan aktif, plus frontend mencoba lebih banyak action Core/Inventory.
-- Preparasi: Satuan Selisih diubah dari input bebas menjadi dropdown: Kg, Gram, Pcs, Porsi, Pack, Box, Liter, Ml, Botol, Bungkus, Ikat, Lembar, Butir, Ekor, Loyang, Panci, Paket.
-
-
-V102 NOTE:
-- Inventory Code.gs tidak lagi memanggil APJ_CORE_USER via UrlFetchApp secara aktif, supaya tidak error permission script.external_request dan halaman Output tidak gagal memuat kategori.
-- PIC Transfer Outlet tetap dicoba dari Core User langsung dari frontend. Jika daftar belum lengkap, kolom PIC sekarang bisa diketik manual dengan datalist/saran nama.
+Warisan fix tetap ada:
+- V102: Output tetap aman dari error UrlFetchApp.
+- V101: Satuan Selisih Preparasi dropdown.
+- V99: Cetak Rekap font besar.
+- V97: Pesanan Lauk | Qty | Catatan.
+- V96: Font Print Pesanan 14px.
+- V95: Nama Pemesan / Nama Pesanan.

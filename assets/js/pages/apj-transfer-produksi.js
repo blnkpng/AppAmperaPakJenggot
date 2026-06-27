@@ -1,4 +1,4 @@
-/* APJ TRANSFER PRODUK V76 - outlet ayam + print order fix */
+/* APJ TRANSFER PRODUK V104 - PIC DIRECT CORE USER FIX */
 const APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.inventoryApiUrl || (window.APJ_CONFIG.apis && window.APJ_CONFIG.apis.inventory))) || "https://script.google.com/macros/s/AKfycbx3sNyaAR5b1MZjpjzuCuyeYuVi-bL0k1Nb1MgI40l5kQmSWfmxXCSfTpBy7sQ-0oQ/exec";
 const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl || (window.APJ_CONFIG.apis && window.APJ_CONFIG.apis.core))) || "";
     let globalProduk = [];
@@ -90,6 +90,7 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
         globalPics = normalizePicOptions(result.pics || []);
         setPicLoadingState('Memuat daftar penanggung jawab...');
         renderDropdowns({ skipPic: true });
+        await loadInventoryEmployeePics();
         await loadCoreEmployeePics();
         renderDropdowns();
         renderKpi();
@@ -162,6 +163,36 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
         });
     }
 
+    async function loadInventoryEmployeePics() {
+      const current = getCurrentUserName();
+      const actions = ['getTransferPicList', 'getOutputPicList', 'getPicKaryawanList', 'getInventoryPicList', 'getAllPicKaryawan', 'getTransferProduksiInit'];
+      let best = normalizePicOptions(globalPics || []);
+      for (const action of actions) {
+        try {
+          const result = await fetchApi({
+            action,
+            includeInactive: false,
+            aktifOnly: true,
+            forDropdown: true,
+            forPicDropdown: true,
+            includeAllUsers: true,
+            allowAllUsers: true,
+            context: 'TRANSFER_PRODUK',
+            source: 'transfer-produk',
+            petugas: current,
+            requesterName: current,
+            username: localStorage.getItem('APJ_USER_USERNAME') || '',
+            requesterUsername: localStorage.getItem('APJ_USER_USERNAME') || ''
+          });
+          const names = normalizePicOptions(extractEmployeeRows(result));
+          if (names.length > best.length) best = names;
+          if (result && result.success && names.length > 1) break;
+        } catch (err) {}
+      }
+      globalPics = ensureCurrentPic(best, current);
+      updatePicLoadInfo(globalPics.length, globalPics.length <= 1);
+    }
+
     async function loadCoreEmployeePics() {
       const current = getCurrentUserName();
       const fallback = normalizePicOptions(globalPics).concat(current ? [{ value: current, label: current, status: 'AKTIF' }] : []);
@@ -169,10 +200,42 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
         'getTransferSignatureUsers',
         'getSignatureUsers',
         'getDaftarPenandatangan',
+        'getPicList',
+        'getPICList',
+        'getPenerimaList',
+        'getPenanggungJawabList',
+        'getUsersForDropdown',
+        'getKaryawanDropdown',
         'getActiveUsers',
         'getKaryawanAktif',
+        'getPegawaiAktif',
+        'getStaffAktif',
+        'getAllKaryawan',
+        'getKaryawan',
+        'getPegawai',
+        'getStaff',
+        'listKaryawan',
+        'getDaftarKaryawan',
+        'getDaftarUser',
+        'daftarUser',
+        'getEmployees',
+        'getEmployeeList',
+        'listEmployees',
         'getAllUsers',
-        'adminGetUsers'
+        'getUsers',
+        'listUsers',
+        'getUserList',
+        'getUsersList',
+        'getDataUser',
+        'getUserData',
+        'getAdminUsers',
+        'adminGetUsers',
+        'adminListUsers',
+        'getUserAdminData',
+        'getAdminData',
+        'getAbsensiInit',
+        'getAbsensiBootstrap',
+        'getBootstrap'
       ];
       let bestRows = [];
       for (const action of actions) {
@@ -182,7 +245,17 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
             forDropdown: true,
             context: 'TRANSFER_PRODUK',
             source: 'transfer-produk',
-            aktifOnly: true
+            aktifOnly: true,
+            petugas: current,
+            requesterName: current,
+            username: localStorage.getItem('APJ_USER_USERNAME') || '',
+            requesterUsername: localStorage.getItem('APJ_USER_USERNAME') || '',
+            level: localStorage.getItem('APJ_USER_LEVEL') || '',
+            role: localStorage.getItem('APJ_USER_LEVEL') || '',
+            includeAllUsers: true,
+            allowAllUsers: true,
+            forPicDropdown: true,
+            mode: 'ALL_KARYAWAN'
           });
           const rows = extractEmployeeRows(result);
           const names = normalizePicOptions(rows);
@@ -205,6 +278,18 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
       const body = Object.assign({}, payload || {}, {
         action,
         appName: 'APJ_INVENTORY',
+        sourceApp: 'APJ_INVENTORY',
+        requesterApp: 'APJ_INVENTORY',
+        username: localStorage.getItem('APJ_USER_USERNAME') || '',
+        requesterUsername: localStorage.getItem('APJ_USER_USERNAME') || '',
+        requesterName: getCurrentUserName(),
+        nama: getCurrentUserName(),
+        level: localStorage.getItem('APJ_USER_LEVEL') || '',
+        role: localStorage.getItem('APJ_USER_LEVEL') || '',
+        allowAllUsers: true,
+        includeAllUsers: true,
+        forPicDropdown: true,
+        mode: 'ALL_KARYAWAN',
         sessionToken: localStorage.getItem('APJ_SESSION_TOKEN') || '',
         token: localStorage.getItem('APJ_SESSION_TOKEN') || '',
         _clientTs: Date.now(),
@@ -256,7 +341,8 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
       const keys = [
         'users', 'user', 'karyawan', 'pegawai', 'staff', 'employees', 'employee',
         'penandatangan', 'signers', 'signatureUsers', 'daftarKaryawan', 'daftarUser',
-        'rows', 'items', 'list'
+        'pics', 'pic', 'daftarPic', 'daftarPIC', 'picList', 'penerima', 'penanggungJawab',
+        'rows', 'items', 'list', 'dataRows', 'result', 'records', 'allUsers', 'activeUsers', 'usersActive', 'karyawanAktif', 'pegawaiAktif', 'staffAktif', 'employeeList', 'userList'
       ];
       for (const key of keys) {
         if (Array.isArray(obj[key])) return obj[key];
@@ -289,6 +375,8 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
           // sudah terhitung tetapi saat render dropdown tersaring menjadi hanya user aktif.
           const name = firstText(
             row.value, row.label,
+            row.namaPic, row.NAMA_PIC, row['Nama PIC'], row['NAMA PIC'], row.pic, row.PIC,
+            row.penerima, row.PENERIMA, row['Penanggung Jawab'], row['PENANGGUNG JAWAB'], row.penanggungJawab, row.PENANGGUNG_JAWAB,
             row.nama, row.NAMA, row['Nama'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
             row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
             row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
@@ -296,6 +384,8 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
           );
           const label = firstText(
             row.label, row.value,
+            row.namaPic, row.NAMA_PIC, row['Nama PIC'], row['NAMA PIC'], row.pic, row.PIC,
+            row.penerima, row.PENERIMA, row['Penanggung Jawab'], row['PENANGGUNG JAWAB'], row.penanggungJawab, row.PENANGGUNG_JAWAB,
             row.nama, row.NAMA, row['Nama'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
             row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
             row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
@@ -347,7 +437,7 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
       select.dataset.totalKaryawan = String(total || 0);
       select.dataset.fallbackOnly = fallbackOnly ? 'true' : 'false';
       select.title = fallbackOnly && total <= 1
-        ? 'Daftar karyawan belum lengkap. Perbarui Core User agar semua karyawan tampil.'
+        ? 'Daftar karyawan belum lengkap. Cek APJ_CORE_USER sheet USER agar semua karyawan tampil.'
         : `Daftar penanggung jawab: ${total || 0} karyawan`;
     }
 
@@ -710,7 +800,21 @@ const CORE_APPS_SCRIPT_URL = (window.APJ_CONFIG && (window.APJ_CONFIG.coreApiUrl
     }
 
     async function fetchApi(payload) {
-      payload = Object.assign({ sessionToken: localStorage.getItem('APJ_SESSION_TOKEN') || '' }, payload || {});
+      payload = Object.assign({
+        sessionToken: localStorage.getItem('APJ_SESSION_TOKEN') || '',
+        token: localStorage.getItem('APJ_SESSION_TOKEN') || '',
+        username: localStorage.getItem('APJ_USER_USERNAME') || '',
+        requesterUsername: localStorage.getItem('APJ_USER_USERNAME') || '',
+        requesterName: getCurrentUserName(),
+        nama: getCurrentUserName(),
+        petugas: getCurrentUserName(),
+        level: localStorage.getItem('APJ_USER_LEVEL') || '',
+        role: localStorage.getItem('APJ_USER_LEVEL') || '',
+        allowAllUsers: true,
+        includeAllUsers: true,
+        forPicDropdown: true,
+        mode: 'ALL_KARYAWAN'
+      }, payload || {});
       return requestApiJson(payload, { retries: 3, timeoutMs: 45000 });
     }
 

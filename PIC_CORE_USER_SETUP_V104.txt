@@ -1,0 +1,19 @@
+APJ PRODUK OUTLET V104 - PIC DIRECT CORE USER FIX
+
+Sumber resmi PIC / Penanggung Jawab:
+APJ_CORE_USER spreadsheet, sheet USER.
+
+Spreadsheet ID APJ_CORE_USER yang dipasang di Code.gs Inventory:
+1grC_hqmGUCqL9EaPvaIJpZ-ooaI5Gv1sYYJxZXqsWFk
+
+Cara cek:
+1. Upload CODE_GS_APJ_INVENTORI_MASTER.txt ke Apps Script Inventory.
+2. Deploy ulang.
+3. Dari editor Apps Script, jalankan function:
+   cekPicCoreUserV104
+4. Jika diminta izin, izinkan akses Spreadsheet.
+5. Hasil harus menampilkan total PIC lebih dari 1 dan daftar nama dari sheet USER.
+
+Catatan:
+- Tidak memakai UrlFetchApp, jadi tidak membutuhkan izin script.external_request.
+- Jika yang muncul masih hanya petugas login, berarti Apps Script Inventory belum punya akses ke spreadsheet APJ_CORE_USER atau header nama/status pada sheet USER perlu disesuaikan.
