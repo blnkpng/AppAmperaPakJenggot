@@ -1,7 +1,7 @@
-APJ Produk Outlet V97 - Pesanan Lauk Qty Catatan Fix
+APJ Produk Outlet V98 - Rekap Print 58mm Fix
 
 Perubahan utama:
-- Print Pesanan 58mm menampilkan tabel Lauk | Qty | Catatan.
-- Form input lauk ditambah Qty Lauk dan Catatan Lauk.
-- Sheet PESANAN_OUTLET_DETAIL ditambah header Qty Lauk dan Catatan Lauk.
-- Cache frontend dinaikkan ke v97.
+- Tombol Cetak 58mm rekap diganti menjadi Cetak Rekap.
+- Print Rekap Produk Outlet 58mm tidak lagi menggunakan iframe hidden.
+- Layout print rekap memakai popup print + ukuran halaman eksplisit 58mm x 297mm.
+- V97 Pesanan Lauk Qty Catatan tetap aman.

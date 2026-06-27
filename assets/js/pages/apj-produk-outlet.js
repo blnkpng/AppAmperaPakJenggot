@@ -543,11 +543,11 @@
     return win;
   }
 
-  function printHtml58Roll(html, printWindow){
-    // V97: popup cetak nyata + font 14px; rincian lauk dicetak sebagai Lauk | Qty | Catatan.
+  function printHtml58Roll(html, printWindow, title){
+    // V98: popup cetak nyata untuk Pesanan dan Rekap Produk Outlet 58mm agar tidak terjadi preview bagus tetapi hasil print kosong.
     // Sebagian driver thermal menampilkan pratinjau benar tetapi mencetak kosong jika print dipanggil terlalu cepat
     // atau @page memakai tinggi auto. Karena itu ukuran halaman dibuat eksplisit 58mm x 297mm di buildPesananPrintHtml().
-    const win = printWindow && !printWindow.closed ? printWindow : openPrintWindowShell('Cetak Pesanan 58mm');
+    const win = printWindow && !printWindow.closed ? printWindow : openPrintWindowShell(title || 'Cetak 58mm');
     if (!win) {
       showToast('Popup cetak diblokir browser. Izinkan popup lalu coba cetak lagi.', 'error');
       return;
@@ -876,22 +876,22 @@
     const totalAkhir = rows.reduce((s,r)=>s+numberOf(r.stokSisa),0);
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rekap Produk Outlet 58mm</title><style>
-      @page{size:58mm auto;margin:2mm}
+      @page{size:58mm 297mm;margin:0!important}
       *{box-sizing:border-box}
-      html,body{margin:0;padding:0;background:#fff;color:#000}
-      body{width:54mm;font-family:Arial,Helvetica,sans-serif;font-size:8px;line-height:1.18}
-      .wrap{width:54mm;margin:0 auto;padding:0;background:#fff}
-      .center{text-align:center}.right{text-align:right}.muted{font-size:7px;color:#222}.bold{font-weight:700}
-      .brand{font-size:11px;font-weight:800;letter-spacing:.02em;margin:0;text-transform:uppercase}
-      .title{font-size:8.5px;font-weight:700;margin-top:.7mm;text-transform:uppercase}
-      .dash{border-top:1px dashed #000;margin:1.4mm 0}
-      .meta{display:grid;grid-template-columns:13mm 1fr;gap:.35mm .7mm;margin-top:1mm;font-size:7.4px}
-      .legend{display:grid;grid-template-columns:5mm 1fr 7mm 7mm 7mm 7mm 7mm;gap:.4mm;font-size:6.4px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #000;padding-bottom:.8mm;margin-top:1mm}
-      .row{display:grid;grid-template-columns:5mm 1fr 7mm 7mm 7mm 7mm 7mm;gap:.4mm;align-items:start;border-bottom:1px dashed #999;padding:.8mm 0;break-inside:avoid;page-break-inside:avoid}
-      .no{font-weight:700}.name{font-size:7.5px;font-weight:700;line-height:1.13;word-break:break-word}.unit{font-size:6.4px;font-weight:400;color:#222;margin-top:.25mm}
-      .num{text-align:right;font-size:7.3px;white-space:nowrap}
-      .footer{margin-top:1.5mm;font-size:7px;line-height:1.25}
-      @media print{body{width:54mm}.wrap{width:54mm}.no-print{display:none!important}}
+      html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-width:58mm!important;min-height:30mm!important;height:auto!important;overflow:visible!important}
+      body{font-family:Arial,Helvetica,sans-serif;font-size:8.6px;line-height:1.20;font-weight:500;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}
+      .wrap{width:56mm;max-width:56mm;margin:0 auto;padding:2mm 1mm 3mm 1mm;background:#fff;break-inside:auto;page-break-inside:auto}
+      .center{text-align:center}.right{text-align:right}.muted{font-size:7.2px;color:#222}.bold{font-weight:700}
+      .brand{font-size:12px;font-weight:900;letter-spacing:.02em;margin:0;text-transform:uppercase}
+      .title{font-size:9.5px;font-weight:800;margin-top:.8mm;text-transform:uppercase}
+      .dash{border-top:1.4px dashed #000;margin:1.5mm 0}
+      .meta{display:grid;grid-template-columns:14mm 1fr;gap:.35mm .7mm;margin-top:1mm;font-size:8px;line-height:1.2}.meta div:nth-child(odd){font-weight:700}
+      .legend{display:grid;grid-template-columns:5mm 1fr 7mm 7mm 7mm 7mm 7mm;gap:.35mm;font-size:6.8px;font-weight:800;text-transform:uppercase;border-bottom:1px solid #000;padding-bottom:.8mm;margin-top:1mm}
+      .row{display:grid;grid-template-columns:5mm 1fr 7mm 7mm 7mm 7mm 7mm;gap:.35mm;align-items:start;border-bottom:1px dashed #999;padding:.9mm 0;break-inside:avoid;page-break-inside:avoid}
+      .no{font-weight:700}.name{font-size:8px;font-weight:800;line-height:1.14;word-break:break-word;overflow-wrap:anywhere}.unit{font-size:6.8px;font-weight:500;color:#222;margin-top:.25mm}
+      .num{text-align:right;font-size:7.8px;white-space:nowrap}
+      .footer{margin-top:1.5mm;font-size:7.4px;line-height:1.25}
+      @media print{@page{size:58mm 297mm;margin:0!important}html,body{width:58mm!important;min-width:58mm!important;height:auto!important;min-height:30mm!important;overflow:visible!important}.wrap{width:56mm!important;max-width:56mm!important}.row{break-inside:avoid;page-break-inside:avoid}.no-print{display:none!important}body:after{content:"";display:block;height:2mm}}
     </style></head><body><div class="wrap">
       <div class="center"><p class="brand">AMPERA PAK JENGGOT</p><div class="title">Rekap Produk Outlet</div></div>
       <div class="dash"></div>
@@ -915,13 +915,8 @@
       <div class="dash"></div>
       <div class="footer center">Dicetak : ${esc(now.toLocaleString('id-ID'))}</div>
     </div></body></html>`;
-    const frame = document.createElement('iframe');
-    frame.style.position = 'fixed'; frame.style.right = '0'; frame.style.bottom = '0'; frame.style.width = '0'; frame.style.height = '0'; frame.style.border = '0';
-    document.body.appendChild(frame);
-    frame.contentDocument.open();
-    frame.contentDocument.write(html);
-    frame.contentDocument.close();
-    setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); setTimeout(()=>frame.remove(), 1000); }, 250);
+    // V98: gunakan popup print seperti Pesanan. Iframe hidden sering membuat preview tampil, tetapi hasil thermal kosong.
+    printHtml58Roll(html, null, 'Cetak Rekap Produk Outlet 58mm');
   }
 
   function openModal(id){
