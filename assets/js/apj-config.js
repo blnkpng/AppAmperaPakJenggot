@@ -4,7 +4,7 @@
 */
 window.APJ_CONFIG = window.APJ_CONFIG || {
   appName: 'APJ Central',
-  appVersion: 'APJ CENTRAL V31 - JURNAL V3 FIX',
+  appVersion: 'APJ CENTRAL V100 - OUTPUT PIC & PREPARASI SISA FIX',
   timezone: 'Asia/Jakarta',
   coreApiUrl: 'https://script.google.com/macros/s/AKfycbwXjexCdYXsygij_WdgA6H26Xp__GCpRbLk1oxpocnvmOvyy8_9G2lVKW_6wr2qV19YkQ/exec',
   inventoryApiUrl: 'https://script.google.com/macros/s/AKfycbzisWWG4QzlI2_xB9arSGLAx0zn3Rgcu_Jt9tFXpJZTcXohFXwmE0sDTGCxf-i2OL0k/exec',

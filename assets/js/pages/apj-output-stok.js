@@ -1,6 +1,6 @@
 
 /*
- * APJ OUTPUT STOK V50 - PIC NAME ONLY + TABLE EMPTY FIX
+ * APJ OUTPUT STOK V100 - ALL EMPLOYEE PIC DROPDOWN FIX
  * - Output Stok hanya untuk barang keluar dari gudang.
  * - Produksi dipisahkan ke modul Produksi.
  * - Data teknis ID item tetap dipakai di belakang layar, tidak ditampilkan ke petugas.
@@ -237,53 +237,170 @@
       action,
       sessionToken: getToken(),
       token: getToken(),
-      appName: 'APJ_INVENTORY'
+      appName: 'APJ_INVENTORY',
+      _clientTs: Date.now(),
+      _requestId: 'WEB-CORE-OUTPUT-' + Date.now() + '-' + Math.random().toString(16).slice(2)
     });
     const response = await fetch(CORE_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       redirect: 'follow',
+      cache: 'no-store',
       body: JSON.stringify(body)
     });
     const text = await response.text();
-    try { return JSON.parse(text || '{}'); }
-    catch (err) { return null; }
+    return parseCoreJsonResponse(text);
+  }
+
+  function parseCoreJsonResponse(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return null;
+    try { return JSON.parse(raw); }
+    catch (err) {
+      const start = raw.indexOf('{');
+      const end = raw.lastIndexOf('}');
+      if (start >= 0 && end > start) {
+        try { return JSON.parse(raw.slice(start, end + 1)); } catch (ignore) {}
+      }
+      return null;
+    }
   }
 
   async function loadCoreEmployeePics() {
-    const existing = STATE.pics.slice();
-    try {
-      const result = await callCore('adminGetUsers', {});
-      if (result && result.success && Array.isArray(result.users)) {
-        const names = result.users
-          .filter(u => String(u.status || u.STATUS || 'AKTIF').toUpperCase() === 'AKTIF')
-          .map(u => ({
-            value: String(u.nama || u.NAMA || u.username || u.USERNAME || '').trim(),
-            label: String(u.nama || u.NAMA || u.username || u.USERNAME || '').trim(),
-            outlet: String(u.outletUtama || u.OUTLET_UTAMA || u.outlet || '').trim()
-          }))
-          .filter(u => u.value);
-        STATE.pics = uniquePicOptions(names.concat(existing.map(p => ({ value: p, label: p, outlet: '' }))));
-      } else {
-        STATE.pics = uniquePicOptions(existing.map(p => ({ value: p, label: p, outlet: '' })).concat([{ value: getPetugas(), label: getPetugas(), outlet: '' }]));
+    const current = getPetugas();
+    const fallback = ensureCurrentPic(normalizePicOptions(STATE.pics), current);
+    const actions = [
+      'getTransferSignatureUsers',
+      'getSignatureUsers',
+      'getDaftarPenandatangan',
+      'getActiveUsers',
+      'getKaryawanAktif',
+      'getAllUsers',
+      'adminGetUsers',
+      'getBootstrap'
+    ];
+    let bestRows = [];
+
+    for (const action of actions) {
+      try {
+        const result = await callCore(action, {
+          includeInactive: false,
+          forDropdown: true,
+          context: 'OUTPUT_STOK_TRANSFER_OUTLET',
+          source: 'output-stok',
+          aktifOnly: true
+        });
+        const rows = extractEmployeeRows(result);
+        const names = normalizePicOptions(rows);
+        if (names.length > bestRows.length) bestRows = names;
+        if (result && result.success && names.length > 1) {
+          STATE.pics = ensureCurrentPic(names, current);
+          refreshPicSelectOptions();
+          return;
+        }
+      } catch (err) {
+        // Coba action Core User berikutnya. Jika semua gagal, sistem tetap memakai fallback.
       }
-    } catch (err) {
-      STATE.pics = uniquePicOptions(existing.map(p => ({ value: p, label: p, outlet: '' })).concat([{ value: getPetugas(), label: getPetugas(), outlet: '' }]));
     }
+
+    STATE.pics = ensureCurrentPic(bestRows.length ? bestRows : fallback, current);
     refreshPicSelectOptions();
   }
 
-  function uniquePicOptions(items) {
+  function extractEmployeeRows(result) {
+    const direct = readEmployeeArray(result);
+    if (direct.length) return direct;
+    const nested = result && result.data ? readEmployeeArray(result.data) : [];
+    if (nested.length) return nested;
+    return findBestEmployeeArray(result);
+  }
+
+  function readEmployeeArray(obj) {
+    if (!obj) return [];
+    if (Array.isArray(obj)) return obj;
+    const keys = [
+      'users', 'user', 'karyawan', 'pegawai', 'staff', 'employees', 'employee',
+      'penandatangan', 'signers', 'signatureUsers', 'daftarKaryawan', 'daftarUser',
+      'rows', 'items', 'list'
+    ];
+    for (const key of keys) {
+      if (Array.isArray(obj[key])) return obj[key];
+    }
+    return [];
+  }
+
+  function findBestEmployeeArray(value, depth) {
+    depth = depth || 0;
+    if (!value || depth > 3) return [];
+    if (Array.isArray(value)) return normalizePicOptions(value).length ? value : [];
+    if (typeof value !== 'object') return [];
+    let best = [];
+    Object.keys(value).forEach(key => {
+      const candidate = findBestEmployeeArray(value[key], depth + 1);
+      if (normalizePicOptions(candidate).length > normalizePicOptions(best).length) best = candidate;
+    });
+    return best;
+  }
+
+  function normalizePicOptions(items) {
     const seen = new Set();
     return (items || [])
-      .map(x => typeof x === 'string' ? { value: x, label: x, outlet: '' } : x)
-      .filter(x => x && String(x.value || '').trim())
-      .filter(x => {
-        const key = String(x.value || '').trim().toLowerCase();
+      .map(row => {
+        if (typeof row === 'string') return { value: row.trim(), label: row.trim(), status: 'AKTIF', outlet: '' };
+        const name = firstText(
+          row.value, row.label,
+          row.nama, row.NAMA, row['Nama'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
+          row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
+          row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
+          row.username, row.USERNAME, row.email, row.EMAIL
+        );
+        const label = firstText(
+          row.label, row.value,
+          row.nama, row.NAMA, row['Nama'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
+          row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
+          row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
+          row.username, row.USERNAME, row.email, row.EMAIL
+        );
+        const status = firstText(row.status, row.STATUS, row.aktif, row.AKTIF, row.IS_ACTIVE, row.isActive, row.statusAktif, row.STATUS_AKTIF, 'AKTIF');
+        const outlet = firstText(row.outletUtama, row.OUTLET_UTAMA, row.outlet, row.OUTLET, row.outletAkses, row.OUTLET_AKSES);
+        return { value: name, label: label || name, status, outlet };
+      })
+      .filter(pic => pic.value && isActiveStatus(pic.status))
+      .filter(pic => {
+        const key = String(pic.value || '').trim().toLowerCase();
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
-      });
+      })
+      .sort((a, b) => String(a.label || '').localeCompare(String(b.label || ''), 'id'));
+  }
+
+  function ensureCurrentPic(list, current) {
+    const rows = normalizePicOptions(list || []);
+    if (current && !rows.some(p => sameText(p.value, current))) rows.unshift({ value: current, label: current, status: 'AKTIF', outlet: '' });
+    return rows;
+  }
+
+  function uniquePicOptions(items) {
+    return normalizePicOptions(items);
+  }
+
+  function firstText() {
+    for (let i = 0; i < arguments.length; i += 1) {
+      const text = String(arguments[i] == null ? '' : arguments[i]).trim();
+      if (text) return text;
+    }
+    return '';
+  }
+
+  function sameText(a, b) {
+    return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+  }
+
+  function isActiveStatus(value) {
+    const text = String(value == null ? 'AKTIF' : value).trim().toUpperCase();
+    if (!text) return true;
+    return !['N', 'NO', 'NONAKTIF', 'NON AKTIF', 'INACTIVE', 'TIDAK AKTIF', 'FALSE', '0', 'DELETED', 'HAPUS'].includes(text);
   }
 
   function buildPicOptions(selectedValue) {

@@ -1,4 +1,4 @@
-/* APJ PREPARASI V64
+/* APJ PREPARASI V100
  * - Halaman preparasi bahan: resep atau manual.
  * - Tidak menampilkan kode teknis item kepada petugas.
  * - Menyimpan ke backend action simpanPreparasi.
@@ -49,7 +49,7 @@
     }
 
     setTimeout(() => {
-      if (sessionStorage.getItem('APJ_PREPARASI_HELP_SEEN_V64') !== 'true') openPreparasiHelpModal(true);
+      if (sessionStorage.getItem('APJ_PREPARASI_HELP_SEEN_V100') !== 'true') openPreparasiHelpModal(true);
     }, 450);
 
     await loadPreparasiData();
@@ -360,7 +360,7 @@
       if (!STATE.hasilRows.length) addHasilRow(false);
       renderRows();
     } else {
-      setInfo('Pilih resep untuk mengisi daftar bahan dan hasil. Jumlah tetap bisa disesuaikan sebelum disimpan.');
+      setInfo('Pilih resep untuk mengisi bahan dan hasil. Jumlah standar dari resep tetap bisa disesuaikan sesuai fisik nyata sebelum disimpan.');
       const resepSelect = document.getElementById('resepSelect');
       if (resepSelect && resepSelect.value) handleRecipeChange();
       else {
@@ -384,8 +384,8 @@
       updateKpi();
       return;
     }
-    STATE.bahanRows = recipe.bahan.map(b => makeRow(b.idItem, '', ''));
-    STATE.hasilRows = recipe.hasil.map(h => makeRow(h.idItem, '', ''));
+    STATE.bahanRows = recipe.bahan.map(b => makeRow(b.idItem, b.qty || '', ''));
+    STATE.hasilRows = recipe.hasil.map(h => makeRow(h.idItem, h.qty || '', ''));
     setInfo(recipe.catatan || 'Resep siap digunakan. Periksa jumlah bahan yang dipakai dan hasil yang masuk sebelum menyimpan.');
     renderRows();
     updateKpi();
@@ -468,8 +468,7 @@
 
     if (!tanggal) return showToast('Tanggal preparasi wajib diisi.', 'error');
     if (mode === 'resep' && STATE.recipes.length && !idResep) return showToast('Pilih resep preparasi terlebih dahulu.', 'error');
-    if (sisa.qty !== 0 && sisa.kode === 'TIDAK_ADA') return showToast('Pilih keterangan sisa sebelum menyimpan.', 'error');
-    if (sisa.qty === 0 && sisa.kode !== 'TIDAK_ADA') return showToast('Keterangan sisa belum diperlukan karena tidak ada selisih.', 'error');
+    if (sisa.qty > 0 && sisa.kode === 'TIDAK_ADA') return showToast('Pilih keterangan susut/sisa sebelum menyimpan.', 'error');
 
     const bahan = STATE.bahanRows.filter(r => r.idItem && Number(r.qty) > 0).map(r => ({
       idBahan: r.idItem,
@@ -505,7 +504,7 @@
       });
       if (!res.success) throw new Error(res.message || 'Preparasi belum berhasil disimpan.');
       showToast(res.message || 'Preparasi berhasil disimpan.', 'success');
-      setInfo('Preparasi berhasil disimpan. Stok bahan berkurang dan hasil preparasi bertambah.');
+      setInfo('Preparasi berhasil disimpan. Stok berubah dari Bahan Keluar dan Hasil Masuk; catatan susut/sisa hanya sebagai keterangan proses.');
       STATE.bahanRows = [];
       STATE.hasilRows = [];
       const resepSelect = document.getElementById('resepSelect');
@@ -533,36 +532,38 @@
     const totalHasil = totalQty(STATE.hasilRows);
     setText('kpiBahan', formatNumber(totalBahan));
     setText('kpiHasil', formatNumber(totalHasil));
-    setSisaDefaultUnit();
     updateAutoSisaField(totalBahan, totalHasil);
     const sisa = getSisaData();
-    setText('kpiSisa', sisa.qty !== 0 ? `${formatSignedNumber(sisa.qty)} ${sisa.satuan || ''}`.trim() : '0');
+    const hasSisaNote = sisa.qty > 0 || sisa.kode !== 'TIDAK_ADA' || !!sisa.tambahan;
+    setText('kpiSisa', hasSisaNote ? (sisa.qty > 0 ? `${formatNumber(sisa.qty)} ${sisa.satuan || ''}`.trim() : sisa.label) : '-');
     updateSisaHintByValue(sisa);
     const validBahan = STATE.bahanRows.filter(r => r.idItem && Number(r.qty) > 0).length;
     const validHasil = STATE.hasilRows.filter(r => r.idItem && Number(r.qty) > 0).length;
-    const sisaText = sisa.qty !== 0 ? ` Sisa otomatis: ${formatSignedNumber(sisa.qty)} ${sisa.satuan || ''} (${sisa.label}).` : '';
+    const sisaText = hasSisaNote ? ` Catatan susut/sisa: ${sisa.qty > 0 ? formatNumber(sisa.qty) + (sisa.satuan ? ' ' + sisa.satuan : '') + ' - ' : ''}${sisa.label}.` : '';
     setText('ringkasanPreparasi', validBahan || validHasil ? `${validBahan} bahan keluar dan ${validHasil} hasil masuk akan disimpan.${sisaText}` : 'Belum ada bahan atau hasil yang diisi.');
   }
 
   function updateAutoSisaField(totalBahan, totalHasil) {
+    // V100: sisa tidak lagi dihitung otomatis dari total bahan - total hasil.
+    // Alasannya, bahan dan hasil bisa beda satuan/beda item/multi bahan.
+    // Stok hanya berubah dari tabel Bahan Keluar dan Hasil Masuk; bagian ini murni catatan manual.
     const input = document.getElementById('qtySisaInput');
     if (!input) return;
-    const value = roundNumber((Number(totalBahan) || 0) - (Number(totalHasil) || 0));
-    input.value = value ? String(value) : '0';
+    if (String(input.value || '').trim() === '') input.value = '';
   }
 
   function updateSisaHintByValue(sisa) {
     const hint = document.getElementById('sisaHint');
     if (!hint) return;
-    if (!sisa || sisa.qty === 0) {
-      hint.textContent = 'Tidak ada selisih. Sisa otomatis akan berubah saat jumlah bahan atau hasil diisi.';
+    if (!sisa || (sisa.qty <= 0 && sisa.kode === 'TIDAK_ADA' && !sisa.tambahan)) {
+      hint.textContent = 'Tidak ada catatan susut/sisa. Stok tetap dihitung dari Bahan Keluar dan Hasil Masuk saja.';
       return;
     }
-    if (sisa.qty > 0) {
-      hint.textContent = 'Ada sisa bahan dari proses ini. Pilih keterangan seperti susut, rusak, hilang, atau sisa diproses berikutnya.';
+    if (sisa.qty > 0 && sisa.kode === 'TIDAK_ADA') {
+      hint.textContent = 'Qty selisih sudah diisi. Pilih keterangan: susut, rusak, hilang, sisa diproses berikutnya, atau lainnya.';
       return;
     }
-    hint.textContent = 'Jumlah hasil lebih besar dari bahan keluar. Periksa kembali jumlah bahan dan hasil sebelum menyimpan.';
+    hint.textContent = 'Catatan tersimpan sebagai keterangan proses, bukan sebagai transaksi stok tambahan.';
   }
 
 
@@ -576,7 +577,7 @@
   }
 
   function getSisaData() {
-    const qty = Number((document.getElementById('qtySisaInput') || {}).value || 0) || 0;
+    const qty = Math.abs(Number((document.getElementById('qtySisaInput') || {}).value || 0) || 0);
     const satuan = String((document.getElementById('satuanSisaInput') || {}).value || '').trim();
     const kode = String((document.getElementById('keteranganSisaSelect') || {}).value || 'TIDAK_ADA').trim() || 'TIDAK_ADA';
     const tambahan = String((document.getElementById('keteranganTambahanInput') || {}).value || '').trim();
@@ -600,8 +601,8 @@
     const prosesLabel = proses === 'NORMAL' ? 'Normal' : getSisaLabel(proses);
     const parts = ['Kondisi proses: ' + prosesLabel];
     if (sisa && sisa.qty !== 0) {
-      parts.push('Sisa otomatis: ' + formatSignedNumber(sisa.qty) + (sisa.satuan ? ' ' + sisa.satuan : ''));
-      parts.push('Keterangan sisa: ' + sisa.label);
+      parts.push('Qty susut/sisa manual: ' + formatNumber(sisa.qty) + (sisa.satuan ? ' ' + sisa.satuan : ''));
+      parts.push('Keterangan susut/sisa: ' + sisa.label);
     }
     if (sisa && sisa.tambahan) parts.push('Tambahan: ' + sisa.tambahan);
     return parts.join(' | ');
@@ -632,8 +633,7 @@
   function setSisaDefaultUnit() {
     const input = document.getElementById('satuanSisaInput');
     if (!input) return;
-    const satuan = getMainSatuan();
-    input.value = satuan || '';
+    if (!String(input.value || '').trim()) input.value = '';
   }
 
   function totalQty(rows) {
@@ -811,7 +811,7 @@
     const overlay = modal ? modal.querySelector('.modal-overlay') : null;
     const content = modal ? modal.querySelector('.modal-content') : null;
     if (!modal || !overlay || !content) return;
-    sessionStorage.setItem('APJ_PREPARASI_HELP_SEEN_V64', 'true');
+    sessionStorage.setItem('APJ_PREPARASI_HELP_SEEN_V100', 'true');
     overlay.classList.remove('opacity-100');
     overlay.classList.add('opacity-0');
     content.classList.remove('scale-100', 'opacity-100');

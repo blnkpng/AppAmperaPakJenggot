@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <html lang="id">
-<head><meta content="preparasi-v54-layout-autosisa" name="apj-migration"/>
+<head><meta content="preparasi-v100-manual-sisa-logic" name="apj-migration"/>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Preparasi | APJ Inventori</title>
@@ -9,8 +9,8 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<script src="assets/js/apj-theme.js"></script><link href="assets/css/apj-core.css" rel="stylesheet"/><link href="assets/css/apj-inventory.css" rel="stylesheet"/><link href="assets/css/apj-legacy-inventory.css" rel="stylesheet"/><link href="assets/css/pages/apj-preparasi.css?v=64" rel="stylesheet"/><link href="assets/css/apj-theme.css" rel="stylesheet"/></head>
-<body class="apj-dashboard-v3 apj-preparasi-v55 apj-preparasi-v56 apj-preparasi-v57 apj-preparasi-v58 flex h-[100dvh] lg:h-screen antialiased" data-page="preparasi">
+<script src="assets/js/apj-theme.js"></script><link href="assets/css/apj-core.css" rel="stylesheet"/><link href="assets/css/apj-inventory.css" rel="stylesheet"/><link href="assets/css/apj-legacy-inventory.css" rel="stylesheet"/><link href="assets/css/pages/apj-preparasi.css?v=100" rel="stylesheet"/><link href="assets/css/apj-theme.css" rel="stylesheet"/></head>
+<body class="apj-dashboard-v3 apj-preparasi-v55 apj-preparasi-v56 apj-preparasi-v57 apj-preparasi-v58 apj-preparasi-v100 flex h-[100dvh] lg:h-screen antialiased" data-page="preparasi">
 <div class="toast border backdrop-blur-xl p-4" id="customToast" role="alert">
 <div class="flex items-start gap-3"><div class="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-300">i</div><div class="min-w-0"><p class="text-sm font-extrabold text-white">Notifikasi</p><p class="mt-1 text-sm leading-relaxed" id="toastMessage"></p></div></div>
 </div>
@@ -169,7 +169,7 @@ Petugas: <span class="font-extrabold text-white" id="namaPetugas">Memuat...</spa
 <div class="mini-stat"><p>Resep Tersedia</p><strong id="kpiResep">0</strong></div>
 <div class="mini-stat"><p>Total Bahan Keluar</p><strong class="text-amber-300" id="kpiBahan">0</strong></div>
 <div class="mini-stat"><p>Total Hasil Masuk</p><strong class="text-emerald-300" id="kpiHasil">0</strong></div>
-<div class="mini-stat"><p>Sisa Proses</p><strong class="text-rose-300" id="kpiSisa">0</strong></div>
+<div class="mini-stat"><p>Catatan Selisih</p><strong class="text-rose-300" id="kpiSisa">-</strong></div>
 <div class="mini-stat"><p>Status</p><strong class="text-cyan-300" id="kpiStatus">Siap</strong></div>
 </div>
 <div class="panel">
@@ -239,19 +239,19 @@ Pilih resep untuk mengisi bahan keluar dan hasil masuk secara otomatis, atau gun
 <div class="prep-sisa-card mt-5">
 <div class="prep-sisa-head">
 <div>
-<p class="prep-section-label">Sisa / Selisih Proses</p>
-<h3>Catatan sisa bahan</h3>
-<p>Sisa dihitung otomatis dari total bahan keluar dikurangi total hasil masuk. Pilih keterangan bila ada selisih.</p>
+<p class="prep-section-label">Catatan Susut / Sisa</p>
+<h3>Catatan proses manual</h3>
+<p>Tidak ada hitung sisa otomatis global, karena bahan dan hasil bisa beda satuan atau lebih dari satu bahan. Isi manual hanya jika ada susut, rusak, hilang, atau sisa nyata.</p>
 </div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 <div>
-<label class="form-label">Sisa Otomatis</label>
-<input class="form-control prep-auto-sisa-input" id="qtySisaInput" readonly placeholder="0" step="0.01" type="number"/>
+<label class="form-label">Qty Selisih/Sisa</label>
+<input class="form-control prep-auto-sisa-input" id="qtySisaInput" min="0" oninput="updateKpi()" placeholder="0" step="0.01" type="number"/>
 </div>
 <div>
-<label class="form-label">Satuan</label>
-<input class="form-control prep-auto-unit-input" id="satuanSisaInput" readonly placeholder="Otomatis" type="text"/>
+<label class="form-label">Satuan Selisih</label>
+<input class="form-control prep-auto-unit-input" id="satuanSisaInput" oninput="updateKpi()" placeholder="Kg / pcs / porsi" type="text"/>
 </div>
 <div>
 <label class="form-label">Keterangan Sisa</label>
@@ -269,7 +269,7 @@ Pilih resep untuk mengisi bahan keluar dan hasil masuk secara otomatis, atau gun
 <input class="form-control" id="keteranganTambahanInput" oninput="updateKpi()" placeholder="Opsional..." type="text"/>
 </div>
 </div>
-<p class="prep-sisa-note" id="sisaHint">Sisa dihitung otomatis. Bila ada selisih, pilih keterangan yang sesuai sebelum menyimpan.</p>
+<p class="prep-sisa-note" id="sisaHint">Catatan ini tidak mengubah stok. Stok berubah dari tabel Bahan Keluar dan Hasil Masuk saja.</p>
 </div>
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mt-5">
 <p class="text-xs text-slate-500" id="ringkasanPreparasi">Belum ada bahan atau hasil yang diisi.</p>
@@ -295,9 +295,9 @@ Pilih resep untuk mengisi bahan keluar dan hasil masuk secara otomatis, atau gun
 <div class="help-step flex gap-3"><div class="help-step-number">1</div><div><p class="text-sm font-black text-white">Pilih tanggal dan metode</p><p class="mt-1 text-xs leading-5 text-slate-400">Gunakan pilihan resep bila proses sudah tersedia. Gunakan manual untuk kondisi khusus.</p></div></div>
 <div class="help-step flex gap-3"><div class="help-step-number">2</div><div><p class="text-sm font-black text-white">Cek bahan keluar</p><p class="mt-1 text-xs leading-5 text-slate-400">Pastikan bahan yang dipakai dan jumlahnya sesuai dengan proses di dapur.</p></div></div>
 <div class="help-step flex gap-3"><div class="help-step-number">3</div><div><p class="text-sm font-black text-white">Isi hasil masuk</p><p class="mt-1 text-xs leading-5 text-slate-400">Catat hasil nyata setelah preparasi, bukan perkiraan bila ada perbedaan.</p></div></div>
-<div class="help-step flex gap-3"><div class="help-step-number">4</div><div><p class="text-sm font-black text-white">Isi sisa bila ada</p><p class="mt-1 text-xs leading-5 text-slate-400">Sisa dihitung otomatis dari bahan keluar dikurangi hasil masuk. Pilih Susut, Rusak, Hilang, atau Sisa diproses berikutnya jika ada selisih.</p></div></div>
+<div class="help-step flex gap-3"><div class="help-step-number">4</div><div><p class="text-sm font-black text-white">Catat susut/sisa bila ada</p><p class="mt-1 text-xs leading-5 text-slate-400">Sisa tidak dihitung otomatis karena bahan dan hasil bisa beda satuan. Isi manual hanya untuk catatan lapangan.</p></div></div>
 </div>
-<div class="rounded-2xl border border-cyan-500/22 bg-cyan-500/10 p-4 mb-5"><p class="text-sm font-black text-cyan-100">Keterangan lapangan</p><p class="mt-1 text-xs sm:text-sm leading-6 text-cyan-100/75">Untuk ayam, jumlah hasil dapat disesuaikan dengan kondisi nyata. Bila total hasil berbeda dari bahan yang dipakai, sistem menghitung sisa otomatis dan petugas memilih keterangannya.</p></div>
+<div class="rounded-2xl border border-cyan-500/22 bg-cyan-500/10 p-4 mb-5"><p class="text-sm font-black text-cyan-100">Keterangan lapangan</p><p class="mt-1 text-xs sm:text-sm leading-6 text-cyan-100/75">Untuk ayam, kikil, atau begedel, isi bahan keluar dan hasil masuk sesuai fisik nyata. Susut/sisa dicatat sebagai keterangan proses, bukan hasil pengurangan otomatis lintas item.</p></div>
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><p class="text-xs text-slate-500">Panduan bisa dibuka kembali dari sidebar, tepat di atas tombol Logout Sistem.</p><button class="btn-primary px-5 py-3 text-sm" onclick="closePreparasiHelpModal()" type="button">Mengerti, lanjut preparasi</button></div>
 </div>
 </div>
@@ -312,6 +312,6 @@ Pilih resep untuk mengisi bahan keluar dan hasil masuk secara otomatis, atau gun
 </div>
 </div>
 <script src="assets/js/apj-config.js"></script>
-<script src="assets/js/pages/apj-preparasi.js?v=64"></script>
+<script src="assets/js/pages/apj-preparasi.js?v=100"></script>
 </body>
 </html>

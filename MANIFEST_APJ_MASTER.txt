@@ -1,8 +1,19 @@
-APJ Produk Outlet V99 - Cetak Rekap Font Besar Fix
+APJ Produk Outlet V100 - Output PIC & Preparasi Sisa Logic Fix
 
 Perubahan utama:
-- Print Cetak Rekap 58mm diperbesar agar terbaca di printer thermal.
-- Layout rekap tidak lagi dipaksa 7 kolom kecil; setiap produk dibuat model kartu bertingkat.
-- Nama produk, stok akhir, dan angka utama dibuat lebih besar/tebal seperlunya.
-- Ringkasan total Awal/Masuk/Terjual/Koreksi/Akhir ditambahkan di bawah struk.
-- Fix V98/V97/V96/V95 tetap dibawa.
+- Output Stok: dropdown PIC Transfer Outlet memuat semua karyawan aktif dari Core User, bukan hanya petugas login.
+- Preparasi: auto sisa global dimatikan karena tidak valid untuk multi bahan / beda satuan.
+- Preparasi: sisa/susut/rusak/hilang menjadi catatan manual.
+- Preparasi: qty standar resep dipakai saat pilih resep, tetap bisa diedit petugas.
+- Fix V99 Cetak Rekap font besar tetap dibawa.
+- Fix V98 popup print rekap 58mm tetap dibawa.
+- Fix V97 Pesanan Lauk | Qty | Catatan tetap dibawa.
+- Fix V96/V95 Print Pesanan dan Nama Pemesan tetap dibawa.
+
+File utama yang berubah:
+- output-stok.html
+- preparasi.html
+- assets/js/pages/apj-output-stok.js
+- assets/js/pages/apj-preparasi.js
+- README_APJ_MASTER.txt
+- MANIFEST_APJ_MASTER.txt
