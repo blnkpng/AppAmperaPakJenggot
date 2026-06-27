@@ -1,20 +1,7 @@
-APJ MASTER MANIFEST - Produk Outlet V96
+APJ Produk Outlet V97 - Pesanan Lauk Qty Catatan Fix
 
-Kode kerja:
-APJ_PRODUK_OUTLET_V96_PRINT_PESANAN_FONT14_FIX
-
-Fokus:
-- Produk Outlet
-- Pesanan Outlet
-- Print Pesanan 58mm
-- Font 14px
-- Hilangkan bold global pada struk pesanan
-
-File utama berubah:
-- produk-outlet.html
-- assets/js/pages/apj-produk-outlet.js
-- assets/css/pages/apj-produk-outlet.css
-- README_APJ_MASTER.txt
-- MANIFEST_APJ_MASTER.txt
-
-Code.gs tetap membawa fix V95 untuk sinkron Nama Pemesan / Nama Pesanan.
+Perubahan utama:
+- Print Pesanan 58mm menampilkan tabel Lauk | Qty | Catatan.
+- Form input lauk ditambah Qty Lauk dan Catatan Lauk.
+- Sheet PESANAN_OUTLET_DETAIL ditambah header Qty Lauk dan Catatan Lauk.
+- Cache frontend dinaikkan ke v97.

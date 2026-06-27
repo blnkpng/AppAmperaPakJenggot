@@ -1,4 +1,4 @@
-/* APJ Produk Outlet V96 - Print Pesanan Font 14px Normal Weight Fix */
+/* APJ Produk Outlet V97 - Print Pesanan Lauk Qty Catatan Fix */
 (function(){
   'use strict';
 
@@ -308,6 +308,7 @@
         <div class="pesanan-full"><label class="form-label">Catatan Pesanan</label><input class="form-control pesanan-catatan-grup" type="text" placeholder="Contoh: tanpa pedas / sambal dipisah" oninput="updatePesananSummary()" /></div>
       </div>
       <div class="pesanan-lauk-head"><span>Isi Lauk</span><button class="btn-mini btn-add-lauk" onclick="addLaukRow(this)" type="button">+ Tambah Lauk</button></div>
+      <div class="pesanan-lauk-columns"><span>Lauk</span><span>Qty</span><span>Catatan</span><span></span></div>
       <div class="pesanan-lauk-list"></div>`;
     wrap.appendChild(div);
     addLaukRow(div.querySelector('.pesanan-lauk-head button'));
@@ -338,7 +339,7 @@
     const list = group.querySelector('.pesanan-lauk-list');
     const row = document.createElement('div');
     row.className = 'pesanan-lauk-row';
-    row.innerHTML = `<select class="form-control pesanan-lauk-select" onchange="updatePesananSummary()"></select><button class="btn-mini danger" onclick="removeLaukRow(this)" type="button">Hapus</button>`;
+    row.innerHTML = `<select class="form-control pesanan-lauk-select" onchange="updatePesananSummary()"></select><input class="form-control pesanan-lauk-qty" type="number" min="0" step="any" placeholder="Qty" oninput="updatePesananSummary()" /><input class="form-control pesanan-lauk-catatan" type="text" placeholder="Catatan lauk" oninput="updatePesananSummary()" /><button class="btn-mini danger" onclick="removeLaukRow(this)" type="button">Hapus</button>`;
     list.appendChild(row);
     fillProdukSelect(row.querySelector('select'));
     updatePesananSummary();
@@ -398,10 +399,20 @@
       const kemasan = group.querySelector('.pesanan-kemasan')?.value || '';
       const catatanGrup = group.querySelector('.pesanan-catatan-grup')?.value || '';
       const lauk = [];
-      group.querySelectorAll('.pesanan-lauk-select').forEach((select, laukIdx) => {
-        const id = select.value || '';
+      group.querySelectorAll('.pesanan-lauk-row').forEach((row, laukIdx) => {
+        const select = row.querySelector('.pesanan-lauk-select');
+        const id = select?.value || '';
+        const qtyLaukRaw = row.querySelector('.pesanan-lauk-qty')?.value || '';
+        const catatanLauk = row.querySelector('.pesanan-lauk-catatan')?.value || '';
         const item = produkMap[String(id)] || {};
-        if (id) lauk.push({ id, nama: item.nama || select.options[select.selectedIndex]?.text || '', kategori: item.kategori || '', urutan: laukIdx + 1 });
+        const hasLaukAny = id || qtyLaukRaw || catatanLauk;
+        if (!hasLaukAny) return;
+        const qtyLauk = numberOf(qtyLaukRaw);
+        if (strict) {
+          if (!id) throw new Error(`Lauk wajib dipilih pada Pesanan ${idx + 1}, baris lauk ${laukIdx + 1}.`);
+          if (qtyLauk <= 0) throw new Error(`Qty lauk wajib lebih dari 0 pada Pesanan ${idx + 1}, baris lauk ${laukIdx + 1}.`);
+        }
+        lauk.push({ id, nama: item.nama || select?.options[select.selectedIndex]?.text || '', kategori: item.kategori || '', qtyLauk, catatanLauk, urutan: laukIdx + 1 });
       });
       const hasAny = jenisPesanan || qtyPesananRaw || kemasan || catatanGrup || lauk.length;
       if (!hasAny) return;
@@ -448,7 +459,8 @@
     const totalGroup = p.groups.length;
     const totalQty = p.groups.reduce((s,g)=>s+numberOf(g.qtyPesanan),0);
     const totalLauk = p.groups.reduce((s,g)=>s+(g.lauk ? g.lauk.length : 0),0);
-    setText('pesananSummary', totalGroup ? `${totalGroup} jenis pesanan. Total qty: ${fmt(totalQty)}. Isi lauk: ${totalLauk} item.` : 'Belum ada rincian pesanan.');
+    const totalQtyLauk = p.groups.reduce((s,g)=>s+(g.lauk || []).reduce((x,l)=>x+numberOf(l.qtyLauk),0),0);
+    setText('pesananSummary', totalGroup ? `${totalGroup} jenis pesanan. Total qty pesanan: ${fmt(totalQty)}. Isi lauk: ${totalLauk} item / ${fmt(totalQtyLauk)} qty.` : 'Belum ada rincian pesanan.');
   }
 
   async function savePesananOutlet(printAfter){
@@ -492,16 +504,23 @@
     const namaPemesan = payload.namaPemesan || payload.pemesan || payload.namaCustomer || payload.customer || payload['Nama Pemesan'] || payload['Nama Pesanan'] || payload['Pemesan'] || document.getElementById('pesananNamaPemesan')?.value || '';
     const nomorHp = payload.nomorHp || payload.noHp || payload.hp || payload['Nomor HP'] || payload['No HP'] || '';
     const now = new Date();
-    const rowsHtml = (payload.groups || []).map((g, i) => `<div class="order-block">
-      <div class="order-title">${i+1}. ${esc(g.jenisPesanan || '-')}</div>
-      <div>Qty: <b>${esc(fmt(g.qtyPesanan))} ${esc(g.kemasan || '')}</b></div>
-      <div class="order-sub">Isi:</div>
-      ${(g.lauk || []).map(l => `<div class="lauk">- ${esc(l.nama || l.namaProduk || l.namaLauk || '')}</div>`).join('')}
-      ${g.catatanGrup ? `<div class="note">Catatan: ${esc(g.catatanGrup)}</div>` : ''}
-    </div>`).join('');
+    const rowsHtml = (payload.groups || []).map((g, i) => {
+      const laukRows = (g.lauk || []).map(l => {
+        const namaLauk = l.nama || l.namaProduk || l.namaLauk || '';
+        const qtyLauk = numberOf(l.qtyLauk || l.qty || l.jumlahLauk || l['Qty Lauk']);
+        const catatanLauk = l.catatanLauk || l.catatan || l.keterangan || l['Catatan Lauk'] || '';
+        return `<tr><td>${esc(namaLauk || '-')}</td><td class="num">${qtyLauk ? esc(fmt(qtyLauk)) : '-'}</td><td>${esc(catatanLauk || '-')}</td></tr>`;
+      }).join('');
+      return `<div class="order-block">
+        <div class="order-title">${i+1}. ${esc(g.jenisPesanan || '-')}</div>
+        <div>Qty Pesanan: <b>${esc(fmt(g.qtyPesanan))} ${esc(g.kemasan || '')}</b></div>
+        <table class="lauk-table"><thead><tr><th>Lauk</th><th>Qty</th><th>Catatan</th></tr></thead><tbody>${laukRows || '<tr><td>-</td><td class="num">-</td><td>-</td></tr>'}</tbody></table>
+        ${g.catatanGrup ? `<div class="note">Catatan Pesanan: ${esc(g.catatanGrup)}</div>` : ''}
+      </div>`;
+    }).join('');
     const bayar = `${payload.statusPembayaran || '-'} - ${payload.metodePembayaran || '-'}${payload.metodePembayaran === 'Transfer' && payload.bank ? ' ' + payload.bank : ''}`;
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pesanan Outlet 58mm</title><style>
-      @page{size:58mm 297mm;margin:0!important}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-width:58mm!important;min-height:30mm!important;height:auto!important;overflow:visible!important}body{font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.30;font-weight:500;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}.wrap{width:56mm;max-width:56mm;margin:0 auto;padding:2mm 1mm 3mm 1mm;break-inside:auto;page-break-inside:auto}.center{text-align:center}.brand{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:.1px}.title{font-size:14px;font-weight:800;text-transform:uppercase;margin-top:.9mm}.dash{border-top:1.6px dashed #000;margin:2mm 0}.meta{display:grid;grid-template-columns:19mm 1fr;gap:.7mm 1mm;font-size:14px;line-height:1.25}.meta div:nth-child(odd){font-weight:700}.meta div,.order-block,.note,.footer{word-break:break-word;overflow-wrap:anywhere}.order-block{border-bottom:1.4px dashed #555;padding:2mm 0;break-inside:avoid;page-break-inside:avoid}.order-title{font-size:14px;font-weight:800}.order-sub{font-weight:700;margin-top:1mm}.lauk{padding-left:2.5mm;font-size:14px;font-weight:500}.note{margin-top:1mm;font-weight:600}.footer{margin-top:2mm;font-size:12px;font-weight:500;text-align:center}b,strong{font-weight:700!important}@media print{@page{size:58mm 297mm;margin:0!important}html,body{width:58mm!important;min-width:58mm!important;height:auto!important;min-height:30mm!important;overflow:visible!important}.wrap{width:56mm!important;max-width:56mm!important}.order-block{break-inside:avoid;page-break-inside:avoid}body:after{content:"";display:block;height:2mm}}
+      @page{size:58mm 297mm;margin:0!important}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-width:58mm!important;min-height:30mm!important;height:auto!important;overflow:visible!important}body{font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.30;font-weight:500;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}.wrap{width:56mm;max-width:56mm;margin:0 auto;padding:2mm 1mm 3mm 1mm;break-inside:auto;page-break-inside:auto}.center{text-align:center}.brand{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:.1px}.title{font-size:14px;font-weight:800;text-transform:uppercase;margin-top:.9mm}.dash{border-top:1.6px dashed #000;margin:2mm 0}.meta{display:grid;grid-template-columns:19mm 1fr;gap:.7mm 1mm;font-size:14px;line-height:1.25}.meta div:nth-child(odd){font-weight:700}.meta div,.order-block,.note,.footer,td,th{word-break:break-word;overflow-wrap:anywhere}.order-block{border-bottom:1.4px dashed #555;padding:2mm 0;break-inside:avoid;page-break-inside:avoid}.order-title{font-size:14px;font-weight:800}.lauk-table{width:100%;border-collapse:collapse;margin-top:1.3mm;font-size:12.8px;line-height:1.2}.lauk-table th{font-weight:800;text-align:left;border-bottom:1px solid #000;padding:.8mm .5mm}.lauk-table td{vertical-align:top;border-bottom:1px dotted #777;padding:.8mm .5mm}.lauk-table th:nth-child(1),.lauk-table td:nth-child(1){width:25mm}.lauk-table th:nth-child(2),.lauk-table td:nth-child(2){width:9mm;text-align:right;font-weight:700}.lauk-table th:nth-child(3),.lauk-table td:nth-child(3){width:18mm}.note{margin-top:1mm;font-weight:600}.footer{margin-top:2mm;font-size:12px;font-weight:500;text-align:center}b,strong{font-weight:700!important}@media print{@page{size:58mm 297mm;margin:0!important}html,body{width:58mm!important;min-width:58mm!important;height:auto!important;min-height:30mm!important;overflow:visible!important}.wrap{width:56mm!important;max-width:56mm!important}.order-block{break-inside:avoid;page-break-inside:avoid}body:after{content:"";display:block;height:2mm}}
     </style></head><body><div class="wrap">
       <div class="center"><div class="brand">AMPERA PAK JENGGOT</div><div class="title">Form Pesanan Outlet</div></div><div class="dash"></div>
       <div class="meta"><div>No</div><div>: ${esc(nomor)}</div><div>Outlet</div><div>: ${esc(payload.outlet || '-')}</div><div>Tgl Pesanan</div><div>: ${esc(formatLongDateId(payload.tanggalPesanan || ''))}</div><div>Jam</div><div>: ${esc(payload.jam || '-')}</div><div>Penerima</div><div>: ${esc(payload.penerima || '-')}</div><div>Pemesan</div><div>: ${esc(namaPemesan || '-')}</div><div>HP</div><div>: ${esc(nomorHp || '-')}</div></div>
@@ -525,7 +544,7 @@
   }
 
   function printHtml58Roll(html, printWindow){
-    // V96: gunakan popup cetak nyata + tunggu dokumen render sempurna; font 14px tanpa bold global.
+    // V97: popup cetak nyata + font 14px; rincian lauk dicetak sebagai Lauk | Qty | Catatan.
     // Sebagian driver thermal menampilkan pratinjau benar tetapi mencetak kosong jika print dipanggil terlalu cepat
     // atau @page memakai tinggi auto. Karena itu ukuran halaman dibuat eksplisit 58mm x 297mm di buildPesananPrintHtml().
     const win = printWindow && !printWindow.closed ? printWindow : openPrintWindowShell('Cetak Pesanan 58mm');

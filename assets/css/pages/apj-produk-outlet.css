@@ -1174,3 +1174,36 @@ body.apj-produk-outlet-v95 .print-pesanan-card .btn-print{font-weight:950;}
 
 /* APJ Produk Outlet V96 - Print Pesanan 58mm Font 14px Normal Weight */
 /* Catatan: style utama print pesanan 58mm ada di buildPesananPrintHtml() dalam assets/js/pages/apj-produk-outlet.js. */
+
+
+/* APJ Produk Outlet V97 - Pesanan Lauk Qty Catatan */
+body.apj-produk-outlet-v97 .pesanan-lauk-columns{
+  display:grid;
+  grid-template-columns:1fr 120px 1fr 84px;
+  gap:8px;
+  align-items:center;
+  margin:0 0 6px;
+  color:var(--muted,#94a3b8);
+  font-size:11px;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+body.apj-produk-outlet-v97 .pesanan-lauk-row{
+  grid-template-columns:1fr 120px 1fr 84px;
+}
+body.apj-produk-outlet-v97 .pesanan-lauk-qty{
+  text-align:right;
+  font-weight:900;
+}
+body.apj-produk-outlet-v97 .pesanan-lauk-catatan{
+  min-width:0;
+}
+html[data-theme="light"] body.apj-produk-outlet-v97 .pesanan-lauk-columns{
+  color:#64748b;
+}
+@media(max-width:760px){
+  body.apj-produk-outlet-v97 .pesanan-lauk-columns{display:none;}
+  body.apj-produk-outlet-v97 .pesanan-lauk-row{grid-template-columns:1fr;}
+  body.apj-produk-outlet-v97 .pesanan-lauk-row .btn-mini.danger{width:100%;}
+}

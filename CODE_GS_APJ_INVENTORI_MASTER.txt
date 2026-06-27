@@ -1275,7 +1275,7 @@ function setupPesananOutletSheetsV90() {
   const shHeader = ensurePesananSheet_('PESANAN_OUTLET', pesananOutletHeaders_());
   ensurePesananSheet_('PESANAN_OUTLET_DETAIL', pesananOutletDetailHeaders_());
   syncPesananNamaPemesanHeaderV95_(shHeader);
-  return ok_({ message: 'Sheet PESANAN_OUTLET dan PESANAN_OUTLET_DETAIL siap digunakan. Nama Pemesan diselaraskan V95.' });
+  return ok_({ message: 'Sheet PESANAN_OUTLET dan PESANAN_OUTLET_DETAIL siap digunakan. Nama Pemesan V95 dan kolom Qty/Catatan Lauk V97 diselaraskan.' });
 }
 
 function pesananOutletHeaders_() {
@@ -1283,7 +1283,8 @@ function pesananOutletHeaders_() {
 }
 
 function pesananOutletDetailHeaders_() {
-  return ['Timestamp', 'No Pesanan', 'No Grup', 'Jenis Pesanan', 'Qty Pesanan', 'Kemasan', 'ID Lauk', 'Nama Lauk', 'Urutan Lauk', 'Catatan Grup'];
+  // V97: detail lauk dipertegas per baris: Lauk | Qty | Catatan.
+  return ['Timestamp', 'No Pesanan', 'No Grup', 'Jenis Pesanan', 'Qty Pesanan', 'Kemasan', 'ID Lauk', 'Nama Lauk', 'Qty Lauk', 'Catatan Lauk', 'Urutan Lauk', 'Catatan Grup'];
 }
 
 function syncPesananNamaPemesanHeaderV95_(sh) {
@@ -1434,6 +1435,8 @@ function simpanPesananOutlet(payload) {
     const qty = normNum_(g.qtyPesanan);
     if (qty <= 0) throw new Error('Qty pesanan wajib lebih dari 0 pada pesanan ' + (groupIdx + 1) + '.');
     lauk.forEach(function(l, laukIdx) {
+      const qtyLauk = normNum_(l.qtyLauk || l.qty || l.jumlahLauk || l['Qty Lauk']);
+      if (qtyLauk <= 0) throw new Error('Qty lauk wajib lebih dari 0 pada pesanan ' + (groupIdx + 1) + ', lauk ' + (laukIdx + 1) + '.');
       details.push({
         'Timestamp': ts,
         'No Pesanan': noPesanan,
@@ -1443,6 +1446,8 @@ function simpanPesananOutlet(payload) {
         'Kemasan': normText_(g.kemasan),
         'ID Lauk': normText_(l.id || l.idItem),
         'Nama Lauk': normText_(l.nama || l.namaProduk),
+        'Qty Lauk': qtyLauk,
+        'Catatan Lauk': normText_(l.catatanLauk || l.catatan || l.keterangan || l['Catatan Lauk']),
         'Urutan Lauk': l.urutan || laukIdx + 1,
         'Catatan Grup': normText_(g.catatanGrup)
       });
@@ -1544,6 +1549,8 @@ function getPesananOutletPrintData(payload) {
       idItem: normText_(d['ID Lauk']),
       nama: normText_(d['Nama Lauk']),
       namaProduk: normText_(d['Nama Lauk']),
+      qtyLauk: pesananRowNumV94_(d, ['Qty Lauk','Qty','Jumlah Lauk','Jumlah']),
+      catatanLauk: pesananRowTextV94_(d, ['Catatan Lauk','Catatan','Keterangan']),
       urutan: normNum_(d['Urutan Lauk']) || groupMap[noGrup].lauk.length + 1
     });
   });
