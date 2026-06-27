@@ -1,6 +1,6 @@
 
 /*
- * APJ OUTPUT STOK V100 - ALL EMPLOYEE PIC DROPDOWN FIX
+ * APJ OUTPUT STOK V101 - PIC ALL KARYAWAN ROBUST FIX
  * - Output Stok hanya untuk barang keluar dari gudang.
  * - Produksi dipisahkan ke modul Produksi.
  * - Data teknis ID item tetap dipakai di belakang layar, tidak ditampilkan ke petugas.
@@ -96,6 +96,10 @@
       sessionToken: getToken(),
       token: getToken(),
       appName: 'APJ_INVENTORY',
+      sourceApp: 'APJ_INVENTORY',
+      requesterApp: 'APJ_INVENTORY',
+      userLevel: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
+      userOutlet: localStorage.getItem(STORAGE_KEYS.outlet) || localStorage.getItem('APJ_USER_OUTLET') || '',
       _clientTs: Date.now(),
       _requestId: 'WEB-' + Date.now() + '-' + Math.random().toString(16).slice(2)
     });
@@ -238,6 +242,10 @@
       sessionToken: getToken(),
       token: getToken(),
       appName: 'APJ_INVENTORY',
+      sourceApp: 'APJ_INVENTORY',
+      requesterApp: 'APJ_INVENTORY',
+      userLevel: localStorage.getItem(STORAGE_KEYS.level) || localStorage.getItem('APJ_USER_LEVEL') || '',
+      userOutlet: localStorage.getItem(STORAGE_KEYS.outlet) || localStorage.getItem('APJ_USER_OUTLET') || '',
       _clientTs: Date.now(),
       _requestId: 'WEB-CORE-OUTPUT-' + Date.now() + '-' + Math.random().toString(16).slice(2)
     });
@@ -270,41 +278,88 @@
     const current = getPetugas();
     const fallback = ensureCurrentPic(normalizePicOptions(STATE.pics), current);
     const actions = [
+      // Inventory V101: coba backend Inventory dulu. Backend sekarang bisa proxy ke Core User.
+      'inventory:getOutputPicList',
+      'inventory:getOutputInit',
+      // Core User: beberapa nama action dipakai di versi berbeda.
       'getTransferSignatureUsers',
       'getSignatureUsers',
       'getDaftarPenandatangan',
       'getActiveUsers',
       'getKaryawanAktif',
+      'getAllKaryawan',
+      'getKaryawan',
+      'getEmployees',
+      'getEmployeeList',
       'getAllUsers',
+      'getUsers',
+      'listUsers',
+      'getUserList',
       'adminGetUsers',
+      'getAdminData',
       'getBootstrap'
     ];
     let bestRows = [];
 
     for (const action of actions) {
       try {
-        const result = await callCore(action, {
+        const isInventoryAction = String(action).indexOf('inventory:') === 0;
+        const cleanAction = isInventoryAction ? String(action).replace('inventory:', '') : action;
+        const payload = {
           includeInactive: false,
           forDropdown: true,
           context: 'OUTPUT_STOK_TRANSFER_OUTLET',
           source: 'output-stok',
-          aktifOnly: true
-        });
+          aktifOnly: true,
+          petugas: current
+        };
+        const result = isInventoryAction ? await callInventory(cleanAction, payload) : await callCore(cleanAction, payload);
         const rows = extractEmployeeRows(result);
         const names = normalizePicOptions(rows);
         if (names.length > bestRows.length) bestRows = names;
         if (result && result.success && names.length > 1) {
           STATE.pics = ensureCurrentPic(names, current);
           refreshPicSelectOptions();
+          markPicLoadInfo(STATE.pics.length, false);
           return;
         }
       } catch (err) {
-        // Coba action Core User berikutnya. Jika semua gagal, sistem tetap memakai fallback.
+        // Coba action berikutnya. Jika semua gagal, sistem tetap memakai fallback.
       }
     }
 
-    STATE.pics = ensureCurrentPic(bestRows.length ? bestRows : fallback, current);
+    const localRows = extractEmployeeRowsFromLocalStorage();
+    const mergedFallback = normalizePicOptions([].concat(bestRows || [], localRows || [], fallback || []));
+    STATE.pics = ensureCurrentPic(mergedFallback, current);
     refreshPicSelectOptions();
+    markPicLoadInfo(STATE.pics.length, STATE.pics.length <= 1);
+  }
+
+  function extractEmployeeRowsFromLocalStorage() {
+    const keys = [
+      'APJ_ALL_USERS', 'APJ_USERS', 'APJ_KARYAWAN', 'APJ_DAFTAR_KARYAWAN',
+      'APJ_USER_DATA', 'APJ_BOOTSTRAP', 'APJ_CORE_BOOTSTRAP', 'APJ_ADMIN_DATA'
+    ];
+    let rows = [];
+    keys.forEach(key => {
+      try {
+        const raw = localStorage.getItem(key) || sessionStorage.getItem(key) || '';
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        rows = rows.concat(extractEmployeeRows(parsed));
+      } catch (err) {}
+    });
+    return rows;
+  }
+
+  function markPicLoadInfo(total, fallbackOnly) {
+    document.querySelectorAll('.select-pic').forEach(select => {
+      select.dataset.totalKaryawan = String(total || 0);
+      select.dataset.fallbackOnly = fallbackOnly ? 'true' : 'false';
+      select.title = fallbackOnly
+        ? 'Daftar PIC belum lengkap dari Core User. Cek deploy Core User / action daftar karyawan.'
+        : `Daftar PIC: ${total || 0} karyawan`;
+    });
   }
 
   function extractEmployeeRows(result) {
@@ -321,7 +376,7 @@
     const keys = [
       'users', 'user', 'karyawan', 'pegawai', 'staff', 'employees', 'employee',
       'penandatangan', 'signers', 'signatureUsers', 'daftarKaryawan', 'daftarUser',
-      'rows', 'items', 'list'
+      'rows', 'items', 'list', 'dataRows', 'result', 'records', 'allUsers', 'activeUsers', 'usersActive', 'karyawanAktif'
     ];
     for (const key of keys) {
       if (Array.isArray(obj[key])) return obj[key];
@@ -352,6 +407,7 @@
           row.nama, row.NAMA, row['Nama'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
           row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
           row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
+          row.Nama_User, row.nama_user, row.namaUser, row.NAMA_USER, row.namaPegawai, row.NAMA_PEGAWAI, row.namaStaff, row.NAMA_STAFF,
           row.username, row.USERNAME, row.email, row.EMAIL
         );
         const label = firstText(
@@ -359,9 +415,10 @@
           row.nama, row.NAMA, row['Nama'], row['NAMA KARYAWAN'], row.NAMA_KARYAWAN,
           row.namaKaryawan, row.NAMA_LENGKAP, row['NAMA LENGKAP'], row.namaLengkap,
           row.name, row.NAME, row.fullName, row.FULL_NAME, row.displayName, row.DISPLAY_NAME,
+          row.Nama_User, row.nama_user, row.namaUser, row.NAMA_USER, row.namaPegawai, row.NAMA_PEGAWAI, row.namaStaff, row.NAMA_STAFF,
           row.username, row.USERNAME, row.email, row.EMAIL
         );
-        const status = firstText(row.status, row.STATUS, row.aktif, row.AKTIF, row.IS_ACTIVE, row.isActive, row.statusAktif, row.STATUS_AKTIF, 'AKTIF');
+        const status = firstText(row.status, row.STATUS, row.aktif, row.AKTIF, row.active, row.ACTIVE, row.IS_ACTIVE, row.isActive, row.statusAktif, row.STATUS_AKTIF, row.statusUser, row.STATUS_USER, 'AKTIF');
         const outlet = firstText(row.outletUtama, row.OUTLET_UTAMA, row.outlet, row.OUTLET, row.outletAkses, row.OUTLET_AKSES);
         return { value: name, label: label || name, status, outlet };
       })

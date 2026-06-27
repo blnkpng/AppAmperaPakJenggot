@@ -1,4 +1,4 @@
-APJ Produk Outlet V100 - Output PIC & Preparasi Sisa Logic Fix
+APJ Produk Outlet V101 - Output PIC semua karyawan & Preparasi satuan selisih dropdown
 
 Perubahan utama:
 - Output Stok: dropdown PIC Transfer Outlet memuat semua karyawan aktif dari Core User, bukan hanya petugas login.
@@ -17,3 +17,8 @@ File utama yang berubah:
 - assets/js/pages/apj-preparasi.js
 - README_APJ_MASTER.txt
 - MANIFEST_APJ_MASTER.txt
+
+
+V101:
+- Output Stok: PIC Transfer Outlet diperbaiki lagi; backend Inventory sekarang proxy ke Core User untuk mengambil semua karyawan aktif, plus frontend mencoba lebih banyak action Core/Inventory.
+- Preparasi: Satuan Selisih diubah dari input bebas menjadi dropdown: Kg, Gram, Pcs, Porsi, Pack, Box, Liter, Ml, Botol, Bungkus, Ikat, Lembar, Butir, Ekor, Loyang, Panci, Paket.
