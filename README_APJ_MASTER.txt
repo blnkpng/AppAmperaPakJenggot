@@ -1,4 +1,4 @@
-# APJ Produk Outlet V101 - Output PIC semua karyawan & Preparasi satuan selisih dropdown
+# APJ Produk Outlet V102 - Output PIC semua karyawan & Preparasi satuan selisih dropdown
 
 Fokus update:
 - Menu Output Stok: PIC saat tujuan `Transfer Outlet` sekarang mengambil semua karyawan aktif dari Core User, bukan hanya petugas login.
@@ -8,7 +8,7 @@ Fokus update:
 - Resep preparasi sekarang membawa qty standar bahan/hasil saat resep dipilih, lalu tetap bisa diedit sesuai fisik nyata.
 - Fix V99/V98/V97/V96/V95 tetap dibawa.
 
-Prinsip Preparasi V101 - Output PIC semua karyawan & Preparasi satuan selisih dropdown
+Prinsip Preparasi V102 - Output PIC semua karyawan & Preparasi satuan selisih dropdown
 1. Bahan Keluar = stok bahan asal berkurang.
 2. Hasil Masuk = stok hasil preparasi bertambah.
 3. Susut/rusak/hilang/sisa = catatan proses, bukan hitung otomatis lintas item.
@@ -21,6 +21,11 @@ Pasang:
 4. Tekan Ctrl + F5 di browser.
 
 
-V101:
+V102:
 - Output Stok: PIC Transfer Outlet diperbaiki lagi; backend Inventory sekarang proxy ke Core User untuk mengambil semua karyawan aktif, plus frontend mencoba lebih banyak action Core/Inventory.
 - Preparasi: Satuan Selisih diubah dari input bebas menjadi dropdown: Kg, Gram, Pcs, Porsi, Pack, Box, Liter, Ml, Botol, Bungkus, Ikat, Lembar, Butir, Ekor, Loyang, Panci, Paket.
+
+
+V102 NOTE:
+- Inventory Code.gs tidak lagi memanggil APJ_CORE_USER via UrlFetchApp secara aktif, supaya tidak error permission script.external_request dan halaman Output tidak gagal memuat kategori.
+- PIC Transfer Outlet tetap dicoba dari Core User langsung dari frontend. Jika daftar belum lengkap, kolom PIC sekarang bisa diketik manual dengan datalist/saran nama.

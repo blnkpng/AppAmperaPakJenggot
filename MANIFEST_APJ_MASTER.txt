@@ -1,4 +1,4 @@
-APJ Produk Outlet V101 - Output PIC semua karyawan & Preparasi satuan selisih dropdown
+APJ Produk Outlet V102 - Output PIC semua karyawan & Preparasi satuan selisih dropdown
 
 Perubahan utama:
 - Output Stok: dropdown PIC Transfer Outlet memuat semua karyawan aktif dari Core User, bukan hanya petugas login.
@@ -19,6 +19,11 @@ File utama yang berubah:
 - MANIFEST_APJ_MASTER.txt
 
 
-V101:
+V102:
 - Output Stok: PIC Transfer Outlet diperbaiki lagi; backend Inventory sekarang proxy ke Core User untuk mengambil semua karyawan aktif, plus frontend mencoba lebih banyak action Core/Inventory.
 - Preparasi: Satuan Selisih diubah dari input bebas menjadi dropdown: Kg, Gram, Pcs, Porsi, Pack, Box, Liter, Ml, Botol, Bungkus, Ikat, Lembar, Butir, Ekor, Loyang, Panci, Paket.
+
+
+V102 NOTE:
+- Inventory Code.gs tidak lagi memanggil APJ_CORE_USER via UrlFetchApp secara aktif, supaya tidak error permission script.external_request dan halaman Output tidak gagal memuat kategori.
+- PIC Transfer Outlet tetap dicoba dari Core User langsung dari frontend. Jika daftar belum lengkap, kolom PIC sekarang bisa diketik manual dengan datalist/saran nama.

@@ -1,6 +1,6 @@
 /**
  * ================================================================
- * APJ INVENTORY V3 - CODE.GS MASTER - V101 OUTPUT PIC ALL & PREPARASI SATUAN DROPDOWN FIX
+ * APJ INVENTORY V3 - CODE.GS MASTER - V102 OUTPUT SAFE PIC MANUAL FALLBACK FIX
  * ================================================================
  * Target Spreadsheet:
  * APJ_INVENTORY V.3. Jika script bound ke spreadsheet, SPREADSHEET_ID boleh dikosongkan.
@@ -32,7 +32,7 @@ const APJ_INV_V3 = {
    * dan memakai payload petugas/level/outlet dari frontend sebagai fallback.
    */
   CORE_USER: {
-    API_URL: 'https://script.google.com/macros/s/AKfycbwXjexCdYXsygij_WdgA6H26Xp__GCpRbLk1oxpocnvmOvyy8_9G2lVKW_6wr2qV19YkQ/exec',
+    API_URL: '', // V102: dikosongkan agar Inventory tidak memanggil UrlFetchApp ke Core User dan tidak memicu izin script.external_request
     REQUIRE_SESSION: false,
     CACHE_SECONDS: 300,
     SPREADSHEET_ID: '',
@@ -2482,11 +2482,17 @@ function getCoreProfileFromPayload_(payload) {
     try { return JSON.parse(cached); } catch (err) {}
   }
 
-  const res = callCoreUser_('getMyProfile', { sessionToken: token, token: token, appName: 'APJ_INVENTORY' });
-  if (!res || !res.success || !res.user) return null;
-  const profile = normalizeCoreProfile_(res.user);
-  cache_().put(key, JSON.stringify(profile), APJ_INV_V3.CORE_USER.CACHE_SECONDS || 300);
-  return profile;
+  // V102: jangan sampai error izin UrlFetchApp membuat halaman Inventory gagal memuat kategori/barang.
+  // Jika Apps Script belum diberi scope script.external_request, sistem fallback ke auth frontend.
+  try {
+    const res = callCoreUser_('getMyProfile', { sessionToken: token, token: token, appName: 'APJ_INVENTORY' });
+    if (!res || !res.success || !res.user) return null;
+    const profile = normalizeCoreProfile_(res.user);
+    cache_().put(key, JSON.stringify(profile), APJ_INV_V3.CORE_USER.CACHE_SECONDS || 300);
+    return profile;
+  } catch (err) {
+    return null;
+  }
 }
 
 function getCoreOutlets_(payload) {
@@ -2505,15 +2511,19 @@ function callCoreUser_(action, data) {
   const url = normText_(APJ_INV_V3.CORE_USER.API_URL);
   if (!url) return null;
   const payload = Object.assign({}, data || {}, { action: action });
-  const response = UrlFetchApp.fetch(url, {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  });
-  const text = response.getContentText() || '{}';
-  try { return JSON.parse(text); }
-  catch (err) { throw new Error('Response APJ_CORE_USER bukan JSON valid.'); }
+  try {
+    const response = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    const text = response.getContentText() || '{}';
+    try { return JSON.parse(text); }
+    catch (err) { return null; }
+  } catch (err) {
+    return null;
+  }
 }
 
 function getSessionToken_(payload) {
@@ -2590,7 +2600,7 @@ function getPics_(payload) {
   if (payload && payload.userName) currentNames.push(payload.userName);
   if (payload && payload.nama) currentNames.push(payload.nama);
 
-  // V101: sumber utama PIC Transfer Outlet adalah semua karyawan aktif di APJ_CORE_USER.
+  // V102: PIC Transfer Outlet di backend aman tanpa UrlFetchApp. Frontend tetap mencoba Core User langsung; backend dapat membaca sheet Core bila SPREADSHEET_ID diisi.
   // Jika Core belum membuka action daftar karyawan, fallback tetap petugas login supaya form tidak mati.
   rows.push.apply(rows, getPicsFromCoreUserSheet_());
   rows.push.apply(rows, getPicsFromCoreUserApi_(payload));

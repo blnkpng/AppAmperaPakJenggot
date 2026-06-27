@@ -51,7 +51,7 @@
     await loadCoreEmployeePics();
 
     setTimeout(() => {
-      if (sessionStorage.getItem('APJ_OUTPUT_HELP_SEEN_V34') !== 'true') openOutputHelpModal(true);
+      if (sessionStorage.getItem('APJ_OUTPUT_HELP_SEEN_V102') !== 'true') openOutputHelpModal(true);
     }, 450);
   }
 
@@ -278,10 +278,8 @@
     const current = getPetugas();
     const fallback = ensureCurrentPic(normalizePicOptions(STATE.pics), current);
     const actions = [
-      // Inventory V101: coba backend Inventory dulu. Backend sekarang bisa proxy ke Core User.
-      'inventory:getOutputPicList',
-      'inventory:getOutputInit',
-      // Core User: beberapa nama action dipakai di versi berbeda.
+      // V102: PIC karyawan dicoba langsung ke Core User dari browser.
+      // Backend Inventory tidak lagi proxy ke Core agar tidak kena izin UrlFetchApp.
       'getTransferSignatureUsers',
       'getSignatureUsers',
       'getDaftarPenandatangan',
@@ -357,7 +355,7 @@
       select.dataset.totalKaryawan = String(total || 0);
       select.dataset.fallbackOnly = fallbackOnly ? 'true' : 'false';
       select.title = fallbackOnly
-        ? 'Daftar PIC belum lengkap dari Core User. Cek deploy Core User / action daftar karyawan.'
+        ? 'Daftar PIC belum lengkap dari Core User. Nama PIC bisa diketik manual.'
         : `Daftar PIC: ${total || 0} karyawan`;
     });
   }
@@ -462,22 +460,35 @@
 
   function buildPicOptions(selectedValue) {
     const list = STATE.pics.length ? STATE.pics : uniquePicOptions([{ value: getPetugas(), label: getPetugas(), outlet: '' }]);
-    const options = ['<option value="" disabled selected>Pilih PIC penerima</option>'];
+    const options = [];
     list.forEach(p => {
       const value = typeof p === 'string' ? p : p.value;
       // Tampilan untuk petugas cukup nama PIC saja. Outlet tetap tidak ditampilkan agar dropdown bersih.
       const label = typeof p === 'string' ? p : (p.label || p.value);
-      const selected = selectedValue && selectedValue === value ? ' selected' : '';
-      options.push(`<option value="${escapeHtml(value)}"${selected}>${escapeHtml(label)}</option>`);
+      if (!value) return;
+      options.push(`<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`);
     });
     return options.join('');
   }
 
+  function ensurePicDatalist() {
+    let datalist = document.getElementById('outputPicDatalist');
+    if (!datalist) {
+      datalist = document.createElement('datalist');
+      datalist.id = 'outputPicDatalist';
+      document.body.appendChild(datalist);
+    }
+    datalist.innerHTML = buildPicOptions('');
+    return datalist;
+  }
+
   function refreshPicSelectOptions() {
-    document.querySelectorAll('.select-pic').forEach(select => {
-      const current = select.value || '';
-      select.innerHTML = buildPicOptions(current);
-      if (current) select.value = current;
+    ensurePicDatalist();
+    document.querySelectorAll('.input-pic').forEach(input => {
+      const current = input.value || '';
+      input.setAttribute('list', 'outputPicDatalist');
+      input.placeholder = STATE.pics.length > 1 ? 'Pilih / ketik PIC penerima' : 'Ketik PIC penerima';
+      if (current) input.value = current;
     });
   }
 
@@ -594,7 +605,7 @@
         <div class="transfer-placeholder text-xs text-slate-500">Wajib diisi jika tujuan Transfer Outlet.</div>
         <div class="transfer-fields">
           <select class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white select-outlet focus:border-rose-500 focus:outline-none" disabled><option value="" selected disabled>Pilih outlet</option>${buildOutletOptions()}</select>
-          <select class="mt-2 w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white select-pic input-pic focus:border-rose-500 focus:outline-none" disabled>${buildPicOptions('')}</select>
+          <input type="text" list="outputPicDatalist" class="mt-2 w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white select-pic input-pic focus:border-rose-500 focus:outline-none" placeholder="Pilih / ketik PIC penerima" disabled>
         </div>
       </td>
       <td class="p-2 text-center output-action-cell" data-label="Aksi"><button type="button" class="text-rose-500 hover:text-rose-600 text-sm font-extrabold" data-action="delete-row">Hapus</button></td>
@@ -835,7 +846,7 @@
   }
 
   function closeOutputHelpModal() {
-    sessionStorage.setItem('APJ_OUTPUT_HELP_SEEN_V34', 'true');
+    sessionStorage.setItem('APJ_OUTPUT_HELP_SEEN_V102', 'true');
     closeModal('outputHelpModal');
   }
 
