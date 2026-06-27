@@ -1,9 +1,14 @@
-# APJ Produk Outlet V98 - Rekap Print 58mm Fix
+# APJ Produk Outlet V99 - Cetak Rekap Font Besar Fix
 
 Fokus update:
-- Tombol rekap produk outlet diganti dari `Cetak 58mm` menjadi `Cetak Rekap` agar tidak rancu dengan Print Pesanan.
-- Print Rekap Produk Outlet 58mm sekarang memakai popup print nyata, bukan iframe tersembunyi.
-- CSS print rekap diganti ke `@page { size: 58mm 297mm; margin: 0 }` agar kasus preview muncul tetapi hasil printer kosong berkurang.
+- Hasil print `Cetak Rekap` 58mm diperbesar karena versi sebelumnya masih terlalu kecil.
+- Layout rekap diganti dari tabel 7 kolom kecil menjadi format kartu per produk:
+  - Nama produk besar.
+  - Stok akhir tampil paling jelas di kanan.
+  - Awal, Masuk, Jual, dan Koreksi tampil di kotak kecil bawahnya.
+- Font utama rekap naik dari 8.6px menjadi sekitar 12.4px, nama produk sekitar 13.6px, header sekitar 16px.
+- Tombol tetap bernama `Cetak Rekap`.
+- Fix V98 tetap dibawa: popup print 58mm untuk menghindari preview tampil tapi hasil fisik kosong.
 - Fix V97 tetap dibawa: Pesanan Lauk | Qty | Catatan.
 - Fix V96/V95 tetap dibawa: font Pesanan 14px dan kompatibilitas Nama Pemesan/Nama Pesanan.
 

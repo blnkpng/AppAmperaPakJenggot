@@ -879,18 +879,20 @@
       @page{size:58mm 297mm;margin:0!important}
       *{box-sizing:border-box}
       html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;width:58mm!important;min-width:58mm!important;min-height:30mm!important;height:auto!important;overflow:visible!important}
-      body{font-family:Arial,Helvetica,sans-serif;font-size:8.6px;line-height:1.20;font-weight:500;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}
-      .wrap{width:56mm;max-width:56mm;margin:0 auto;padding:2mm 1mm 3mm 1mm;background:#fff;break-inside:auto;page-break-inside:auto}
-      .center{text-align:center}.right{text-align:right}.muted{font-size:7.2px;color:#222}.bold{font-weight:700}
-      .brand{font-size:12px;font-weight:900;letter-spacing:.02em;margin:0;text-transform:uppercase}
-      .title{font-size:9.5px;font-weight:800;margin-top:.8mm;text-transform:uppercase}
-      .dash{border-top:1.4px dashed #000;margin:1.5mm 0}
-      .meta{display:grid;grid-template-columns:14mm 1fr;gap:.35mm .7mm;margin-top:1mm;font-size:8px;line-height:1.2}.meta div:nth-child(odd){font-weight:700}
-      .legend{display:grid;grid-template-columns:5mm 1fr 7mm 7mm 7mm 7mm 7mm;gap:.35mm;font-size:6.8px;font-weight:800;text-transform:uppercase;border-bottom:1px solid #000;padding-bottom:.8mm;margin-top:1mm}
-      .row{display:grid;grid-template-columns:5mm 1fr 7mm 7mm 7mm 7mm 7mm;gap:.35mm;align-items:start;border-bottom:1px dashed #999;padding:.9mm 0;break-inside:avoid;page-break-inside:avoid}
-      .no{font-weight:700}.name{font-size:8px;font-weight:800;line-height:1.14;word-break:break-word;overflow-wrap:anywhere}.unit{font-size:6.8px;font-weight:500;color:#222;margin-top:.25mm}
-      .num{text-align:right;font-size:7.8px;white-space:nowrap}
-      .footer{margin-top:1.5mm;font-size:7.4px;line-height:1.25}
+      body{font-family:Arial,Helvetica,sans-serif;font-size:12.4px;line-height:1.25;font-weight:500;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}
+      .wrap{width:56mm;max-width:56mm;margin:0 auto;padding:2.4mm 1.3mm 4mm 1.3mm;background:#fff;break-inside:auto;page-break-inside:auto}
+      .center{text-align:center}.right{text-align:right}.muted{font-size:10.5px;color:#222}.bold{font-weight:700}
+      .brand{font-size:16px;font-weight:900;letter-spacing:.02em;margin:0;text-transform:uppercase;line-height:1.08}
+      .title{font-size:13.5px;font-weight:900;margin-top:1mm;text-transform:uppercase;line-height:1.1}
+      .dash{border-top:1.6px dashed #000;margin:2mm 0}
+      .meta{display:grid;grid-template-columns:17mm 1fr;gap:.65mm 1mm;margin-top:1mm;font-size:12px;line-height:1.22}.meta div:nth-child(odd){font-weight:800}.meta div{word-break:break-word;overflow-wrap:anywhere}
+      .legend{font-size:11px;font-weight:900;text-transform:uppercase;border-bottom:1.4px solid #000;padding-bottom:1mm;margin-top:1mm}
+      .row{border-bottom:1.3px dashed #777;padding:1.7mm 0;break-inside:avoid;page-break-inside:avoid}
+      .row-main{display:grid;grid-template-columns:5mm 1fr 12mm;gap:.8mm;align-items:start}
+      .no{font-size:11.5px;font-weight:900}.name{font-size:13.6px;font-weight:900;line-height:1.15;word-break:break-word;overflow-wrap:anywhere}.unit{font-size:10.4px;font-weight:600;color:#222;margin-top:.35mm}
+      .final{text-align:right;font-size:13px;font-weight:900;white-space:nowrap}.final-label{display:block;font-size:8.6px;font-weight:900;text-transform:uppercase;margin-bottom:.3mm}
+      .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.7mm;margin-top:1.3mm}.stat{border:1.1px solid #999;border-radius:.8mm;padding:.7mm .4mm;text-align:center;min-height:7.7mm}.stat-label{font-size:8.1px;font-weight:900;text-transform:uppercase;line-height:1.05}.stat-val{font-size:11.2px;font-weight:800;margin-top:.4mm;line-height:1.05;white-space:nowrap}
+      .total-box{border:1.4px solid #000;border-radius:1mm;padding:1.2mm;margin-top:1.6mm;font-size:11.4px;line-height:1.35}.total-box div{display:flex;justify-content:space-between;gap:1mm}.footer{margin-top:2mm;font-size:10.5px;line-height:1.25}
       @media print{@page{size:58mm 297mm;margin:0!important}html,body{width:58mm!important;min-width:58mm!important;height:auto!important;min-height:30mm!important;overflow:visible!important}.wrap{width:56mm!important;max-width:56mm!important}.row{break-inside:avoid;page-break-inside:avoid}.no-print{display:none!important}body:after{content:"";display:block;height:2mm}}
     </style></head><body><div class="wrap">
       <div class="center"><p class="brand">AMPERA PAK JENGGOT</p><div class="title">Rekap Produk Outlet</div></div>
@@ -902,20 +904,32 @@
         <div>Petugas</div><div>: ${esc(localStorage.getItem('APJ_USER_NAME') || '-')}</div>
       </div>
       <div class="dash"></div>
-      <div class="legend"><div>No</div><div>Produk</div><div class="right">Awal</div><div class="right">+</div><div class="right">Jual</div><div class="right">Kor</div><div class="right">Akhir</div></div>
+      <div class="legend">Daftar Produk</div>
       ${rows.map((r,i)=>`<div class="row">
-        <div class="no">${i+1}</div>
-        <div class="name">${esc(r.nama)}<div class="unit">${esc(r.satuan || '-')}</div></div>
-        <div class="num">${fmt(r.stokKemarin)}</div>
-        <div class="num">${fmt(r.stokMasuk)}</div>
-        <div class="num">${fmt(r.stokTerjual)}</div>
-        <div class="num">${fmt(r.selisihOpname)}</div>
-        <div class="num"><b>${fmt(r.stokSisa)}</b></div>
+        <div class="row-main">
+          <div class="no">${i+1}</div>
+          <div class="name">${esc(r.nama)}<div class="unit">${esc(r.satuan || '-')}</div></div>
+          <div class="final"><span class="final-label">Akhir</span>${fmt(r.stokSisa)}</div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="stat-label">Awal</div><div class="stat-val">${fmt(r.stokKemarin)}</div></div>
+          <div class="stat"><div class="stat-label">Masuk</div><div class="stat-val">${fmt(r.stokMasuk)}</div></div>
+          <div class="stat"><div class="stat-label">Jual</div><div class="stat-val">${fmt(r.stokTerjual)}</div></div>
+          <div class="stat"><div class="stat-label">Kor</div><div class="stat-val">${fmt(r.selisihOpname)}</div></div>
+        </div>
       </div>`).join('')}
+      <div class="dash"></div>
+      <div class="total-box">
+        <div><span>Total Awal</span><b>${fmt(totalAwal)}</b></div>
+        <div><span>Total Masuk</span><b>${fmt(totalMasuk)}</b></div>
+        <div><span>Total Terjual</span><b>${fmt(totalTerjual)}</b></div>
+        <div><span>Total Koreksi</span><b>${fmt(totalAdj)}</b></div>
+        <div><span>Total Akhir</span><b>${fmt(totalAkhir)}</b></div>
+      </div>
       <div class="dash"></div>
       <div class="footer center">Dicetak : ${esc(now.toLocaleString('id-ID'))}</div>
     </div></body></html>`;
-    // V98: gunakan popup print seperti Pesanan. Iframe hidden sering membuat preview tampil, tetapi hasil thermal kosong.
+    // V99: layout rekap dibuat besar dan bertingkat agar terbaca di thermal 58mm; tetap memakai popup print dari V98.
     printHtml58Roll(html, null, 'Cetak Rekap Produk Outlet 58mm');
   }
 

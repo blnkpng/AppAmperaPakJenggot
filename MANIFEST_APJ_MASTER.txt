@@ -1,7 +1,8 @@
-APJ Produk Outlet V98 - Rekap Print 58mm Fix
+APJ Produk Outlet V99 - Cetak Rekap Font Besar Fix
 
 Perubahan utama:
-- Tombol Cetak 58mm rekap diganti menjadi Cetak Rekap.
-- Print Rekap Produk Outlet 58mm tidak lagi menggunakan iframe hidden.
-- Layout print rekap memakai popup print + ukuran halaman eksplisit 58mm x 297mm.
-- V97 Pesanan Lauk Qty Catatan tetap aman.
+- Print Cetak Rekap 58mm diperbesar agar terbaca di printer thermal.
+- Layout rekap tidak lagi dipaksa 7 kolom kecil; setiap produk dibuat model kartu bertingkat.
+- Nama produk, stok akhir, dan angka utama dibuat lebih besar/tebal seperlunya.
+- Ringkasan total Awal/Masuk/Terjual/Koreksi/Akhir ditambahkan di bawah struk.
+- Fix V98/V97/V96/V95 tetap dibawa.
